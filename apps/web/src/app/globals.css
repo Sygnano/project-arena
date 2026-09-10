@@ -1,0 +1,470 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* ═══════════════════════════════════════════════════
+   LoL / Hextech design tokens — ported from
+   ../../project-arena/src/index.css
+   ═══════════════════════════════════════════════════ */
+
+@theme {
+  /* ── Fonts (files loaded via next/font/local in src/fonts/index.ts) ── */
+  --font-display:
+    var(--font-beaufort), "Times New Roman", Times, Baskerville, Georgia, serif;
+  --font-body: var(--font-spiegel), system-ui, "Segoe UI", Roboto, sans-serif;
+
+  /* ── Colors: Backgrounds ── */
+  --color-lol-black: #010a13;
+  --color-lol-navy-950: #050e16;
+  --color-lol-navy-900: #091428;
+  --color-lol-navy-850: #0a1428;
+  --color-lol-navy-800: #0a1e28;
+  --color-lol-navy-700: #0a323c;
+  --color-lol-surface: #111820;
+  --color-lol-surface-hover: #1e2328;
+  --color-lol-surface-active: #252b32;
+
+  /* ── Colors: Hextech Magic — Blue / Cyan ── */
+  --color-lol-blue-50: #cdfafa;
+  --color-lol-blue-100: #a4f4f4;
+  --color-lol-blue-200: #63e6e2;
+  --color-lol-blue-300: #0ac8b9;
+  --color-lol-blue-400: #0ac4d9;
+  --color-lol-blue-500: #0397ab;
+  --color-lol-blue-600: #0487a0;
+  --color-lol-blue-700: #005a82;
+  --color-lol-blue-800: #0a4255;
+  --color-lol-blue-900: #0a323c;
+
+  /* ── Colors: Hextech Metal — Gold ── */
+  --color-lol-gold-50: #f0e6d2;
+  --color-lol-gold-100: #e9d8ae;
+  --color-lol-gold-200: #d8c28b;
+  --color-lol-gold-300: #c8aa6e;
+  --color-lol-gold-400: #c89b3c;
+  --color-lol-gold-500: #a77b28;
+  --color-lol-gold-600: #785a28;
+  --color-lol-gold-700: #5b431a;
+  --color-lol-gold-800: #463714;
+  --color-lol-gold-900: #322a18;
+
+  /* ── Colors: Text / Neutrals ── */
+  --color-lol-text: #f0e6d2;
+  --color-lol-text-secondary: #c8c2b6;
+  --color-lol-text-muted: #a09b8c;
+  --color-lol-text-disabled: #5b5a56;
+  --color-lol-border: #3c3c41;
+  --color-lol-border-muted: #1e282d;
+  --color-lol-divider: #282f35;
+
+  /* ── Colors: Game / Semantic ── */
+  --color-lol-success: #46c997;
+  --color-lol-heal: #22c55e;
+  --color-lol-warning: #e2b93b;
+  --color-lol-danger: #e84057;
+  --color-lol-damage: #d64545;
+  --color-lol-magic: #6c5ce7;
+  --color-lol-mana: #1e90ff;
+
+  /* ── Colors: Rarity ── */
+  --color-lol-common: #a09b8c;
+  --color-lol-uncommon: #46c997;
+  --color-lol-rare: #3498db;
+  --color-lol-epic: #9b59b6;
+  --color-lol-legendary: #e67e22;
+  --color-lol-mythic: #d946ef;
+
+  /* ── Colors: Ranks ── */
+  --color-lol-iron: #6b6660;
+  --color-lol-bronze: #a06a43;
+  --color-lol-silver: #a6b4b8;
+  --color-lol-gold: #d6a84b;
+  --color-lol-platinum: #48a99a;
+  --color-lol-emerald: #38b875;
+  --color-lol-diamond: #6da9e4;
+  --color-lol-master: #a76de4;
+  --color-lol-grandmaster: #d84f65;
+  --color-lol-challenger: #56cfe1;
+
+  /* ── Colors: Arena Augment Rarity (Silver / Gold / Prismatic) ──
+   * Sampled from the real Cherry (Arena) UI's card-frame textures
+   * (augmentcard_frame_{silver,gold,prismatic}.png, patch 16.11 — see
+   * CommunityDragon's cherry/augments/augmentselection asset folder) rather
+   * than guessed. Distinct from the `--color-lol-silver`/`-gold` tokens
+   * above, which are competitive rank-tier colors for an unrelated concept.
+   * Gold has no separate augment-specific token: the real gold frame's
+   * gradient (cream top corners fading to bronze) already matches the
+   * existing Hextech gold ramp/gradient almost exactly, so augment gold
+   * styling reuses `--color-lol-gold-400` / `--gradient-hextech-gold`
+   * directly rather than duplicating near-identical values. */
+  --color-augment-silver: #b9c4c8;
+  --color-augment-silver-light: #eef2f3;
+  --color-augment-silver-dark: #4d565b;
+  /* Prismatic has no single "color" in the game either — it's an iridescent
+   * shimmer. These four hues are the ones visible sweeping across the real
+   * frame/sheen-glow textures; `--color-augment-prismatic` (the violet) is
+   * the closest single-swatch stand-in for places that need one flat color
+   * (e.g. a legend swatch) rather than the full animated gradient. */
+  --color-augment-prismatic: #b98add;
+  --color-augment-prismatic-pink: #f2a6d0;
+  --color-augment-prismatic-violet: #b98add;
+  --color-augment-prismatic-blue: #9fc9f5;
+  --color-augment-prismatic-green: #9be3c9;
+
+  /* ── Box Shadows ── */
+  --shadow-hextech-blue:
+    0 0 10px rgba(10, 200, 185, 0.3), 0 0 24px rgba(3, 151, 171, 0.15);
+  --shadow-hextech-gold:
+    0 0 10px rgba(200, 170, 110, 0.25), 0 0 24px rgba(120, 90, 40, 0.15);
+
+  /* ── Background Images ── */
+  --gradient-hextech-blue: linear-gradient(
+    180deg,
+    #0ac8b9 0%,
+    #0397ab 45%,
+    #005a82 100%
+  );
+  --gradient-hextech-gold: linear-gradient(
+    180deg,
+    #c8aa6e 0%,
+    #c89b3c 45%,
+    #785a28 100%
+  );
+  --gradient-hextech-dark: linear-gradient(
+    135deg,
+    #010a13 0%,
+    #091428 55%,
+    #0a323c 100%
+  );
+
+  /* Augment rarity border/fill gradients — see the color tokens above for
+   * where these come from. `--gradient-augment-prismatic` starts and ends on
+   * the same color (a closed loop) specifically so `.augment-frame-prismatic`
+   * below can tile it edge-to-edge with `background-repeat: repeat-x` and
+   * scroll it by exactly one tile width for a seamless infinite shimmer —
+   * an earlier version drove the hue rotation via an animated `@property`
+   * angle into a `conic-gradient()` instead, which looked right for a single
+   * element but silently stopped repainting once ~20+ elements animated the
+   * same custom property at once (reproduced in isolation, unrelated to this
+   * app — a real Chromium engine limitation, not a bug in that CSS). The
+   * augment catalog renders up to 57 Prismatic icons on screen simultaneously
+   * (see CLAUDE.md §2), so this had to be verified at that scale, not just
+   * with one element. */
+  --gradient-augment-silver: linear-gradient(
+    180deg,
+    var(--color-augment-silver-light) 0%,
+    var(--color-augment-silver) 45%,
+    var(--color-augment-silver-dark) 100%
+  );
+  --gradient-augment-prismatic: linear-gradient(
+    100deg,
+    var(--color-augment-prismatic-pink),
+    var(--color-augment-prismatic-violet),
+    var(--color-augment-prismatic-blue),
+    var(--color-augment-prismatic-green),
+    var(--color-augment-prismatic-pink)
+  );
+
+  /* Gold/Silver's "sheen" — a soft bright band on an otherwise transparent
+   * strip, same `100deg` diagonal as the Prismatic gradient above for a
+   * consistent light direction across all three tiers. Color and softness
+   * are sampled from the real `augmentcard_sheenglow_{gold,silver}.png`
+   * textures rather than guessed: scanning a horizontal row through the real
+   * frame's glow halo (pixel-read from the decompressed PNGs) shows it fades
+   * in/out over a wide span (~15% of the card's width on each side) rather
+   * than a hard-edged line, and its color is a warm `rgb(255, 190, 140)` for
+   * gold — noticeably more orange than the pale cream first guessed here —
+   * and a neutral `rgb(255, 255, 255)` for silver, which was already right.
+   * The real texture's glow is a *static* halo with no motion baked into it
+   * at all (the apparent brightness gradient along the ring is just the same
+   * static top-lit metal gradient as `--gradient-augment-{gold,silver}`, not
+   * a separate highlight) — animating it into a moving sweep, per this
+   * project's own earlier decision, is a deliberate stylization beyond the
+   * literal asset, not something the texture itself shows. Its real peak
+   * opacity is also much subtler (~0.2) than used here — kept brighter
+   * (0.6) since a barely-visible sweep isn't a useful UI effect, faithful
+   * color/softness aside. Unlike Prismatic's gradient (which IS the
+   * border), this is layered ON TOP of the existing static gold/silver
+   * border gradient (see `.augment-frame-{gold,silver}` below) — one tile
+   * exactly matches the element, scrolled by exactly one tile width per
+   * cycle (see `augment-sheen-sweep`'s doc comment for why NOT an oversized
+   * tile). Starts and ends on transparent (not a fixed color) so the loop
+   * is seamless, the same reasoning as Prismatic's closed-loop hue
+   * sequence. */
+  --gradient-augment-sheen-gold: linear-gradient(
+    100deg,
+    transparent 0%,
+    transparent 30%,
+    rgba(255, 190, 140, 0.6) 50%,
+    transparent 70%,
+    transparent 100%
+  );
+  --gradient-augment-sheen-silver: linear-gradient(
+    100deg,
+    transparent 0%,
+    transparent 30%,
+    rgba(255, 255, 255, 0.6) 50%,
+    transparent 70%,
+    transparent 100%
+  );
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-body);
+  --font-mono: ui-monospace, Consolas, monospace;
+  --font-heading: var(--font-display);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* `.augment-frame` always has 3 background layers now — fill, sheen, border
+ * (see `.augment-frame` below) — so every `background-position` keyframe
+ * needs one value per layer even when only one of them is actually moving;
+ * the other two stay at "0 0" (their default) as a no-op. */
+
+/* Shifts `.augment-frame-prismatic`'s border gradient (3rd layer) by exactly
+ * one tile width (see `--gradient-augment-prismatic`'s doc comment) — plain
+ * `background-position`, not a Houdini custom property, so it keeps
+ * repainting correctly no matter how many augment icons animate it at once. */
+@keyframes augment-prismatic-shift {
+  to {
+    background-position:
+      0 0,
+      0 0,
+      -100% 0;
+  }
+}
+
+/* Slides `.augment-frame-{gold,silver}`'s sheen layer (2nd layer) by exactly
+ * one tile width, same as `augment-prismatic-shift` above — deliberately
+ * NOT an oversized (e.g. 300%) tile scrolled a fraction of the way, which
+ * was the first attempt at making the pass read as "occasional" rather than
+ * a constant smear. That version silently failed to paint at all: isolated
+ * outside this app, `background-size` above 100% combined with
+ * `background-repeat: repeat` on a `background-clip: border-box` layer that
+ * shares a background-image list with a `padding-box` layer never rendered,
+ * in any of 60+ sampled `background-position` offsets across a full cycle —
+ * a genuine Chromium rendering bug in that specific combination, not a
+ * mistake in the position math (same class of engine-level surprise as the
+ * `@property`-animation-at-scale issue documented on
+ * `--gradient-augment-prismatic` above, different trigger). A single tile
+ * (one gradient's width = one element width) sidesteps it entirely and
+ * still reads as a single clean pass per cycle, because the gradient itself
+ * is mostly transparent with only a narrow bright band. */
+@keyframes augment-sheen-sweep {
+  to {
+    background-position:
+      0 0,
+      -100% 0,
+      0 0;
+  }
+}
+
+/* Arena Stats is a single, permanently dark Hextech theme — no light mode. */
+:root {
+  --background: var(--color-lol-black);
+  --foreground: var(--color-lol-text);
+  --card: var(--color-lol-navy-900);
+  --card-foreground: var(--color-lol-text);
+  --popover: var(--color-lol-navy-900);
+  --popover-foreground: var(--color-lol-text);
+
+  /* Primary = Hextech Blue */
+  --primary: var(--color-lol-blue-500);
+  --primary-foreground: var(--color-lol-black);
+
+  /* Secondary = Hextech Gold */
+  --secondary: var(--color-lol-gold-400);
+  --secondary-foreground: var(--color-lol-black);
+
+  /* Muted = Navy surface */
+  --muted: var(--color-lol-surface);
+  --muted-foreground: var(--color-lol-text-muted);
+
+  /* Accent = Bright Cyan */
+  --accent: var(--color-lol-blue-300);
+  --accent-foreground: var(--color-lol-black);
+
+  /* Destructive = Danger Red */
+  --destructive: var(--color-lol-danger);
+  --destructive-foreground: var(--color-lol-text);
+
+  /* Borders / Inputs */
+  --border: var(--color-lol-border);
+  --input: var(--color-lol-border);
+  --ring: var(--color-lol-blue-400);
+
+  --chart-1: var(--color-lol-blue-300);
+  --chart-2: var(--color-lol-gold-400);
+  --chart-3: var(--color-lol-success);
+  --chart-4: var(--color-lol-magic);
+  --chart-5: var(--color-lol-danger);
+
+  --radius: 0.25rem;
+
+  --sidebar: var(--color-lol-navy-900);
+  --sidebar-foreground: var(--color-lol-text);
+  --sidebar-primary: var(--color-lol-blue-500);
+  --sidebar-primary-foreground: var(--color-lol-black);
+  --sidebar-accent: var(--color-lol-surface);
+  --sidebar-accent-foreground: var(--color-lol-text);
+  --sidebar-border: var(--color-lol-border-muted);
+  --sidebar-ring: var(--color-lol-blue-400);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    color: var(--color-lol-gold-50);
+  }
+
+  /* ── Semantic application tokens ── */
+  .bg-panel {
+    background-color: var(--color-lol-navy-900);
+  }
+  .bg-panel-elevated {
+    background-color: var(--color-lol-surface);
+  }
+  .border-frame {
+    border-color: var(--color-lol-gold-700);
+  }
+  .border-frame-subtle {
+    border-color: var(--color-lol-border-muted);
+  }
+  .text-heading {
+    color: var(--color-lol-gold-50);
+  }
+  .text-section {
+    color: var(--color-lol-gold-300);
+  }
+  .text-stat-positive {
+    color: var(--color-lol-success);
+  }
+  .text-stat-negative {
+    color: var(--color-lol-danger);
+  }
+  .text-interactive {
+    color: var(--color-lol-blue-300);
+  }
+  .text-interactive:hover {
+    color: var(--color-lol-blue-100);
+  }
+  .accent-gold {
+    color: var(--color-lol-gold-400);
+  }
+
+  /* ── Augment rarity border ──
+   * A gradient "ring" that respects whatever border-radius the element
+   * already has — plain `border-image` can't do that (it ignores
+   * border-radius entirely). Instead this paints three background layers on
+   * the element itself, back to front: the rarity gradient clipped to the
+   * border-box (the border ring itself, showing through the transparent
+   * border), a sheen layer also clipped to the border-box (transparent by
+   * default — only Gold/Silver override it, see below), and on top a flat
+   * fill clipped to the padding-box (everything inside the border) that
+   * occludes the other two wherever it covers them. Add a `rounded-*` class
+   * and (optionally) set `--augment-frame-fill` alongside one of the three
+   * variants below; `--augment-frame-width` defaults to 2px.
+   */
+  .augment-frame {
+    border: var(--augment-frame-width, 2px) solid transparent;
+    background-origin: border-box;
+    background-clip: padding-box, border-box, border-box;
+    background-image: linear-gradient(
+        var(--augment-frame-fill, var(--color-lol-surface)),
+        var(--augment-frame-fill, var(--color-lol-surface))
+      ),
+      var(--augment-frame-sheen, linear-gradient(transparent, transparent)),
+      var(--augment-frame-border, var(--gradient-augment-silver));
+  }
+  .augment-frame-silver {
+    --augment-frame-border: var(--gradient-augment-silver);
+    --augment-frame-sheen: var(--gradient-augment-sheen-silver);
+    background-repeat: no-repeat, repeat, no-repeat;
+    animation: augment-sheen-sweep 5s linear infinite;
+  }
+  .augment-frame-gold {
+    --augment-frame-border: var(--gradient-hextech-gold);
+    --augment-frame-sheen: var(--gradient-augment-sheen-gold);
+    background-repeat: no-repeat, repeat, no-repeat;
+    animation: augment-sheen-sweep 5s linear infinite;
+  }
+  /* Silver metal ramp without the sheen sweep — for grids with many icons
+   * at once (e.g. ChampionPicks tier borders) where an animated highlight
+   * on every icon reads as busy, the same non-animated reasoning as the SVG
+   * bar-chart gradients in components/augment-gradients. Only sets the
+   * border layer; `--augment-frame-sheen` is left at its transparent
+   * default and there's no `animation`. */
+  .augment-frame-silver-static {
+    --augment-frame-border: var(--gradient-augment-silver);
+  }
+  .augment-frame-prismatic {
+    --augment-frame-border: var(--gradient-augment-prismatic);
+    /* Only the border layer (3rd) tiles/scrolls — the other two are left at
+     * their defaults (auto size, no-repeat, position 0 0), which is why
+     * every value below is a three-item comma list even though just the
+     * last matters. */
+    background-repeat: no-repeat, no-repeat, repeat-x;
+    background-size: auto, auto, 100% 100%;
+    animation: augment-prismatic-shift 6s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .augment-frame-silver,
+    .augment-frame-gold,
+    .augment-frame-prismatic {
+      animation: none;
+    }
+  }
+
+  .debug {
+    @apply border-2 border-red-500;
+  }
+}

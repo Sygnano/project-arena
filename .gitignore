@@ -1,0 +1,13 @@
+node_modules/
+.turbo/
+dist/
+.next/
+out/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+
+# Its own separate git repo/workspace (see CLAUDE.md) — not tracked here.
+/vendor/nivo/

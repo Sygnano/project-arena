@@ -1,0 +1,21 @@
+ALTER TABLE "match_participants" ADD COLUMN "time_played_seconds" integer;--> statement-breakpoint
+ALTER TABLE "match_participants" ADD COLUMN "damage_dealt_to_champions_physical" integer;--> statement-breakpoint
+ALTER TABLE "match_participants" ADD COLUMN "damage_dealt_to_champions_magic" integer;--> statement-breakpoint
+ALTER TABLE "match_participants" ADD COLUMN "damage_dealt_to_champions_true" integer;--> statement-breakpoint
+ALTER TABLE "match_participants" ADD COLUMN "damage_taken_physical" integer;--> statement-breakpoint
+ALTER TABLE "match_participants" ADD COLUMN "damage_taken_magic" integer;--> statement-breakpoint
+ALTER TABLE "match_participants" ADD COLUMN "damage_taken_true" integer;--> statement-breakpoint
+ALTER TABLE "match_participants" ADD COLUMN "largest_critical_strike" integer;--> statement-breakpoint
+ALTER TABLE "match_participants" ADD COLUMN "healing_and_shielding" integer;--> statement-breakpoint
+ALTER TABLE "match_participants" ADD COLUMN "cc_score_seconds" integer;--> statement-breakpoint
+ALTER TABLE "match_participants" ADD COLUMN "cc_total_time_dealt" integer;--> statement-breakpoint
+ALTER TABLE "match_participants" ADD COLUMN "fist_bumps" integer;--> statement-breakpoint
+ALTER TABLE "match_participants" ADD COLUMN "q_casts" integer;--> statement-breakpoint
+ALTER TABLE "match_participants" ADD COLUMN "w_casts" integer;--> statement-breakpoint
+ALTER TABLE "match_participants" ADD COLUMN "e_casts" integer;--> statement-breakpoint
+ALTER TABLE "match_participants" ADD COLUMN "r_casts" integer;--> statement-breakpoint
+ALTER TABLE "match_participants" ADD COLUMN "summoner_spell_1_casts" integer;--> statement-breakpoint
+ALTER TABLE "match_participants" ADD COLUMN "summoner_spell_2_casts" integer;--> statement-breakpoint
+ALTER TABLE "match_participants" ADD COLUMN "pings" jsonb;--> statement-breakpoint
+ALTER TABLE "match_participants" ADD COLUMN "anvils_bought" integer;--> statement-breakpoint
+ALTER TABLE "matches" ADD COLUMN "banned_champion_ids" integer[];
