@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet"><style>
+body{margin:0;background:#0b0e12;font-family:Barlow,system-ui,sans-serif}
+a{color:#0ac8b9;text-decoration:none}a:hover{color:#5ce1d5}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(255,255,255,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#f0e6d2;color:#091428;border-radius:4px}
+.dv-tname{font:500 13px/1.2 Barlow,sans-serif;color:#c8c2b6}
+.dv-opts{display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(240,230,210,.14);color:#f0e6d2;border-radius:5px}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11.5px/1.3 Barlow,sans-serif;color:rgba(240,230,210,.55);max-width:1440px}
+.dv-card{max-width:100%;border:1px solid rgba(200,170,110,.18);overflow:hidden}
+.dv-opt:target .dv-oid{background:#0ac8b9;color:#031318}
+.dv-next{margin:22px 0 0;font:12px/1.6 Barlow,sans-serif;color:rgba(240,230,210,.45)}
+@keyframes streak{0%{transform:translateX(-60px);opacity:0}8%{opacity:.9}45%{opacity:.9}70%{opacity:0}100%{transform:translateX(760px);opacity:0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes breathe{0%,100%{opacity:.35}50%{opacity:.85}}
+@keyframes drift{0%{stroke-dashoffset:0}100%{stroke-dashoffset:-420}}
+@keyframes rise{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+</style></helmet>
+
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><span class="dv-tid">2</span><span class="dv-tname"><a href="#1a">1a</a> as the base — <a href="#1b">1b</a>'s header and bottom separator, <a href="#1c">1c</a>'s vertical bars, now scrollable with a Total / Best toggle</span></div>
+<div class="dv-opts">
+<div class="dv-opt" id="2a">
+<div class="dv-olabel"><span class="dv-oid">2a</span>Left column trimmed 400 → 344px. Toggle over carousel: one tap, no hidden state, and the bars re-rank in place so you can read the change. Chart scrolls horizontally through all 18 champions; the leader stays bright.</div>
+<div class="dv-card" style="width:1440px">
+<div style="position:relative;width:1440px;height:900px;overflow:hidden;background:#050e16">
+<div style="position:absolute;inset:-40px;background:url(bg-arena.jpg) center 38%/cover no-repeat;filter:blur(16px) saturate(.55) brightness(.34) contrast(1.05)"></div>
+<div style="position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 40%,rgba(5,14,22,.62) 0%,rgba(3,9,16,.9) 62%,#02070c 100%)"></div>
+<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(9,20,40,.55),rgba(2,7,12,.2) 40%,rgba(2,7,12,.85))"></div>
+
+<div style="position:absolute;inset:0;display:grid;grid-template-columns:344px minmax(0,1fr);gap:48px;padding:72px 84px 104px">
+  <div style="display:flex;flex-direction:column">
+    <div>
+      <div style="font-family:Marcellus,serif;font-size:52px;line-height:1;letter-spacing:.08em;color:#f0e6d2">KDA</div>
+      <div style="margin-top:12px;width:56px;height:1px;background:rgba(200,170,110,.6)"></div>
+      <div style="margin-top:14px;font-size:13px;font-style:italic;color:#a09b8c">“The KDA is the KDA.”</div>
+    </div>
+
+    <div style="position:relative;width:286px;height:286px;margin:44px auto 0;display:flex;align-items:center;justify-content:center">
+      <div style="position:absolute;inset:32px;border-radius:50%;border:1px solid rgba(200,170,110,.22)"></div>
+      <div style="position:absolute;inset:20px;border-radius:50%;border:1px solid rgba(10,200,185,.16)"></div>
+      <svg viewBox="0 0 286 286" style="position:absolute;inset:0;width:100%;height:100%;animation:spin 22s linear infinite"><circle cx="143" cy="143" r="122" fill="none" stroke="#0ac4d9" stroke-width="2" stroke-linecap="round" stroke-dasharray="144 622" opacity=".9" style="filter:drop-shadow(0 0 8px rgba(10,196,217,.9))"></circle><circle cx="143" cy="143" r="122" fill="none" stroke="#0ac8b9" stroke-width="1" stroke-dasharray="38 728" stroke-dashoffset="-290" opacity=".5"></circle></svg>
+      <div style="position:absolute;top:-2px;left:50%;margin-left:-6px;width:12px;height:12px;transform:rotate(45deg);background:#c8aa6e;animation:breathe 5s ease-in-out infinite"></div>
+      <div style="position:absolute;bottom:-2px;left:50%;margin-left:-6px;width:12px;height:12px;transform:rotate(45deg);background:#c8aa6e;animation:breathe 5s ease-in-out infinite 2.5s"></div>
+      <div style="text-align:center">
+        <div style="font-family:Marcellus,serif;font-size:72px;line-height:1;color:#f0e6d2;text-shadow:0 0 26px rgba(10,200,185,.35)">2.63</div>
+        <div style="margin-top:6px;font-size:12px;letter-spacing:.42em;color:#0ac8b9;padding-left:.42em">KDA</div>
+      </div>
+    </div>
+
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:2px">
+      <div style="display:flex;align-items:center;gap:14px;padding:13px 4px;border-top:1px solid rgba(200,170,110,.14)"><div style="width:7px;height:7px;transform:rotate(45deg);background:#c8aa6e;flex:none"></div><div style="flex:1;font-size:14px;letter-spacing:.12em;color:#c8c2b6">KILLS</div><div style="font-family:Marcellus,serif;font-size:22px;color:#f0e6d2">2,590</div></div>
+      <div style="display:flex;align-items:center;gap:14px;padding:13px 4px;border-top:1px solid rgba(200,170,110,.14)"><div style="width:7px;height:7px;transform:rotate(45deg);background:#c8aa6e;flex:none"></div><div style="flex:1;font-size:14px;letter-spacing:.12em;color:#c8c2b6">DEATHS</div><div style="font-family:Marcellus,serif;font-size:22px;color:#f0e6d2">2,481</div></div>
+      <div style="display:flex;align-items:center;gap:14px;padding:13px 4px;border-top:1px solid rgba(200,170,110,.14);border-bottom:1px solid rgba(200,170,110,.14)"><div style="width:7px;height:7px;transform:rotate(45deg);background:#c8aa6e;flex:none"></div><div style="flex:1;font-size:14px;letter-spacing:.12em;color:#c8c2b6">ASSISTS</div><div style="font-family:Marcellus,serif;font-size:22px;color:#f0e6d2">3,925</div></div>
+    </div>
+  </div>
+
+  <div style="position:relative;align-self:stretch;min-width:0;margin-top:26px">
+    <div style="position:absolute;inset:0;background:linear-gradient(155deg,rgba(9,20,40,.62),rgba(3,10,18,.72));backdrop-filter:blur(3px);border:1px solid rgba(200,170,110,.3)"></div>
+    <div style="position:absolute;left:14px;right:14px;top:-1px;height:1px;background:linear-gradient(90deg,transparent,rgba(200,170,110,.5) 20%,transparent 44%,transparent 56%,rgba(200,170,110,.5) 80%,transparent)"></div>
+    <div style="position:absolute;left:-7px;top:-7px;width:13px;height:13px;transform:rotate(45deg);background:#050e16;border:1px solid rgba(200,170,110,.75)"></div>
+    <div style="position:absolute;right:-7px;top:-7px;width:13px;height:13px;transform:rotate(45deg);background:#050e16;border:1px solid rgba(200,170,110,.75)"></div>
+    <div style="position:absolute;left:-7px;bottom:-7px;width:13px;height:13px;transform:rotate(45deg);background:#050e16;border:1px solid rgba(200,170,110,.75)"></div>
+    <div style="position:absolute;right:-7px;bottom:-7px;width:13px;height:13px;transform:rotate(45deg);background:#050e16;border:1px solid rgba(200,170,110,.75)"></div>
+    <div style="position:absolute;left:50%;top:-25px;transform:translateX(-50%);display:flex;align-items:center;gap:16px;background:#040c14;padding:0 22px">
+      <div style="width:9px;height:9px;transform:rotate(45deg);border:1px solid rgba(200,170,110,.6)"></div>
+      <div style="font-family:Marcellus,serif;font-size:27px;letter-spacing:.2em;color:#f0e6d2;padding-left:.2em">{{ metricTitle }}</div>
+      <div style="width:9px;height:9px;transform:rotate(45deg);border:1px solid rgba(200,170,110,.6)"></div>
+    </div>
+
+    <div style="position:relative;height:100%;min-width:0;box-sizing:border-box;padding:44px 36px 26px;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:24px;margin-bottom:20px">
+        <div onClick="{{ setKills }}" style="display:flex;align-items:center;gap:8px;padding:0 2px 7px;cursor:pointer;color:{{ tabKills.color }};border-bottom:1px solid {{ tabKills.line }}">
+          <div style="width:6px;height:6px;transform:rotate(45deg);background:#c8aa6e;opacity:{{ tabKills.dia }}"></div>
+          <div style="font-size:11.5px;letter-spacing:.26em">KILLS</div>
+        </div>
+        <div onClick="{{ setDeaths }}" style="display:flex;align-items:center;gap:8px;padding:0 2px 7px;cursor:pointer;color:{{ tabDeaths.color }};border-bottom:1px solid {{ tabDeaths.line }}">
+          <div style="width:6px;height:6px;transform:rotate(45deg);background:#c8aa6e;opacity:{{ tabDeaths.dia }}"></div>
+          <div style="font-size:11.5px;letter-spacing:.26em">DEATHS</div>
+        </div>
+        <div onClick="{{ setAssists }}" style="display:flex;align-items:center;gap:8px;padding:0 2px 7px;cursor:pointer;color:{{ tabAssists.color }};border-bottom:1px solid {{ tabAssists.line }}">
+          <div style="width:6px;height:6px;transform:rotate(45deg);background:#c8aa6e;opacity:{{ tabAssists.dia }}"></div>
+          <div style="font-size:11.5px;letter-spacing:.26em">ASSISTS</div>
+        </div>
+        <div onClick="{{ setKda }}" style="display:flex;align-items:center;gap:8px;padding:0 2px 7px;cursor:pointer;color:{{ tabKda.color }};border-bottom:1px solid {{ tabKda.line }}">
+          <div style="width:6px;height:6px;transform:rotate(45deg);background:#c8aa6e;opacity:{{ tabKda.dia }}"></div>
+          <div style="font-size:11.5px;letter-spacing:.26em">KDA</div>
+        </div>
+        <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(200,170,110,.28),transparent)"></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:2px 4px;border:1px solid rgba(200,170,110,.22)">
+          <div onClick="{{ setTotal }}" style="padding:5px 12px;cursor:pointer;font-size:10.5px;letter-spacing:.24em;color:{{ tabTotal.color }};background:{{ tabTotal.chip }}">TOTAL</div>
+          <div onClick="{{ setBest }}" style="padding:5px 12px;cursor:pointer;font-size:10.5px;letter-spacing:.24em;color:{{ tabBest.color }};background:{{ tabBest.chip }}">BEST GAME</div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin:-6px 0 10px"><div style="font-size:11px;letter-spacing:.28em;color:#a09b8c">{{ modeLabel }}</div></div>
+      <div style="flex:1;min-height:0;min-width:0;width:100%;display:flex;flex-direction:column;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:rgba(200,170,110,.45) transparent">
+        <div style="flex:1;min-height:0;display:flex;align-items:flex-end;gap:16px;padding:0 2px;border-bottom:1px solid rgba(200,170,110,.3);min-width:100%;width:max-content">
+          <sc-for list="{{ chart }}" as="r" hint-placeholder-count="18">
+            <div onClick="{{ r.select }}" style="width:54px;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px;cursor:pointer">
+              <div style="font-family:Marcellus,serif;font-size:17px;color:{{ r.num }}">{{ r.n }}</div>
+              <div style="width:11px;height:11px;transform:rotate(45deg);background:{{ r.cap }};border:1px solid {{ r.capEdge }};box-shadow:{{ r.glow }}"></div>
+              <div style="width:100%;height:{{ r.colH }}px;background:{{ r.bg }};border-top:1px solid {{ r.edge }};box-shadow:{{ r.glow }}"></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:16px;padding:12px 2px 4px;min-width:100%;width:max-content">
+          <sc-for list="{{ chart }}" as="r" hint-placeholder-count="18">
+            <div onClick="{{ r.select }}" style="width:54px;flex:none;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer">
+              <img src="{{ r.icon }}" alt="" style="width:36px;height:36px;border:1px solid {{ r.iconEdge }}">
+              <div style="width:7px;height:7px;transform:rotate(45deg);background:#c8aa6e;opacity:{{ r.mark }}"></div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="margin-top:20px;padding-top:18px;border-top:1px solid rgba(200,170,110,.28);display:grid;grid-template-columns:auto minmax(0,1fr);gap:26px;align-items:center">
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="position:relative;flex:none">
+            <img src="{{ sel.icon }}" alt="" style="width:62px;height:62px;display:block;border:1px solid rgba(200,170,110,.6)">
+            <div style="position:absolute;left:-5px;top:-5px;width:9px;height:9px;transform:rotate(45deg);background:#040c14;border:1px solid rgba(200,170,110,.8)"></div>
+            <div style="position:absolute;right:-5px;bottom:-5px;width:9px;height:9px;transform:rotate(45deg);background:#040c14;border:1px solid rgba(200,170,110,.8)"></div>
+          </div>
+          <div>
+            <div style="font-family:Marcellus,serif;font-size:22px;letter-spacing:.06em;color:#f0e6d2">{{ sel.c }}</div>
+            <div style="margin-top:4px;font-size:10.5px;letter-spacing:.22em;color:#7f7a6e">{{ sel.games }} GAMES</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) 1.5fr 1fr">
+          <div style="padding:0 14px"><div style="font-size:9.5px;letter-spacing:.22em;color:#a09b8c">KILLS</div><div style="margin-top:6px;font-family:Marcellus,serif;font-size:21px;color:#f0e6d2">{{ sel.kills }}</div></div>
+          <div style="padding:0 14px;border-left:1px solid rgba(200,170,110,.16)"><div style="font-size:9.5px;letter-spacing:.22em;color:#a09b8c">DEATHS</div><div style="margin-top:6px;font-family:Marcellus,serif;font-size:21px;color:#f0e6d2">{{ sel.deaths }}</div></div>
+          <div style="padding:0 14px;border-left:1px solid rgba(200,170,110,.16)"><div style="font-size:9.5px;letter-spacing:.22em;color:#a09b8c">ASSISTS</div><div style="margin-top:6px;font-family:Marcellus,serif;font-size:21px;color:#f0e6d2">{{ sel.assists }}</div></div>
+          <div style="padding:0 14px;border-left:1px solid rgba(200,170,110,.16)"><div style="font-size:9.5px;letter-spacing:.22em;color:#0ac8b9">KDA</div><div style="margin-top:6px;font-family:Marcellus,serif;font-size:21px;color:#0ae0cf">{{ sel.kda }}</div></div>
+          <div style="padding:0 14px;border-left:1px solid rgba(200,170,110,.16)"><div style="font-size:9.5px;letter-spacing:.22em;color:#a09b8c;white-space:nowrap">BEST GAME</div><div style="margin-top:6px;font-family:Marcellus,serif;font-size:21px;color:#f0e6d2;white-space:nowrap">{{ sel.best }}</div></div>
+          <div style="padding:0 14px;border-left:1px solid rgba(200,170,110,.16)"><div style="font-size:9.5px;letter-spacing:.22em;color:#a09b8c;white-space:nowrap">1ST PLACE</div><div style="margin-top:6px;font-family:Marcellus,serif;font-size:21px;color:#f0e6d2">{{ sel.first }}</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="position:absolute;left:84px;right:84px;bottom:76px;height:1px;background:linear-gradient(90deg,transparent,rgba(200,170,110,.24) 26%,rgba(200,170,110,.24) 42%,transparent 47%,transparent 53%,rgba(200,170,110,.24) 58%,rgba(200,170,110,.24) 74%,transparent)"></div>
+<div style="position:absolute;left:0;right:0;bottom:22px;display:flex;flex-direction:column;align-items:center;gap:9px;cursor:pointer;animation:rise 6s ease-in-out infinite">
+  <div style="width:11px;height:11px;transform:rotate(45deg);background:#040c14;border:1px solid rgba(200,170,110,.7);margin-bottom:-1px"></div>
+  <div style="font-size:10px;letter-spacing:.34em;color:#c8aa6e;padding-left:.34em">DAMAGE</div>
+  <svg viewBox="0 0 18 8" style="width:18px;height:8px;display:block"><path d="M1 1 L9 7 L17 1" fill="none" stroke="#c8aa6e" stroke-width="1.4" opacity=".75"></path></svg>
+</div>
+</div>
+</div>
+</div>
+</div>
+<p class="dv-next">Try next: “bars are too wide / too tall in <a href="#2a">2a</a>” · “fade the chart edges where it scrolls” · “now do the Damage section in this language”</p>
+</section>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><span class="dv-tid">1</span><span class="dv-tname">Arena Stats — Hextech language, three treatments of the same KDA / Kills data</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><span class="dv-oid">1a</span>Instrument — your layout refined. Broken-corner gold linework, circle as focus, bars with diamond endpoints. Content ~60% of the frame, arena breathing around it.</div>
+<div class="dv-card" style="width:1440px">
+<div style="position:relative;width:1440px;height:900px;overflow:hidden;background:#050e16">
+<div style="position:absolute;inset:-40px;background:url(bg-arena.jpg) center 38%/cover no-repeat;filter:blur(16px) saturate(.55) brightness(.34) contrast(1.05)"></div>
+<div style="position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 40%,rgba(5,14,22,.62) 0%,rgba(3,9,16,.9) 62%,#02070c 100%)"></div>
+<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(9,20,40,.55),rgba(2,7,12,.2) 40%,rgba(2,7,12,.85))"></div>
+<svg viewBox="0 0 1440 900" style="position:absolute;inset:0;width:100%;height:100%;opacity:.5"><g fill="none" stroke="#0ac8b9" stroke-width="1" stroke-dasharray="6 14" style="animation:drift 26s linear infinite"><path d="M-20 760 L180 760 L260 680 L520 680" opacity=".35"></path><path d="M1460 200 L1240 200 L1160 280 L900 280" opacity=".25"></path><path d="M-20 120 L120 120 L190 190" opacity=".2"></path></g></svg>
+
+<div style="position:absolute;inset:0;display:grid;grid-template-columns:400px 1fr;gap:44px;padding:74px 84px 64px">
+  <div style="display:flex;flex-direction:column">
+    <div style="display:flex;align-items:flex-start;gap:18px">
+      <div style="width:44px;height:44px;transform:rotate(45deg);border:1px solid rgba(200,170,110,.55);display:flex;align-items:center;justify-content:center;flex:none;margin-top:4px"><div style="width:16px;height:16px;background:linear-gradient(140deg,#0ac4d9,#046b7a);box-shadow:0 0 14px rgba(10,200,185,.8)"></div></div>
+      <div>
+        <div style="font-family:Marcellus,serif;font-size:44px;line-height:1;letter-spacing:.1em;color:#f0e6d2">KDA</div>
+        <div style="margin-top:9px;font-size:13px;font-style:italic;color:#a09b8c;letter-spacing:.02em">“The KDA is the KDA.”</div>
+      </div>
+    </div>
+
+    <div style="position:relative;width:300px;height:300px;margin:52px auto 0;display:flex;align-items:center;justify-content:center">
+      <div style="position:absolute;inset:34px;border-radius:50%;border:1px solid rgba(200,170,110,.22)"></div>
+      <div style="position:absolute;inset:22px;border-radius:50%;border:1px solid rgba(10,200,185,.16)"></div>
+      <svg viewBox="0 0 300 300" style="position:absolute;inset:0;width:100%;height:100%;animation:spin 22s linear infinite"><circle cx="150" cy="150" r="128" fill="none" stroke="#0ac4d9" stroke-width="2" stroke-linecap="round" stroke-dasharray="150 654" opacity=".9" style="filter:drop-shadow(0 0 8px rgba(10,196,217,.9))"></circle><circle cx="150" cy="150" r="128" fill="none" stroke="#0ac8b9" stroke-width="1" stroke-dasharray="40 764" stroke-dashoffset="-300" opacity=".5"></circle></svg>
+      <div style="position:absolute;top:-2px;left:50%;margin-left:-6px;width:12px;height:12px;transform:rotate(45deg);background:#c8aa6e;animation:breathe 5s ease-in-out infinite"></div>
+      <div style="position:absolute;bottom:-2px;left:50%;margin-left:-6px;width:12px;height:12px;transform:rotate(45deg);background:#c8aa6e;animation:breathe 5s ease-in-out infinite 2.5s"></div>
+      <div style="text-align:center">
+        <div style="font-family:Marcellus,serif;font-size:76px;line-height:1;color:#f0e6d2;text-shadow:0 0 26px rgba(10,200,185,.35)">2.63</div>
+        <div style="margin-top:6px;font-size:12px;letter-spacing:.42em;color:#0ac8b9;padding-left:.42em">KDA</div>
+      </div>
+    </div>
+
+    <div style="margin-top:56px;display:flex;flex-direction:column;gap:2px">
+      <div style="display:flex;align-items:center;gap:14px;padding:13px 4px;border-top:1px solid rgba(200,170,110,.14)"><div style="width:7px;height:7px;transform:rotate(45deg);background:#c8aa6e;flex:none"></div><div style="flex:1;font-size:14px;letter-spacing:.12em;color:#c8c2b6">KILLS</div><div style="font-family:Marcellus,serif;font-size:22px;color:#f0e6d2">2,590</div></div>
+      <div style="display:flex;align-items:center;gap:14px;padding:13px 4px;border-top:1px solid rgba(200,170,110,.14)"><div style="width:7px;height:7px;transform:rotate(45deg);background:#c8aa6e;flex:none"></div><div style="flex:1;font-size:14px;letter-spacing:.12em;color:#c8c2b6">DEATHS</div><div style="font-family:Marcellus,serif;font-size:22px;color:#f0e6d2">2,481</div></div>
+      <div style="display:flex;align-items:center;gap:14px;padding:13px 4px;border-top:1px solid rgba(200,170,110,.14);border-bottom:1px solid rgba(200,170,110,.14)"><div style="width:7px;height:7px;transform:rotate(45deg);background:#c8aa6e;flex:none"></div><div style="flex:1;font-size:14px;letter-spacing:.12em;color:#c8c2b6">ASSISTS</div><div style="font-family:Marcellus,serif;font-size:22px;color:#f0e6d2">3,925</div></div>
+    </div>
+  </div>
+
+  <div style="position:relative;align-self:stretch;margin-top:26px">
+    <div style="position:absolute;inset:0;background:linear-gradient(155deg,rgba(9,20,40,.62),rgba(3,10,18,.72));backdrop-filter:blur(3px);border:1px solid rgba(200,170,110,.3)"></div>
+    <div style="position:absolute;left:14px;right:14px;top:-1px;height:1px;background:linear-gradient(90deg,transparent,rgba(200,170,110,.5) 20%,transparent 44%,transparent 56%,rgba(200,170,110,.5) 80%,transparent)"></div>
+    <div style="position:absolute;left:-7px;top:-7px;width:13px;height:13px;transform:rotate(45deg);background:#050e16;border:1px solid rgba(200,170,110,.75)"></div>
+    <div style="position:absolute;right:-7px;top:-7px;width:13px;height:13px;transform:rotate(45deg);background:#050e16;border:1px solid rgba(200,170,110,.75)"></div>
+    <div style="position:absolute;left:-7px;bottom:-7px;width:13px;height:13px;transform:rotate(45deg);background:#050e16;border:1px solid rgba(200,170,110,.75)"></div>
+    <div style="position:absolute;right:-7px;bottom:-7px;width:13px;height:13px;transform:rotate(45deg);background:#050e16;border:1px solid rgba(200,170,110,.75)"></div>
+    <div style="position:absolute;left:50%;top:-25px;transform:translateX(-50%);display:flex;align-items:center;gap:16px;background:#040c14;padding:0 22px">
+      <div style="width:9px;height:9px;transform:rotate(45deg);border:1px solid rgba(200,170,110,.6)"></div>
+      <div style="font-family:Marcellus,serif;font-size:27px;letter-spacing:.2em;color:#f0e6d2;padding-left:.2em">KILLS</div>
+      <div style="width:9px;height:9px;transform:rotate(45deg);border:1px solid rgba(200,170,110,.6)"></div>
+    </div>
+
+    <div style="position:relative;display:grid;grid-template-columns:1fr 1px 1fr;gap:0;padding:52px 40px 40px;height:100%;box-sizing:border-box">
+      <div style="padding-right:40px;display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;gap:11px;margin-bottom:22px"><div style="width:8px;height:8px;transform:rotate(45deg);background:#c8aa6e"></div><div style="font-size:12px;letter-spacing:.34em;color:#c8aa6e">TOTAL</div><div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(200,170,110,.35),transparent)"></div></div>
+        <div style="display:flex;flex-direction:column;gap:11px">
+          <div style="display:flex;align-items:center;gap:13px">
+            <img src="{{ topTotal.icon }}" alt="" style="width:28px;height:28px;flex:none;border:1px solid rgba(10,200,185,.6);box-shadow:0 0 12px rgba(10,200,185,.35)">
+            <div style="flex:1;position:relative;height:16px">
+              <div style="position:absolute;inset:0;background:rgba(255,255,255,.045)"></div>
+              <div style="position:absolute;left:0;top:0;bottom:0;width:97%;background:linear-gradient(90deg,#046b7a,#0ae0cf);box-shadow:0 0 18px rgba(10,224,207,.55);overflow:hidden"><div style="position:absolute;top:0;bottom:0;width:70px;background:linear-gradient(90deg,transparent,rgba(230,255,253,.85),transparent);animation:streak 7s ease-in-out infinite"></div></div>
+              <div style="position:absolute;left:97%;top:2px;width:12px;height:12px;margin-left:-6px;transform:rotate(45deg);background:#e6fffb;box-shadow:0 0 14px rgba(10,224,207,.95)"></div>
+            </div>
+            <div style="width:52px;text-align:right;font-family:Marcellus,serif;font-size:20px;color:#e6fffb;text-shadow:0 0 14px rgba(10,224,207,.6)">544</div>
+          </div>
+          <sc-for list="{{ totalsRest }}" as="r" hint-placeholder-count="9">
+            <div style="display:flex;align-items:center;gap:13px">
+              <img src="{{ r.icon }}" alt="" style="width:28px;height:28px;flex:none;border:1px solid rgba(200,170,110,.22)">
+              <div style="flex:1;position:relative;height:14px">
+                <div style="position:absolute;inset:0;background:rgba(255,255,255,.045)"></div>
+                <div style="position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#04525f,#0aa8a0);width:{{ r.pct }}%"></div>
+                <div style="position:absolute;top:2px;width:10px;height:10px;margin-left:-5px;transform:rotate(45deg);background:#0e1a22;border:1px solid rgba(10,200,185,.7);left:{{ r.pct }}%"></div>
+              </div>
+              <div style="width:52px;text-align:right;font-size:15px;color:#c8c2b6">{{ r.n }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="background:linear-gradient(180deg,transparent,rgba(200,170,110,.28) 18%,rgba(200,170,110,.28) 82%,transparent)"></div>
+
+      <div style="padding-left:40px;display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;gap:11px;margin-bottom:22px"><div style="width:8px;height:8px;transform:rotate(45deg);border:1px solid #c8aa6e"></div><div style="font-size:12px;letter-spacing:.34em;color:#c8aa6e">BEST GAME</div><div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(200,170,110,.35),transparent)"></div></div>
+        <div style="display:flex;flex-direction:column;gap:11px">
+          <sc-for list="{{ best }}" as="r" hint-placeholder-count="10">
+            <div style="display:flex;align-items:center;gap:13px">
+              <img src="{{ r.icon }}" alt="" style="width:28px;height:28px;flex:none;border:1px solid rgba(200,170,110,.22)">
+              <div style="flex:1;position:relative;height:14px">
+                <div style="position:absolute;inset:0;background:rgba(255,255,255,.045)"></div>
+                <div style="position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#04525f,#0aa8a0);width:{{ r.pct }}%"></div>
+                <div style="position:absolute;top:2px;width:10px;height:10px;margin-left:-5px;transform:rotate(45deg);background:#0e1a22;border:1px solid rgba(10,200,185,.7);left:{{ r.pct }}%"></div>
+              </div>
+              <div style="width:34px;text-align:right;font-size:15px;color:#c8c2b6">{{ r.n }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="position:absolute;left:84px;bottom:26px;display:flex;align-items:center;gap:14px;padding:9px 20px 9px 12px;border:1px solid rgba(200,170,110,.22);background:rgba(3,10,18,.5)">
+  <div style="width:9px;height:9px;transform:rotate(45deg);background:#0ac8b9"></div>
+  <div style="font-size:13px;color:#a09b8c;letter-spacing:.03em">You're spending time in Arena!</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><span class="dv-oid">1b</span>Channel — the panel disappears. No card, no fill: hairline rules, corner diamonds, and the arena visible straight through. Bars become energy channels with node markers; gold drops back to labels only.</div>
+<div class="dv-card" style="width:1440px">
+<div style="position:relative;width:1440px;height:900px;overflow:hidden;background:#02070c">
+<div style="position:absolute;inset:-30px;background:url(bg-arena.jpg) center 45%/cover no-repeat;filter:blur(9px) saturate(.7) brightness(.5)"></div>
+<div style="position:absolute;inset:0;background:radial-gradient(90% 70% at 46% 52%,rgba(2,7,12,.92) 0%,rgba(3,11,20,.7) 55%,rgba(3,11,20,.35) 100%)"></div>
+<div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(2,7,12,.9),rgba(2,7,12,.3) 55%,rgba(2,7,12,.75))"></div>
+
+<div style="position:absolute;inset:0;display:grid;grid-template-columns:330px 1fr;gap:70px;padding:88px 96px">
+  <div>
+    <div style="font-size:11px;letter-spacing:.5em;color:#c8aa6e;padding-left:.5em">SECTION 07</div>
+    <div style="margin-top:14px;font-family:Marcellus,serif;font-size:52px;line-height:1;letter-spacing:.08em;color:#f0e6d2">KDA</div>
+    <div style="margin-top:12px;width:56px;height:1px;background:rgba(200,170,110,.6)"></div>
+    <div style="margin-top:14px;font-size:13px;font-style:italic;color:#a09b8c">“The KDA is the KDA.”</div>
+
+    <div style="position:relative;width:232px;height:232px;margin:64px 0 0;display:flex;align-items:center;justify-content:center">
+      <svg viewBox="0 0 232 232" style="position:absolute;inset:0;width:100%;height:100%"><circle cx="116" cy="116" r="106" fill="none" stroke="rgba(240,230,210,.1)" stroke-width="1"></circle><g style="animation:spin 30s linear infinite;transform-origin:50% 50%"><circle cx="116" cy="116" r="106" fill="none" stroke="#0ae0cf" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="120 546" style="filter:drop-shadow(0 0 10px rgba(10,224,207,.9))"></circle></g></svg>
+      <div style="text-align:center">
+        <div style="font-family:Marcellus,serif;font-size:64px;line-height:1;color:#fff;text-shadow:0 0 30px rgba(10,224,207,.5)">2.63</div>
+        <div style="margin-top:4px;font-size:11px;letter-spacing:.4em;color:#0ac8b9;padding-left:.4em">RATIO</div>
+      </div>
+    </div>
+
+    <div style="margin-top:60px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:0">
+      <div><div style="font-size:10px;letter-spacing:.24em;color:#a09b8c">KILLS</div><div style="margin-top:7px;font-family:Marcellus,serif;font-size:26px;color:#f0e6d2">2,590</div></div>
+      <div><div style="font-size:10px;letter-spacing:.24em;color:#a09b8c">DEATHS</div><div style="margin-top:7px;font-family:Marcellus,serif;font-size:26px;color:#f0e6d2">2,481</div></div>
+      <div><div style="font-size:10px;letter-spacing:.24em;color:#a09b8c">ASSISTS</div><div style="margin-top:7px;font-family:Marcellus,serif;font-size:26px;color:#f0e6d2">3,925</div></div>
+    </div>
+  </div>
+
+  <div style="position:relative;padding-top:8px">
+    <div style="display:flex;align-items:center;gap:18px;margin-bottom:34px">
+      <div style="font-family:Marcellus,serif;font-size:20px;letter-spacing:.3em;color:#c8aa6e;padding-left:.3em">KILLS</div>
+      <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(200,170,110,.45),rgba(200,170,110,.06))"></div>
+      <div style="width:8px;height:8px;transform:rotate(45deg);border:1px solid rgba(200,170,110,.5)"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:56px">
+      <div>
+        <div style="font-size:10px;letter-spacing:.36em;color:#a09b8c;margin-bottom:20px">TOTAL</div>
+        <div style="display:flex;flex-direction:column;gap:15px">
+          <div style="display:flex;align-items:center;gap:14px">
+            <img src="{{ topTotal.icon }}" alt="" style="width:24px;height:24px;flex:none;opacity:.95">
+            <div style="flex:1;position:relative;height:3px;background:rgba(240,230,210,.07)">
+              <div style="position:absolute;left:0;top:-1px;height:5px;width:96%;background:linear-gradient(90deg,rgba(10,224,207,.15),#0ae0cf);box-shadow:0 0 16px rgba(10,224,207,.8);overflow:hidden"><div style="position:absolute;top:0;bottom:0;width:90px;background:linear-gradient(90deg,transparent,#fff,transparent);animation:streak 6s ease-in-out infinite"></div></div>
+              <div style="position:absolute;left:96%;top:-6px;width:13px;height:13px;margin-left:-6px;transform:rotate(45deg);background:#fff;box-shadow:0 0 18px rgba(10,224,207,1)"></div>
+            </div>
+            <div style="width:50px;text-align:right;font-family:Marcellus,serif;font-size:22px;color:#fff">544</div>
+          </div>
+          <sc-for list="{{ totalsRest }}" as="r" hint-placeholder-count="9">
+            <div style="display:flex;align-items:center;gap:14px">
+              <img src="{{ r.icon }}" alt="" style="width:24px;height:24px;flex:none;opacity:.55">
+              <div style="flex:1;position:relative;height:3px;background:rgba(240,230,210,.07)">
+                <div style="position:absolute;left:0;top:0;height:3px;background:linear-gradient(90deg,rgba(10,168,160,.2),#0aa8a0);width:{{ r.pct }}%"></div>
+                <div style="position:absolute;top:-3px;width:9px;height:9px;margin-left:-4px;transform:rotate(45deg);background:#0ac8b9;opacity:.8;left:{{ r.pct }}%"></div>
+              </div>
+              <div style="width:50px;text-align:right;font-size:14px;color:#a09b8c">{{ r.n }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;letter-spacing:.36em;color:#a09b8c;margin-bottom:20px">BEST GAME</div>
+        <div style="display:flex;flex-direction:column;gap:15px">
+          <sc-for list="{{ best }}" as="r" hint-placeholder-count="10">
+            <div style="display:flex;align-items:center;gap:14px">
+              <img src="{{ r.icon }}" alt="" style="width:24px;height:24px;flex:none;opacity:.55">
+              <div style="flex:1;position:relative;height:3px;background:rgba(240,230,210,.07)">
+                <div style="position:absolute;left:0;top:0;height:3px;background:linear-gradient(90deg,rgba(10,168,160,.2),#0aa8a0);width:{{ r.pct }}%"></div>
+                <div style="position:absolute;top:-3px;width:9px;height:9px;margin-left:-4px;transform:rotate(45deg);background:#0ac8b9;opacity:.8;left:{{ r.pct }}%"></div>
+              </div>
+              <div style="width:30px;text-align:right;font-size:14px;color:#a09b8c">{{ r.n }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="position:absolute;left:96px;right:96px;bottom:52px;height:1px;background:linear-gradient(90deg,transparent,rgba(200,170,110,.28) 30%,rgba(200,170,110,.28) 70%,transparent)"></div>
+<div style="position:absolute;left:50%;bottom:46px;margin-left:-6px;width:11px;height:11px;transform:rotate(45deg);background:#02070c;border:1px solid rgba(200,170,110,.6);animation:rise 6s ease-in-out infinite"></div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><span class="dv-oid">1c</span>Foundry — heavier metal structure and a different viz: the leader becomes a circular focus reading, the rest a stepped ladder of diamond-capped columns. Densest of the three, most gold.</div>
+<div class="dv-card" style="width:1440px">
+<div style="position:relative;width:1440px;height:900px;overflow:hidden;background:#040a11">
+<div style="position:absolute;inset:-40px;background:url(bg-arena.jpg) center 30%/cover no-repeat;filter:blur(22px) saturate(.4) brightness(.28)"></div>
+<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(9,20,40,.75),rgba(2,7,12,.94))"></div>
+<div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(200,170,110,.045) 0 1px,transparent 1px 96px)"></div>
+
+<div style="position:absolute;left:54px;right:54px;top:44px;bottom:44px;border:1px solid rgba(200,170,110,.32)"></div>
+<div style="position:absolute;left:62px;right:62px;top:52px;bottom:52px;border:1px solid rgba(200,170,110,.12)"></div>
+<div style="position:absolute;left:47px;top:37px;width:15px;height:15px;transform:rotate(45deg);background:#040a11;border:1px solid rgba(200,170,110,.8)"></div>
+<div style="position:absolute;right:47px;top:37px;width:15px;height:15px;transform:rotate(45deg);background:#040a11;border:1px solid rgba(200,170,110,.8)"></div>
+<div style="position:absolute;left:47px;bottom:37px;width:15px;height:15px;transform:rotate(45deg);background:#040a11;border:1px solid rgba(200,170,110,.8)"></div>
+<div style="position:absolute;right:47px;bottom:37px;width:15px;height:15px;transform:rotate(45deg);background:#040a11;border:1px solid rgba(200,170,110,.8)"></div>
+
+<div style="position:absolute;left:98px;right:98px;top:86px;display:flex;align-items:center;gap:20px">
+  <div style="font-family:Marcellus,serif;font-size:34px;letter-spacing:.22em;color:#f0e6d2;padding-left:.22em">KILLS</div>
+  <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(200,170,110,.5),rgba(200,170,110,.1))"></div>
+  <div style="font-size:11px;letter-spacing:.3em;color:#a09b8c">1,412 GAMES · ARENA</div>
+</div>
+
+<div style="position:absolute;left:98px;right:98px;top:158px;display:grid;grid-template-columns:340px 1fr;gap:64px">
+  <div>
+    <div style="position:relative;width:250px;height:250px;display:flex;align-items:center;justify-content:center">
+      <div style="position:absolute;inset:0;border:1px solid rgba(200,170,110,.2);transform:rotate(45deg)"></div>
+      <svg viewBox="0 0 250 250" style="position:absolute;inset:0;width:100%;height:100%"><circle cx="125" cy="125" r="112" fill="rgba(2,10,18,.55)" stroke="rgba(200,170,110,.45)" stroke-width="1"></circle><g style="animation:spin 26s linear infinite;transform-origin:50% 50%"><circle cx="125" cy="125" r="112" fill="none" stroke="#0ae0cf" stroke-width="3" stroke-linecap="round" stroke-dasharray="180 524" style="filter:drop-shadow(0 0 12px rgba(10,224,207,.85))"></circle></g></svg>
+      <div style="text-align:center;position:relative">
+        <img src="{{ topTotal.icon }}" alt="" style="width:40px;height:40px;border:1px solid rgba(10,200,185,.7);box-shadow:0 0 16px rgba(10,200,185,.5)">
+        <div style="margin-top:8px;font-family:Marcellus,serif;font-size:62px;line-height:1;color:#fff;text-shadow:0 0 28px rgba(10,224,207,.55)">544</div>
+        <div style="margin-top:4px;font-size:11px;letter-spacing:.34em;color:#0ac8b9;padding-left:.34em">MOST KILLS</div>
+        <div style="margin-top:2px;font-size:12px;color:#a09b8c">{{ topTotal.c }}</div>
+      </div>
+    </div>
+    <div style="margin-top:42px;display:flex;flex-direction:column;gap:0;width:250px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:11px 0;border-bottom:1px solid rgba(200,170,110,.16)"><span style="font-size:12px;letter-spacing:.16em;color:#c8aa6e">KDA</span><span style="font-family:Marcellus,serif;font-size:24px;color:#0ae0cf">2.63</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:11px 0;border-bottom:1px solid rgba(200,170,110,.16)"><span style="font-size:12px;letter-spacing:.16em;color:#c8aa6e">KILLS</span><span style="font-family:Marcellus,serif;font-size:20px;color:#f0e6d2">2,590</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:11px 0;border-bottom:1px solid rgba(200,170,110,.16)"><span style="font-size:12px;letter-spacing:.16em;color:#c8aa6e">DEATHS</span><span style="font-family:Marcellus,serif;font-size:20px;color:#f0e6d2">2,481</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:11px 0;border-bottom:1px solid rgba(200,170,110,.16)"><span style="font-size:12px;letter-spacing:.16em;color:#c8aa6e">ASSISTS</span><span style="font-family:Marcellus,serif;font-size:20px;color:#f0e6d2">3,925</span></div>
+    </div>
+  </div>
+
+  <div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:26px"><div style="width:8px;height:8px;transform:rotate(45deg);background:#c8aa6e"></div><div style="font-size:11px;letter-spacing:.36em;color:#c8aa6e">TOTAL BY CHAMPION</div></div>
+    <div style="display:flex;align-items:flex-end;gap:14px;height:290px;padding-bottom:2px;border-bottom:1px solid rgba(200,170,110,.3)">
+      <sc-for list="{{ totalsRest }}" as="r" hint-placeholder-count="9">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:9px">
+          <div style="font-family:Marcellus,serif;font-size:17px;color:#f0e6d2">{{ r.n }}</div>
+          <div style="width:11px;height:11px;transform:rotate(45deg);background:#0ac8b9;box-shadow:0 0 10px rgba(10,200,185,.6)"></div>
+          <div style="width:100%;background:linear-gradient(180deg,#0aa8a0,rgba(4,82,95,.25));border-top:1px solid #0ae0cf;height:{{ r.colH }}px"></div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:14px;margin-top:14px">
+      <sc-for list="{{ totalsRest }}" as="r" hint-placeholder-count="9">
+        <div style="flex:1;display:flex;justify-content:center"><img src="{{ r.icon }}" alt="" style="width:34px;height:34px;border:1px solid rgba(200,170,110,.25)"></div>
+      </sc-for>
+    </div>
+
+    <div style="margin-top:44px;display:flex;align-items:center;gap:12px;margin-bottom:20px"><div style="width:8px;height:8px;transform:rotate(45deg);border:1px solid #c8aa6e"></div><div style="font-size:11px;letter-spacing:.36em;color:#c8aa6e">BEST SINGLE GAME</div><div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(200,170,110,.3),transparent)"></div></div>
+    <div style="display:flex;gap:10px">
+      <sc-for list="{{ best }}" as="r" hint-placeholder-count="10">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 0;border:1px solid rgba(200,170,110,.16);background:rgba(3,11,20,.5)">
+          <img src="{{ r.icon }}" alt="" style="width:30px;height:30px">
+          <div style="font-family:Marcellus,serif;font-size:19px;color:#0ae0cf">{{ r.n }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: “take <a href="#1a">1a</a> but with <a href="#1b">1b</a>'s hairline channels” · “more arena visible in <a href="#1c">1c</a>” · “show me the next section (Damage) in <a href="#1b">1b</a>'s language”</p>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1520,&quot;height&quot;:1100}}">
+class Component extends DCLogic {
+  icon(c) { return `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${c}.png`; }
+  state = { mode: "total", metric: "kills", sel: "Briar" };
+  roster() {
+    if (this._roster) return this._roster;
+    // [champ, games, kills, deaths, assists, bestK, bestD, bestA, 1st-place %]
+    const base = [
+      ["Briar",  212, 544, 268, 331,  21, 4,  14, 24],
+      ["Gwen",    96, 183, 122, 148,  14, 6,  11, 19],
+      ["Nilah",   74, 169,  81, 244,  13, 1,  22, 27],
+      ["Samira",  81, 168, 133, 121,  16, 8,   9, 15],
+      ["Yone",    69, 122,  94, 118,  12, 5,  12, 17],
+      ["Katarina",58, 121,  77,  84,  14, 3,   8, 21],
+      ["Kayn",    64, 120, 103,  96,  11, 7,  10, 13],
+      ["Vi",      77, 111, 149, 218,   9, 11, 19, 16],
+      ["Sett",    62,  89, 131, 176,  10, 9,  17, 12],
+      ["Jinx",    44,  65,  58,  72,  11, 4,   9, 18],
+      ["Ahri",    39,  61,  44,  93,  10, 2,  13, 20],
+      ["Zed",     31,  58,  39,  27,  14, 3,   5, 23],
+      ["Talon",   28,  54,  36,  25,  14, 2,   6, 22],
+      ["Viego",   36,  47,  52,  61,   8, 6,   9, 11],
+      ["Yasuo",   34,  44,  67,  58,   7, 10,  8,  8],
+      ["Kaisa",   26,  39,  31,  47,   9, 5,  10, 17],
+      ["Naafiri", 24,  31,  38,  44,   7, 7,   8, 10],
+      ["Xayah",   19,  24,  22,  51,   6, 2,  12, 14]
+    ];
+    this._roster = base.map(([c, games, kills, deaths, assists, bk, bd, ba, first]) => {
+      const best = { kills: bk, deaths: bd, assists: ba, kda: (bk + ba) / Math.max(1, bd) };
+      return { c, games, kills, deaths, assists, kda: (kills + assists) / deaths, best, first };
+    });
+    return this._roster;
+  }
+  fmt(v, metric) { return metric === "kda" ? v.toFixed(2) : Math.round(v).toLocaleString(); }
+  chartRows() {
+    const { metric, mode, sel } = this.state;
+    const lowBest = metric === "deaths" && mode === "best";
+    const rows = this.roster()
+      .map(ch => ({ ch, v: mode === "best" ? ch.best[metric] : ch[metric] }))
+      .sort((a, b) => (lowBest ? a.v - b.v : b.v - a.v));
+    const vals = rows.map(r => r.v);
+    const hi = Math.max(...vals), lo = Math.min(...vals);
+    const floor = metric === "kda" ? Math.max(0, lo - (hi - lo) * 0.45) : 0;
+    const span = Math.max(0.001, hi - floor);
+    // fewest-deaths mode: taller must still mean better, so invert the mapping
+    const height = v => lowBest
+      ? Math.max(14, Math.round(((hi + 1 - v) / (hi + 1 - lo)) * 300))
+      : Math.max(14, Math.round(((v - floor) / span) * 300));
+    return rows.map(({ ch, v }, i) => {
+      const isSel = ch.c === sel;
+      return {
+        c: ch.c, n: this.fmt(v, metric), icon: this.icon(ch.c),
+        colH: height(v),
+        bg: i === 0 ? "linear-gradient(180deg,#0ae0cf,rgba(10,224,207,.16))" : "linear-gradient(180deg,#0aa8a0,rgba(4,82,95,.2))",
+        edge: i === 0 ? "#e6fffb" : "rgba(10,224,207,.55)",
+        glow: i === 0 ? "0 0 22px rgba(10,224,207,.65)" : "none",
+        cap: i === 0 ? "#e6fffb" : "#0b1620",
+        capEdge: i === 0 ? "#e6fffb" : "rgba(10,200,185,.75)",
+        num: i === 0 ? "#e6fffb" : "#c8c2b6",
+        iconEdge: isSel ? "#c8aa6e" : (i === 0 ? "rgba(10,224,207,.8)" : "rgba(200,170,110,.22)"),
+        mark: isSel ? 1 : 0,
+        select: () => this.setState({ sel: ch.c })
+      };
+    });
+  }
+  tab(on) { return on ? { color: "#f0e6d2", line: "#c8aa6e", dia: 1, chip: "rgba(200,170,110,.16)" } : { color: "#8a8578", line: "transparent", dia: 0, chip: "transparent" }; }
+  renderVals() {
+    const totalsRaw = [["Briar",544],["Gwen",183],["Nilah",169],["Samira",168],["Yone",122],["Katarina",121],["Kayn",120],["Vi",111],["Sett",89],["Jinx",65]];
+    const bestRaw = [["Zed",14],["Talon",14],["Katarina",14],["Ahri",14],["Sett",14],["Briar",14],["Nilah",13],["Gwen",13],["Yone",11],["Jinx",11]];
+    const max = totalsRaw[0][1], bmax = bestRaw[0][1];
+    const isTotal = this.state.mode !== "best";
+    const m = this.state.metric;
+    const chart = this.chartRows();
+    const s = this.roster().find(x => x.c === this.state.sel) || this.roster()[0];
+    const totals = totalsRaw.map(([c, n]) => ({
+      c, n: n.toLocaleString(), icon: this.icon(c),
+      pct: Math.round((n / max) * 96),
+      colH: Math.max(18, Math.round((n / totalsRaw[1][1]) * 220))
+    }));
+    const best = bestRaw.map(([c, n]) => ({ c, n, icon: this.icon(c), pct: Math.round((n / bmax) * 96) }));
+    return {
+      topTotal: totals[0], totalsRest: totals.slice(1), totals, best,
+      chart, chartTop: chart[0],
+      metricTitle: { kills: "KILLS", deaths: "DEATHS", assists: "ASSISTS", kda: "KDA" }[m],
+      modeLabel: isTotal ? "SEASON TOTAL · BY CHAMPION" : (m === "deaths" ? "BEST SINGLE GAME · FEWEST DEATHS" : "BEST SINGLE GAME · BY CHAMPION"),
+      setTotal: () => this.setState({ mode: "total" }),
+      setBest: () => this.setState({ mode: "best" }),
+      setKills: () => this.setState({ metric: "kills" }),
+      setDeaths: () => this.setState({ metric: "deaths" }),
+      setAssists: () => this.setState({ metric: "assists" }),
+      setKda: () => this.setState({ metric: "kda" }),
+      tabTotal: this.tab(isTotal), tabBest: this.tab(!isTotal),
+      tabKills: this.tab(m === "kills"), tabDeaths: this.tab(m === "deaths"),
+      tabAssists: this.tab(m === "assists"), tabKda: this.tab(m === "kda"),
+      sel: {
+        c: s.c, icon: this.icon(s.c), games: s.games.toLocaleString(),
+        kills: s.kills.toLocaleString(), deaths: s.deaths.toLocaleString(), assists: s.assists.toLocaleString(),
+        kda: s.kda.toFixed(2), first: s.first + "%",
+        best: s.best.kills + " / " + s.best.deaths + " / " + s.best.assists,
+        bestKda: s.best.kda.toFixed(2)
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

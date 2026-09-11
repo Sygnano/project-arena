@@ -1,0 +1,123 @@
+import type { ReactNode } from "react";
+
+type Stat = {
+  label: string;
+  value: string;
+  /** Highlight this cell (e.g. the headline number). */
+  highlight?: boolean;
+  /** Skip the left border on this cell. */
+  bordered?: boolean;
+  /** Prevent wrapping — use for values that shouldn't break mid-string. */
+  nowrap?: boolean;
+};
+
+type Props = {
+  /** Icon / image rendered on the left (36×36 or similar). */
+  icon: ReactNode;
+  /** Primary text next to the icon (e.g. champion name). */
+  title: string;
+  /** Secondary text below the title (e.g. "12 GAMES"). */
+  subtitle?: string;
+  /** Stat cells displayed to the right. */
+  stats: Stat[];
+  /** Grid column template for the stats row — override when the default
+   * even-split doesn't fit (e.g. some columns need more room). */
+  statsGrid?: string;
+};
+
+function StatCell({
+  label,
+  value,
+  highlight = false,
+  bordered = true,
+  nowrap = false,
+}: {
+  label: string;
+  value: string;
+  highlight?: boolean;
+  bordered?: boolean;
+  nowrap?: boolean;
+}) {
+  return (
+    <div
+      className="px-3.5"
+      style={
+        bordered ? { borderLeft: "1px solid rgba(200,170,110,.16)" } : undefined
+      }
+    >
+      <div
+        className={`text-[11px] tracking-[.22em] ${nowrap ? "whitespace-nowrap" : ""}`}
+        style={{
+          color: highlight
+            ? "var(--color-lol-gold-300)"
+            : "var(--color-lol-text-muted)",
+        }}
+      >
+        {label}
+      </div>
+      <div
+        className={`font-display mt-1.5 text-[23px] ${nowrap ? "whitespace-nowrap" : ""}`}
+        style={{
+          color: highlight
+            ? "var(--color-lol-gold-300)"
+            : "var(--color-lol-gold-50)",
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A horizontal detail strip — icon + title/subtitle on the left, a row of
+ * stat cells on the right. Used below charts (KDA's champion detail,
+ * champion stats, etc.) to show a summary for the selected item.
+ */
+function DetailBand({ icon, title, subtitle, stats, statsGrid }: Props) {
+  return (
+    <div
+      className="mt-5 grid items-center gap-6.5 pt-4.5"
+      style={{
+        borderTop: "1px solid rgba(200,170,110,.28)",
+        gridTemplateColumns: "240px minmax(0,1fr)",
+      }}
+    >
+      <div className="flex min-w-0 items-center gap-4">
+        {icon}
+        <div className="min-w-0">
+          <div className="font-display truncate text-[22px] tracking-[.06em] text-lol-gold-50">
+            {title}
+          </div>
+          {subtitle ? (
+            <div className="mt-1 text-xs tracking-[.22em] text-[#7f7a6e]">
+              {subtitle}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div
+        className="grid"
+        style={{
+          gridTemplateColumns:
+            statsGrid ?? `repeat(${stats.length},minmax(0,1fr))`,
+        }}
+      >
+        {stats.map((stat, i) => (
+          <StatCell
+            key={stat.label}
+            label={stat.label}
+            value={stat.value}
+            highlight={stat.highlight}
+            bordered={i > 0 ? stat.bordered !== false : stat.bordered}
+            nowrap={stat.nowrap}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export { DetailBand };
+export type { Stat };

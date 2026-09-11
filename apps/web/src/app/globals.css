@@ -296,6 +296,115 @@
   }
 }
 
+/* Ambient motion for the KDA section's "instrument panel" treatment
+ * (apps/web/src/modules/KDA) — prefixed like the augment-frame keyframes
+ * above rather than the generic `spin`/`rise` names the design reference
+ * used, so this never collides with Tailwind's own built-in `spin` keyframe
+ * (used by its `animate-spin` utility) or any future addition here. */
+@keyframes dial-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes dial-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+@keyframes kda-rise {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+.dial-spin {
+  animation: dial-spin 22s linear infinite;
+}
+.dial-breathe {
+  animation: dial-breathe 5s ease-in-out infinite;
+}
+.kda-rise {
+  animation: kda-rise 6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dial-spin,
+  .dial-breathe,
+  .kda-rise {
+    animation: none;
+  }
+}
+
+/* Hextech bar-chart tier fills (components/hextech-bar-chart.tsx, via
+ * `BarSegment.fillClassName`) — a rarity-tier bar/segment gets a genuine
+ * Hextech Prismatic/Gold/Silver identity instead of a plain cyan fill,
+ * reusing the exact same gradient tokens and animated-sheen technique as the
+ * augment-rarity borders above, just as a full bar FILL rather than a
+ * border-box-clipped ring. First built for KDA's top-3 bars (one tier per
+ * whole bar); TeamSlot's stacked bars reuse the same three classes per
+ * segment instead. Gold/Silver are the same 2-layer "static metal ramp +
+ * animated sheen band" as `.augment-frame-{gold,silver}`; Prismatic doesn't
+ * need a separate sheen layer since the gradient's own color cycle already
+ * reads as shimmer (same reasoning as `.augment-frame-prismatic`) — its
+ * `repeat-x`/`background-size: 100% 100%`/`-100% 0` shift is copied
+ * verbatim from that rule since it's the only combination already verified
+ * to tile this gradient seamlessly. */
+.tier-bar-prismatic {
+  background-image: var(--gradient-augment-prismatic);
+  background-repeat: repeat-x;
+  background-size: 100% 100%;
+  animation: tier-bar-prismatic-shift 6s linear infinite;
+}
+.tier-bar-gold {
+  background-image:
+    var(--gradient-augment-sheen-gold), var(--gradient-hextech-gold);
+  background-repeat: repeat, no-repeat;
+  background-size:
+    100% 100%,
+    100% 100%;
+  background-position:
+    0 0,
+    0 0;
+  animation: tier-bar-sheen-sweep 5s linear infinite;
+}
+.tier-bar-silver {
+  background-image:
+    var(--gradient-augment-sheen-silver), var(--gradient-augment-silver);
+  background-repeat: repeat, no-repeat;
+  background-size:
+    100% 100%,
+    100% 100%;
+  background-position:
+    0 0,
+    0 0;
+  animation: tier-bar-sheen-sweep 5s linear infinite;
+}
+@keyframes tier-bar-prismatic-shift {
+  to {
+    background-position: -100% 0;
+  }
+}
+@keyframes tier-bar-sheen-sweep {
+  to {
+    background-position:
+      -100% 0,
+      0 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tier-bar-prismatic,
+  .tier-bar-gold,
+  .tier-bar-silver {
+    animation: none;
+  }
+}
+
 /* Arena Stats is a single, permanently dark Hextech theme — no light mode. */
 :root {
   --background: var(--color-lol-black);
@@ -418,7 +527,8 @@
     border: var(--augment-frame-width, 2px) solid transparent;
     background-origin: border-box;
     background-clip: padding-box, border-box, border-box;
-    background-image: linear-gradient(
+    background-image:
+      linear-gradient(
         var(--augment-frame-fill, var(--color-lol-surface)),
         var(--augment-frame-fill, var(--color-lol-surface))
       ),
@@ -453,7 +563,10 @@
      * every value below is a three-item comma list even though just the
      * last matters. */
     background-repeat: no-repeat, no-repeat, repeat-x;
-    background-size: auto, auto, 100% 100%;
+    background-size:
+      auto,
+      auto,
+      100% 100%;
     animation: augment-prismatic-shift 6s linear infinite;
   }
   @media (prefers-reduced-motion: reduce) {

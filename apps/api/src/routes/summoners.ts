@@ -444,15 +444,6 @@ async function buildSummonerStats(summoner: Summoner): Promise<SummonerStatsResp
       totalKills: sql<number>`coalesce(sum(${matchParticipants.kills}), 0)::int`,
       totalDeaths: sql<number>`coalesce(sum(${matchParticipants.deaths}), 0)::int`,
       totalAssists: sql<number>`coalesce(sum(${matchParticipants.assists}), 0)::int`,
-      mostKills: sql<number>`coalesce(max(${matchParticipants.kills}), 0)::int`,
-      mostDeaths: sql<number>`coalesce(max(${matchParticipants.deaths}), 0)::int`,
-      mostAssists: sql<number>`coalesce(max(${matchParticipants.assists}), 0)::int`,
-      bestKda: sql<number>`coalesce(max(
-        case when ${matchParticipants.deaths} = 0
-          then (${matchParticipants.kills} + ${matchParticipants.assists})
-          else (${matchParticipants.kills} + ${matchParticipants.assists})::float / ${matchParticipants.deaths}
-        end
-      ), 0)`,
       totalDamagePhysical: sql<number>`coalesce(sum(${matchParticipants.damageDealtToChampionsPhysical}), 0)::int`,
       totalDamageMagical: sql<number>`coalesce(sum(${matchParticipants.damageDealtToChampionsMagic}), 0)::int`,
       totalDamageTrue: sql<number>`coalesce(sum(${matchParticipants.damageDealtToChampionsTrue}), 0)::int`,
@@ -463,6 +454,8 @@ async function buildSummonerStats(summoner: Summoner): Promise<SummonerStatsResp
       totalWCasts: sql<number>`coalesce(sum(${matchParticipants.wCasts}), 0)::int`,
       totalECasts: sql<number>`coalesce(sum(${matchParticipants.eCasts}), 0)::int`,
       totalRCasts: sql<number>`coalesce(sum(${matchParticipants.rCasts}), 0)::int`,
+      totalSoloKills: sql<number>`coalesce(sum(${matchParticipants.soloKills}), 0)::int`,
+      largestKillingSpree: sql<number>`coalesce(max(${matchParticipants.largestKillingSpree}), 0)::int`,
     })
     .from(matchParticipants)
     .where(eq(matchParticipants.puuid, summoner.puuid))
@@ -493,6 +486,36 @@ async function buildSummonerStats(summoner: Summoner): Promise<SummonerStatsResp
       remaining: row.remaining,
     }))
     .sort((a, b) => b.timesPicked - a.timesPicked);
+
+  // One row per champion: the single best-KDA match played on that champion
+  // — kills/deaths/assists all come from that SAME row (see
+  // ChampionKdaStats.bestGame's doc comment for why, as opposed to
+  // independently maxing each stat). Same DISTINCT ON "top-1 row per group"
+  // pattern as championMaxDamageRows below.
+  const championBestGameRows = await db
+    .selectDistinctOn([matchParticipants.championId], {
+      championId: matchParticipants.championId,
+      kills: matchParticipants.kills,
+      deaths: matchParticipants.deaths,
+      assists: matchParticipants.assists,
+    })
+    .from(matchParticipants)
+    .where(eq(matchParticipants.puuid, summoner.puuid))
+    .orderBy(
+      matchParticipants.championId,
+      desc(sql`case when ${matchParticipants.deaths} = 0
+        then (${matchParticipants.kills} + ${matchParticipants.assists})
+        else (${matchParticipants.kills} + ${matchParticipants.assists})::float / ${matchParticipants.deaths}
+      end`),
+    );
+
+  const championBestGameById = new Map(
+    championBestGameRows.map((row) => [
+      row.championId,
+      { kills: row.kills, deaths: row.deaths, assists: row.assists },
+    ]),
+  );
+  const noBestGame = { kills: 0, deaths: 0, assists: 0 };
 
   // One row per champion: the single highest-damage match played on that
   // champion. Postgres's DISTINCT ON needs its leading ORDER BY column(s)
@@ -632,10 +655,9 @@ async function buildSummonerStats(summoner: Summoner): Promise<SummonerStatsResp
         totalKills: row.totalKills,
         totalDeaths: row.totalDeaths,
         totalAssists: row.totalAssists,
-        mostKills: row.mostKills,
-        mostDeaths: row.mostDeaths,
-        mostAssists: row.mostAssists,
-        bestKda: row.bestKda,
+        bestGame: championBestGameById.get(row.championId) ?? noBestGame,
+        soloKills: row.totalSoloKills,
+        largestKillingSpree: row.largestKillingSpree,
       },
       damage: {
         total: {

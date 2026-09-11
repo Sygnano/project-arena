@@ -1,34 +1,14 @@
-"use client";
-
-import { ResponsiveBar } from "@nivo/bar";
 import type { TeamSlotStats } from "@arena/types";
 import { CategorySection } from "@/components/category-section";
+import { HextechPanel } from "@/components/hextech-panel";
 import {
-  GoldGradientDef,
-  goldGradientFill,
-  PrismaticGradientDef,
-  prismaticGradientFill,
-  SilverGradientDef,
-  silverGradientFill,
-} from "@/components/augment-gradients";
+  HextechBarChart,
+  type BarColumn,
+} from "@/components/hextech-bar-chart";
 
 type Props = {
   teamSlot: TeamSlotStats;
 };
-
-const PRISMATIC_GRADIENT_ID = "team-slot-prismatic-fill";
-const GOLD_GRADIENT_ID = "team-slot-gold-fill";
-const SILVER_GRADIENT_ID = "team-slot-silver-fill";
-
-// Same augment-rarity mapping as PositionsChart/PositionsFunnel — 1st place
-// gets the animated Prismatic fill, 2nd-3rd get static Gold, the rest get
-// static Silver. Keyed by `bar.id` (the stack key, e.g. "1st") rather than
-// `bar.data.order` since this chart's rows are per-team-slot, not per-placement.
-function stackColor(bar: { id: string | number }): string {
-  if (bar.id === "1st") return prismaticGradientFill(PRISMATIC_GRADIENT_ID);
-  if (bar.id === "2nd-3rd") return goldGradientFill(GOLD_GRADIENT_ID);
-  return silverGradientFill(SILVER_GRADIENT_ID);
-}
 
 // Arena's 8 lobby "teams" each have a jungle-camp crest (Poro, Wolf, Minion,
 // Krug, Raptor, Scuttle, Sentinel, Gromp — see the match history client's own
@@ -39,143 +19,159 @@ function stackColor(bar: { id: string | number }): string {
 // confirmed 1-6 only (the current 6-team format, see CLAUDE.md §2 on team
 // size). 7/8 (Wolf/Gromp) are left out rather than guessed at an unconfirmed
 // order, since teamId can't currently exceed 6 anyway.
-const TEAM_ICON_SLUG: Record<string, string> = {
-  "Team 1": "poro",
-  "Team 2": "minion",
-  "Team 3": "scuttle",
-  "Team 4": "krug",
-  "Team 5": "raptor",
-  "Team 6": "sentinel",
+const TEAM_ICON_SLUG: Record<number, string> = {
+  1: "poro",
+  2: "minion",
+  3: "scuttle",
+  4: "krug",
+  5: "raptor",
+  6: "sentinel",
+};
+
+const TEAM_NAME: Record<number, string> = {
+  1: "Poro",
+  2: "Minion",
+  3: "Scuttle",
+  4: "Krug",
+  5: "Raptor",
+  6: "Sentinel",
 };
 
 function teamIconUrl(slug: string): string {
   return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-match-history/global/default/images/subteams/${slug}.svg`;
 }
 
-const TEAM_ICON_SIZE = 60;
+const BAR_MAX_HEIGHT = 380;
 
-/** Custom x-axis tick: the team's crest instead of plain "Team N" text,
- * falling back to text for any teamId outside `TEAM_ICON_SLUG` (7/8, or a
- * future team-count change — see CLAUDE.md §2). Positions itself the same
- * way nivo's own default tick does (`AxisTick.tsx` in `@nivo/axes`) but
- * without pulling in `@react-spring/web` for the mount/update transition —
- * not worth the extra dependency for a fixed, rarely-reordered set of 6 ticks. */
-function renderTeamAxisTick({
-  value,
-  x,
-  y,
-  textX,
-  textY,
-  lineX,
-  lineY,
-  opacity,
-}: {
-  value: string;
-  x: number;
-  y: number;
-  textX: number;
-  textY: number;
-  lineX: number;
-  lineY: number;
-  opacity?: number;
-}) {
-  const slug = TEAM_ICON_SLUG[value];
-  return (
-    <g transform={`translate(${x},${y})`} style={{ opacity }}>
-      <line
-        x1={0}
-        x2={lineX}
-        y1={0}
-        y2={lineY}
-        stroke="var(--color-lol-border-muted)"
-      />
-      {slug ? (
-        <image
-          href={teamIconUrl(slug)}
-          x={textX - TEAM_ICON_SIZE / 2}
-          y={textY}
-          width={TEAM_ICON_SIZE}
-          height={TEAM_ICON_SIZE}
-        >
-          <title>{value}</title>
-        </image>
-      ) : (
-        <text
-          x={textX}
-          y={textY}
-          textAnchor="middle"
-          dominantBaseline="hanging"
-          fill="var(--color-lol-text-muted)"
-          fontSize={12}
-        >
-          {value}
-        </text>
-      )}
-    </g>
+/**
+ * Same three rarity tiers `HextechBarChart`'s KDA columns use for their top
+ * 3 ranks, applied here by FIXED meaning instead of rank: every team's 1st
+ * segment is Prismatic, 2nd-3rd is Gold, and the rest is Silver, regardless
+ * of which team has the most of each. `borderColor`/`boxShadow` mirror
+ * `KDA/index.tsx`'s `BAR_TIER` table exactly (same tokens, same reasoning
+ * for why they're still needed alongside `fillClassName`).
+ */
+const SEGMENT_TIER = {
+  top1: {
+    fillClass: "tier-bar-prismatic",
+    edge: "#f5eaff",
+    glow: "0 0 20px rgba(185,138,221,.55)",
+  },
+  top3: {
+    fillClass: "tier-bar-gold",
+    edge: "var(--color-lol-gold-50)",
+    glow: "0 0 20px rgba(200,155,60,.55)",
+  },
+  remaining: {
+    fillClass: "tier-bar-silver",
+    edge: "#eef2f3",
+    glow: "0 0 16px rgba(185,196,200,.5)",
+  },
+} as const;
+
+/**
+ * Builds one stacked column per team slot — 1st-place finishes on top
+ * (Prismatic), 2nd-3rd in the middle (Gold), everything else at the bottom
+ * (Silver), tallest-total team setting the scale for all six so their
+ * relative sizes stay comparable. Each segment gets an in-bar value label
+ * (dropped by `HextechBarChart` itself when the segment's too short to fit
+ * one legibly) AND a `title` tooltip carrying the same number, so the exact
+ * value is still reachable on hover even for a sliver-thin segment — see
+ * the module doc comment for why both exist rather than picking one.
+ */
+function buildTeamSlotColumns(teamSlot: TeamSlotStats): BarColumn[] {
+  const totals = teamSlot.byTeamId.map(
+    (row) => row.top1 + row.top3ExclTop1 + row.remaining,
   );
+  const maxTotal = Math.max(1, ...totals);
+  const scale = BAR_MAX_HEIGHT / maxTotal;
+
+  return teamSlot.byTeamId.map((row) => {
+    const total = row.top1 + row.top3ExclTop1 + row.remaining;
+    const slug = TEAM_ICON_SLUG[row.teamId];
+
+    const segments = (
+      [
+        ["1st", row.top1, SEGMENT_TIER.top1, "1st-place finish"],
+        [
+          "2nd-3rd",
+          row.top3ExclTop1,
+          SEGMENT_TIER.top3,
+          "2nd-3rd place finish",
+        ],
+        ["remaining", row.remaining, SEGMENT_TIER.remaining, "lower finish"],
+      ] as const
+    )
+      .map(([key, value, tier, noun]) => ({
+        key,
+        value,
+        height: Math.round(value * scale),
+        label: value > 0 ? String(value) : undefined,
+        title: `${value} ${noun}${value === 1 ? "" : "es"}`,
+        fillClassName: tier.fillClass,
+        borderColor: tier.edge,
+        boxShadow: tier.glow,
+      }))
+      // A 0-value segment would still paint a stray `border-top` line at
+      // height 0 (a border isn't clipped away just because its box has no
+      // height) — dropped instead of rendered, rather than trying to hide
+      // it with more CSS.
+      .filter((segment) => segment.height > 0);
+
+    return {
+      id: row.teamId,
+      topLabel: total.toLocaleString(),
+      icon: slug ? (
+        <div className="flex flex-col items-center gap-1.5">
+          <img
+            src={teamIconUrl(slug)}
+            alt={`Team ${row.teamId}`}
+            width={36}
+            height={36}
+          />
+          <div className="mt-1 flex items-center gap-2 text-xs tracking-[.22em] text-lol-text-muted">
+            <span className="h-px w-3 bg-[rgba(200,170,110,.4)]" />
+            TEAM
+            <span className="h-px w-3 bg-[rgba(200,170,110,.4)]" />
+          </div>
+          <div className="mt-1 text-sm font-semibold tracking-[.22em] text-lol-gold-100 uppercase">
+            {TEAM_NAME[row.teamId] ?? `Team ${row.teamId}`}
+          </div>
+        </div>
+      ) : undefined,
+      fallbackLabel: `Team ${row.teamId}`,
+      segments,
+    };
+  });
 }
 
 /**
- * Stacked vertical bar chart, one bar per `teamId` (the lobby slot a
- * summoner started each match in — see `TeamSlotBreakdown`'s doc comment).
- * Each bar stacks 1st-place finishes, 2nd-3rd finishes, and everything
- * lower, to show whether any slot skews toward better or worse outcomes.
+ * Stacked bar chart, one bar per `teamId` (the lobby slot a summoner started
+ * each match in — see `TeamSlotBreakdown`'s doc comment). Each bar stacks
+ * 1st-place finishes, 2nd-3rd finishes, and everything lower, to show
+ * whether any slot skews toward better or worse outcomes. Built on the same
+ * `HextechBarChart` KDA uses (see `components/hextech-bar-chart.tsx`) rather
+ * than nivo's `ResponsiveBar` — nivo drew this as an SVG stacked bar with an
+ * `enableTotals` label and a custom axis tick for the team crest, but the
+ * hand-rolled Hextech chart already has all three (a `topLabel`, a
+ * multi-segment stack, and an icon strip) and keeps this section visually
+ * consistent with every other bar chart in the app instead of looking like
+ * a themed-but-still-generically-shaped charting-library default.
  */
 const TeamSlot = ({ teamSlot }: Props) => {
-  const chartData = teamSlot.byTeamId.map((row) => ({
-    teamId: `Team ${row.teamId}`,
-    "1st": row.top1,
-    "2nd-3rd": row.top3ExclTop1,
-    Remaining: row.remaining,
-  }));
+  const columns = buildTeamSlotColumns(teamSlot);
 
   return (
     <CategorySection
       title="Team Slot"
       quote="We are all kin of kin. Blood, of blood."
+      imageUrl="/images/kda-bg.jpg"
     >
-      <div className="h-full w-[75%]">
-        {/* See PositionsChart's own copy of this comment for why these need a
-         * unique id per chart rather than a shared default. */}
-        <PrismaticGradientDef id={PRISMATIC_GRADIENT_ID} />
-        <GoldGradientDef id={GOLD_GRADIENT_ID} />
-        <SilverGradientDef id={SILVER_GRADIENT_ID} />
-        <ResponsiveBar
-          enableTotals={true}
-          data={chartData}
-          // nivo stacks vertical bars bottom-up in `keys` order, so
-          // "Remaining" (4th-6th) goes first/bottom and "1st" goes
-          // last/top.
-          keys={["Remaining", "2nd-3rd", "1st"]}
-          indexBy="teamId"
-          groupMode="stacked"
-          margin={{ top: 40, right: 20, bottom: TEAM_ICON_SIZE + 25, left: 50 }}
-          padding={0.4}
-          colors={stackColor}
-          axisLeft={null}
-          borderRadius={2}
-          axisBottom={{
-            tickSize: 5,
-            tickPadding: 5,
-            renderTick: renderTeamAxisTick,
-          }}
-          enableGridY={false}
-          theme={{
-            text: { fill: "var(--color-lol-text-secondary)", fontSize: 12 },
-            axis: {
-              ticks: { text: { fill: "var(--color-lol-text-muted)" } },
-              legend: { text: { fill: "var(--color-lol-text-secondary)" } },
-            },
-            grid: { line: { stroke: "var(--color-lol-border-muted)" } },
-            tooltip: {
-              container: {
-                background: "var(--color-lol-navy-900)",
-                color: "var(--color-lol-text)",
-              },
-            },
-          }}
-        />
-      </div>
+      <HextechPanel bodyClassName="flex justify-end items-center h-full">
+        <div className="w-[70%]">
+          <HextechBarChart columns={columns} center fluid gap={48} />
+        </div>
+      </HextechPanel>
     </CategorySection>
   );
 };

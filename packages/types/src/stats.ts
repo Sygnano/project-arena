@@ -225,16 +225,28 @@ export interface ChampionKdaStats {
   totalKills: number;
   totalDeaths: number;
   totalAssists: number;
-  /** Highest kills/deaths/assists in any single tracked match on this
-   * champion (not a sum) — the per-champion analog of `KdaStats.mostKills`
-   * etc. */
-  mostKills: number;
-  mostDeaths: number;
-  mostAssists: number;
-  /** Highest single-match KDA on this champion — the per-champion analog of
-   * `KdaStats.bestKda`. The average-KDA analog of `KdaStats.kda` isn't
-   * stored here since it's cheap to derive from the totals above. */
-  bestKda: number;
+  /** Kills/deaths/assists from this champion's single best-KDA tracked
+   * match — all three from that SAME match (the row with the highest
+   * (kills+assists)/max(1,deaths)), not independently maxed per stat. The
+   * per-champion analog of `ChampionDamageStats.maxGame`, not of
+   * `KdaStats.mostKills`/`mostDeaths`/`mostAssists` (which are
+   * independently maxed and have no per-champion equivalent here). Both the
+   * average-KDA analog of `KdaStats.kda` and the best-single-match-KDA
+   * analog of `KdaStats.bestKda` are cheap to derive — from `totalKills`/
+   * `totalDeaths`/`totalAssists` and from this object respectively — so
+   * neither is stored separately. */
+  bestGame: {
+    kills: number;
+    deaths: number;
+    assists: number;
+  };
+  /** Summed across every tracked match played as this champion — the
+   * per-champion analog of `KillsStats.soloKills`. */
+  soloKills: number;
+  /** Highest single-match `largestKillingSpree` across every tracked match
+   * played as this champion (not a sum) — the per-champion analog of
+   * `KillsStats.largestKillingSpree`. */
+  largestKillingSpree: number;
 }
 
 /** Damage dealt to champions, split by type — physical/magical/trueDamage
