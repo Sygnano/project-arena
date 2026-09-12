@@ -67,6 +67,15 @@ async function buildSummonerStats(summoner: Summoner): Promise<SummonerStatsResp
       totalDamageTakenPhysical: sql<number>`coalesce(sum(${matchParticipants.damageTakenPhysical}), 0)::int`,
       totalDamageTakenMagical: sql<number>`coalesce(sum(${matchParticipants.damageTakenMagic}), 0)::int`,
       totalDamageTakenTrue: sql<number>`coalesce(sum(${matchParticipants.damageTakenTrue}), 0)::int`,
+      // Independently maxed per damage type (unlike globalMaxDamageGame
+      // below, which ties all three to one match) — see
+      // `DamageStats.bestByType`'s doc comment.
+      bestDamagePhysical: sql<number>`coalesce(max(${matchParticipants.damageDealtToChampionsPhysical}), 0)::int`,
+      bestDamageMagical: sql<number>`coalesce(max(${matchParticipants.damageDealtToChampionsMagic}), 0)::int`,
+      bestDamageTrue: sql<number>`coalesce(max(${matchParticipants.damageDealtToChampionsTrue}), 0)::int`,
+      bestDamageTakenPhysical: sql<number>`coalesce(max(${matchParticipants.damageTakenPhysical}), 0)::int`,
+      bestDamageTakenMagical: sql<number>`coalesce(max(${matchParticipants.damageTakenMagic}), 0)::int`,
+      bestDamageTakenTrue: sql<number>`coalesce(max(${matchParticipants.damageTakenTrue}), 0)::int`,
     })
     .from(matchParticipants)
     .where(eq(matchParticipants.puuid, summoner.puuid));
@@ -264,6 +273,9 @@ async function buildSummonerStats(summoner: Summoner): Promise<SummonerStatsResp
       date: sql<string>`(${matches.gameCreation} at time zone 'UTC')::date::text`,
       gamesPlayed: sql<number>`count(*)::int`,
       top3Finishes: sql<number>`count(*) filter (where ${matchParticipants.placement} <= 3)::int`,
+      avgPlacement: sql<number>`avg(${matchParticipants.placement})::float`,
+      bestPlacement: sql<number>`min(${matchParticipants.placement})::int`,
+      timePlayedSeconds: sql<number>`coalesce(sum(${matchParticipants.timePlayedSeconds}), 0)::int`,
     })
     .from(matchParticipants)
     .innerJoin(matches, eq(matchParticipants.matchId, matches.matchId))
@@ -274,7 +286,28 @@ async function buildSummonerStats(summoner: Summoner): Promise<SummonerStatsResp
     date: row.date,
     gamesPlayed: row.gamesPlayed,
     top3Rate: (row.top3Finishes / row.gamesPlayed) * 100,
+    avgPlacement: row.avgPlacement,
+    bestPlacement: row.bestPlacement,
+    timePlayedSeconds: row.timePlayedSeconds,
   }));
+
+  // Tracked matches grouped by UTC hour-of-day, for the "by hour" activity
+  // view — not derived from `calendarDays` (grouped by date, not time of
+  // day), so its own query.
+  const hourRows = await db
+    .select({
+      hour: sql<number>`extract(hour from (${matches.gameCreation} at time zone 'UTC'))::int`,
+      gamesPlayed: sql<number>`count(*)::int`,
+    })
+    .from(matchParticipants)
+    .innerJoin(matches, eq(matchParticipants.matchId, matches.matchId))
+    .where(eq(matchParticipants.puuid, summoner.puuid))
+    .groupBy(sql`extract(hour from (${matches.gameCreation} at time zone 'UTC'))`);
+
+  const gamesByHour = new Array<number>(24).fill(0);
+  for (const row of hourRows) {
+    gamesByHour[row.hour] = row.gamesPlayed;
+  }
 
   const mostGamesInADay = calendarDays.reduce(
     (max, day) => Math.max(max, day.gamesPlayed),
@@ -364,12 +397,41 @@ async function buildSummonerStats(summoner: Summoner): Promise<SummonerStatsResp
   // has exactly one row per (matchId, puuid).
   const banRows = await db
     .select({
+      matchId: matchParticipants.matchId,
       bannedChampionIds: matches.bannedChampionIds,
       placement: matchParticipants.placement,
     })
     .from(matchParticipants)
     .innerJoin(matches, eq(matchParticipants.matchId, matches.matchId))
     .where(eq(matchParticipants.puuid, summoner.puuid));
+
+  // Which champions were actually picked (by anyone, not just the tracked
+  // summoner) in each of these matches — a champion merely being open isn't
+  // enough to sample "win rate when open" from a match, since a champion
+  // nobody picked can't have influenced that game's outcome at all.
+  const pickRows = banRows.length
+    ? await db
+        .selectDistinct({
+          matchId: matchParticipants.matchId,
+          championId: matchParticipants.championId,
+        })
+        .from(matchParticipants)
+        .where(
+          inArray(
+            matchParticipants.matchId,
+            banRows.map((row) => row.matchId),
+          ),
+        )
+    : [];
+  const pickedChampionsByMatch = new Map<string, Set<number>>();
+  for (const { matchId, championId } of pickRows) {
+    let set = pickedChampionsByMatch.get(matchId);
+    if (!set) {
+      set = new Set();
+      pickedChampionsByMatch.set(matchId, set);
+    }
+    set.add(championId);
+  }
 
   const matchBans = banRows.map((row) => ({
     // Dedupe per match — the same champion could appear more than once in
@@ -379,13 +441,39 @@ async function buildSummonerStats(summoner: Summoner): Promise<SummonerStatsResp
     // Riot fills a ban slot with -1 when that player didn't lock one in
     // (271 of 329 matches checked had at least one -1), not a parsing bug.
     bannedIds: new Set((row.bannedChampionIds ?? []).filter((id) => id > 0)),
+    rawIds: row.bannedChampionIds ?? [],
     isTop3: row.placement <= 3,
+    pickedChampionIds: pickedChampionsByMatch.get(row.matchId) ?? new Set<number>(),
   }));
 
   const banCounts = new Map<number, number>();
   for (const { bannedIds } of matchBans) {
     for (const championId of bannedIds) {
       banCounts.set(championId, (banCounts.get(championId) ?? 0) + 1);
+    }
+  }
+
+  // Raw ban-slot totals across every tracked match, counting duplicates —
+  // unlike `banCounts` above (deduped per match for `banRate`), this feeds
+  // the "X BANS" detail figure and the sidebar's TOTAL BANS / NO BAN /
+  // DUPLICATE BAN counters (see BannedChampionsStats's doc comment).
+  let totalBans = 0;
+  let noBanCount = 0;
+  let duplicateBanCount = 0;
+  const totalBansByChampion = new Map<number, number>();
+  for (const { rawIds } of matchBans) {
+    const perMatchCounts = new Map<number, number>();
+    for (const id of rawIds) {
+      if (id <= 0) {
+        noBanCount++;
+        continue;
+      }
+      totalBans++;
+      totalBansByChampion.set(id, (totalBansByChampion.get(id) ?? 0) + 1);
+      perMatchCounts.set(id, (perMatchCounts.get(id) ?? 0) + 1);
+    }
+    for (const count of perMatchCounts.values()) {
+      duplicateBanCount += Math.max(count - 1, 0);
     }
   }
 
@@ -420,8 +508,8 @@ async function buildSummonerStats(summoner: Summoner): Promise<SummonerStatsResp
     .map((championId) => {
       let notBannedTotal = 0;
       let notBannedTop3 = 0;
-      for (const { bannedIds, isTop3 } of matchBans) {
-        if (!bannedIds.has(championId)) {
+      for (const { bannedIds, isTop3, pickedChampionIds } of matchBans) {
+        if (!bannedIds.has(championId) && pickedChampionIds.has(championId)) {
           notBannedTotal++;
           if (isTop3) notBannedTop3++;
         }
@@ -430,6 +518,7 @@ async function buildSummonerStats(summoner: Summoner): Promise<SummonerStatsResp
         championId,
         championName: championNameById.get(championId) ?? `Champion ${championId}`,
         banRate: (banCounts.get(championId)! / banRows.length) * 100,
+        totalBans: totalBansByChampion.get(championId) ?? 0,
         winRateWhenNotBanned:
           notBannedTotal > 0 ? (notBannedTop3 / notBannedTotal) * 100 : null,
       };
@@ -450,6 +539,14 @@ async function buildSummonerStats(summoner: Summoner): Promise<SummonerStatsResp
       totalDamageTakenPhysical: sql<number>`coalesce(sum(${matchParticipants.damageTakenPhysical}), 0)::int`,
       totalDamageTakenMagical: sql<number>`coalesce(sum(${matchParticipants.damageTakenMagic}), 0)::int`,
       totalDamageTakenTrue: sql<number>`coalesce(sum(${matchParticipants.damageTakenTrue}), 0)::int`,
+      // Independently maxed per damage type, per champion — see
+      // `ChampionDamageStats.bestByType`'s doc comment.
+      bestDamagePhysical: sql<number>`coalesce(max(${matchParticipants.damageDealtToChampionsPhysical}), 0)::int`,
+      bestDamageMagical: sql<number>`coalesce(max(${matchParticipants.damageDealtToChampionsMagic}), 0)::int`,
+      bestDamageTrue: sql<number>`coalesce(max(${matchParticipants.damageDealtToChampionsTrue}), 0)::int`,
+      bestDamageTakenPhysical: sql<number>`coalesce(max(${matchParticipants.damageTakenPhysical}), 0)::int`,
+      bestDamageTakenMagical: sql<number>`coalesce(max(${matchParticipants.damageTakenMagic}), 0)::int`,
+      bestDamageTakenTrue: sql<number>`coalesce(max(${matchParticipants.damageTakenTrue}), 0)::int`,
       totalQCasts: sql<number>`coalesce(sum(${matchParticipants.qCasts}), 0)::int`,
       totalWCasts: sql<number>`coalesce(sum(${matchParticipants.wCasts}), 0)::int`,
       totalECasts: sql<number>`coalesce(sum(${matchParticipants.eCasts}), 0)::int`,
@@ -666,6 +763,11 @@ async function buildSummonerStats(summoner: Summoner): Promise<SummonerStatsResp
           trueDamage: row.totalDamageTrue,
         },
         maxGame: championMaxDamageById.get(row.championId) ?? noDamage,
+        bestByType: {
+          physical: row.bestDamagePhysical,
+          magical: row.bestDamageMagical,
+          trueDamage: row.bestDamageTrue,
+        },
       },
       damageTaken: {
         total: {
@@ -674,6 +776,11 @@ async function buildSummonerStats(summoner: Summoner): Promise<SummonerStatsResp
           trueDamage: row.totalDamageTakenTrue,
         },
         maxGame: championMaxDamageTakenById.get(row.championId) ?? noDamage,
+        bestByType: {
+          physical: row.bestDamageTakenPhysical,
+          magical: row.bestDamageTakenMagical,
+          trueDamage: row.bestDamageTakenTrue,
+        },
       },
       ability: {
         total: {
@@ -735,6 +842,7 @@ async function buildSummonerStats(summoner: Summoner): Promise<SummonerStatsResp
     },
     calendar: {
       days: calendarDays,
+      gamesByHour,
     },
     placements: {
       top3Finishes: agg.top3Finishes,
@@ -748,6 +856,9 @@ async function buildSummonerStats(summoner: Summoner): Promise<SummonerStatsResp
     },
     bannedChampions: {
       champions: bannedChampions,
+      totalBans,
+      noBanCount,
+      duplicateBanCount,
     },
     damage: {
       total: {
@@ -756,6 +867,11 @@ async function buildSummonerStats(summoner: Summoner): Promise<SummonerStatsResp
         trueDamage: agg.totalDamageTrue,
       },
       maxGame: globalMaxDamageGame ?? noDamage,
+      bestByType: {
+        physical: agg.bestDamagePhysical,
+        magical: agg.bestDamageMagical,
+        trueDamage: agg.bestDamageTrue,
+      },
     },
     damageTaken: {
       total: {
@@ -764,6 +880,11 @@ async function buildSummonerStats(summoner: Summoner): Promise<SummonerStatsResp
         trueDamage: agg.totalDamageTakenTrue,
       },
       maxGame: globalMaxDamageTakenGame ?? noDamage,
+      bestByType: {
+        physical: agg.bestDamageTakenPhysical,
+        magical: agg.bestDamageTakenMagical,
+        trueDamage: agg.bestDamageTakenTrue,
+      },
     },
     kills: {
       doubleKills: killsAgg.doubleKills,

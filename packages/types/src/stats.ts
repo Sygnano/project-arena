@@ -22,10 +22,21 @@ export interface CalendarDayStats {
   /** Top3-finish rate (the same "win" definition as `PlacementStats.top3Finishes`)
    * across this day's matches only, 0-100. */
   top3Rate: number;
+  /** Average placement across this day's matches only (1 = best). */
+  avgPlacement: number;
+  /** Best (lowest) placement reached on this day. */
+  bestPlacement: number;
+  /** Sum of match_participants.timePlayedSeconds across this day's matches
+   * only — same real-playtime source as `TimePlayedStats.timePlayedSeconds`. */
+  timePlayedSeconds: number;
 }
 
 export interface CalendarStats {
   days: CalendarDayStats[];
+  /** Tracked matches grouped by the UTC hour-of-day (0-23) they started in —
+   * index 0 is matches starting 00:00-00:59 UTC. Powers the summoner page's
+   * "by hour" activity view. */
+  gamesByHour: number[];
 }
 
 export interface KdaStats {
@@ -267,6 +278,12 @@ export interface ChampionDamageStats {
    * match — all three fields come from that same match (not independently
    * maxed per type, which could mix numbers from different matches). */
   maxGame: DamageBreakdown;
+  /** Each field independently maxed across every tracked match played as
+   * this champion — unlike `maxGame`, the three numbers here can come from
+   * three different matches (e.g. the highest-physical game need not be the
+   * highest-magical game). Used for "best game" views that sort/display
+   * physical, magical, and true damage as their own independent bests. */
+  bestByType: DamageBreakdown;
 }
 
 /**
@@ -292,6 +309,9 @@ export interface ChampionStats {
 export interface DamageStats {
   total: DamageBreakdown;
   maxGame: DamageBreakdown;
+  /** Same "independently maxed per type" idea as `ChampionDamageStats.bestByType`,
+   * aggregated across every tracked match regardless of champion. */
+  bestByType: DamageBreakdown;
 }
 
 /**
@@ -300,21 +320,44 @@ export interface DamageStats {
  * anywhere in the lobby-wide ban list (`matches.bannedChampionIds`) — a
  * champion banned by more than one player in the same match still counts
  * once for that match, so this can't exceed 100.
+ * `totalBans` is the raw count of ban slots this champion filled across
+ * every tracked match, counting duplicates (unlike `banRate`, a champion
+ * banned twice in one match adds 2 here, not 1) — used for the "X BANS"
+ * detail-row figure rather than a per-match rate.
  * `winRateWhenNotBanned` is the summoner's top3-finish rate (the same
  * "win" definition as `PlacementStats.top3Finishes`) across only the
- * matches where this champion was NOT banned, i.e. was actually available
- * to be picked — null if the champion was banned in every one of the
- * summoner's tracked matches (no such matches exist to sample).
+ * matches where this champion was NOT banned AND was actually picked by
+ * someone in the lobby (not just theoretically available) — a match where
+ * the champion was open but nobody drafted it can't tell us anything about
+ * that champion's effect on the game, so it's excluded from the sample.
+ * Null if no such match exists (the champion was banned in every one of the
+ * summoner's tracked matches, or was never picked in any of the ones where
+ * it was open).
  */
 export interface BannedChampionStats {
   championId: number;
   championName: string;
   banRate: number;
+  totalBans: number;
   winRateWhenNotBanned: number | null;
 }
 
+/**
+ * `totalBans` is every filled ban slot across every tracked match, counting
+ * duplicates (the same champion banned twice in one match counts twice) —
+ * `-1` ("no ban locked in", see CLAUDE.md §2) slots are excluded.
+ * `noBanCount` is the count of those excluded `-1` slots — how often a
+ * player in a tracked match didn't lock in a ban at all.
+ * `duplicateBanCount` is, per match, `max(timesChampionBanned - 1, 0)`
+ * summed across every champion and every match — i.e. how many ban slots
+ * were "wasted" re-banning something someone else in the same match had
+ * already banned.
+ */
 export interface BannedChampionsStats {
   champions: BannedChampionStats[];
+  totalBans: number;
+  noBanCount: number;
+  duplicateBanCount: number;
 }
 
 /**

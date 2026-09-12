@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { motion, MotionConfig } from "motion/react";
 import { cn } from "cn";
 
@@ -94,6 +94,34 @@ type Props = {
    * pass a bigger value for a chart with few, wide columns that should read
    * as more deliberately spaced out (e.g. TeamSlot). */
   gap?: number;
+  /** Fixed column width in px, overriding the default 54px (`w-13.5`) —
+   * e.g. Champion Picks' denser 20-column chart uses 26px columns. Ignored
+   * when `fluid` is set (columns share the container width instead). */
+  columnWidth?: number;
+  /** The rotated-diamond cap between a column's `topLabel` and its bar —
+   * KDA/TeamSlot's cyan "leader" marker. Champion Picks has no cap at all
+   * (its selection state is carried by the lift + ring below instead), so
+   * `"none"` skips rendering it entirely rather than rendering an
+   * always-dim one. */
+  capStyle?: "diamond" | "none";
+  /** How a selected column reads: `"brightness"` (default, KDA/TeamSlot —
+   * a hover/selected brightness filter) or `"lift"` (Champion Picks — the
+   * whole column rises `translateY(-7px)` and gains a 1px gold ring, with no
+   * brightness change). */
+  selectionStyle?: "brightness" | "lift";
+  /** Overrides the built-in `isLeader`-based cyan/muted `topLabel` color —
+   * e.g. Champion Picks colors its total-picks label by `isSelected`
+   * instead (it has no "leader" cap to match colors with). */
+  topLabelColor?: (column: BarColumn) => string;
+  /** Arbitrary content absolutely-positioned over the bar row itself (not
+   * the icon strip below it) — e.g. Champion Picks' dashed season-average
+   * line or Placement's cumulative-count polyline. Position children with
+   * `bottom` (the row's bottom edge is always the bar baseline, i.e. the
+   * `border-b` line) rather than `top`, since the row's own height tracks
+   * its flex container, not a fixed plot height. Defaults to
+   * `pointer-events-none` on the wrapper only — an interactive child can
+   * still opt back in with its own `pointer-events: auto`. */
+  plotOverlay?: ReactNode;
 };
 
 const COLUMN_WIDTH_CLASS = "w-13.5";
@@ -115,17 +143,28 @@ const MIN_SEGMENT_LABEL_HEIGHT = 20;
  * stacked variant). Both rows live in the same `overflow-x-auto` wrapper so
  * they scroll together as a single unit.
  *
- * Reordering (a column's x position changing, e.g. KDA re-sorting on a
- * metric/mode change) uses Motion's `layout="position"` FLIP animation —
- * `"position"` rather than the default `layout={true}` so Motion only
- * interpolates position via `transform`, never scale (scaling a
- * bordered/glowing element to fake a size change would visibly distort its
- * border width and box-shadow spread). A bar's own height change instead
- * uses a plain CSS `transition` — cheaper than a layout animation, and
- * since old/new heights here are always concrete pixel numbers (never
- * `auto`), CSS can't spring, but a "back ease" cubic-bezier (small
- * overshoot past the target then settle) reads as the same elasticity as
- * the reorder's spring, so the two stay visually consistent.
+ * The two rows deliberately reorder differently on a re-sort (e.g. KDA's
+ * metric/mode change): the icon row is keyed by `column.id` and uses
+ * Motion's `layout="position"` FLIP animation to slide each icon sideways
+ * into its new rank — `"position"` rather than the default `layout={true}`
+ * so Motion only interpolates position via `transform`, never scale (scaling
+ * a bordered/glowing element to fake a size change would visibly distort its
+ * border width and box-shadow spread). The bar row is keyed by slot INDEX
+ * instead, not `column.id` — bars never slide sideways at all, since there's
+ * always the same fixed number of rank slots; a re-sort just changes which
+ * champion's data now renders in a given slot, and that slot's bar tweens
+ * from its old height to the new one in place via a plain CSS `transition`
+ * on the segment. This split was deliberate, not an oversight: animating a
+ * bar's height (a layout-triggering property) at the same time Motion is
+ * also sliding that same element sideways (a `transform`) read as janky —
+ * two different animation systems (browser CSS transition vs. Motion's RAF
+ * loop) fighting over the same element's frame timing — so bars now only
+ * ever move vertically in place, and only the icon row (which never changes
+ * size, only position) does the horizontal FLIP. Since old/new bar heights
+ * here are always concrete pixel numbers (never `auto`), CSS can't spring,
+ * but a "back ease" cubic-bezier (small overshoot past the target then
+ * settle) reads as the same elasticity as the icon row's spring, so the two
+ * stay visually consistent despite using different techniques.
  */
 function HextechBarChart({
   columns,
@@ -133,11 +172,36 @@ function HextechBarChart({
   center = false,
   fluid = false,
   gap = 16,
+  columnWidth,
+  capStyle = "diamond",
+  selectionStyle = "brightness",
+  topLabelColor,
+  plotOverlay,
 }: Props) {
   const gapStyle = { gap: `${gap}px` };
+  const columnWidthStyle =
+    !fluid && columnWidth ? { width: columnWidth } : undefined;
+
+  // Which icons are mid-FLIP right now, purely to drive the `.hex-move-glow`
+  // one-shot flash (see globals.css) — set/cleared by that icon's own
+  // `onLayoutAnimationStart`/`Complete` below.
+  const [movingIds, setMovingIds] = useState<Set<string | number>>(
+    () => new Set(),
+  );
+  const startMoving = (id: string | number) =>
+    setMovingIds((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
+  const stopMoving = (id: string | number) =>
+    setMovingIds((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
 
   return (
-    <MotionConfig transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}>
+    <MotionConfig
+      transition={{ type: "spring", stiffness: 450, damping: 25, mass: 0.8 }}
+    >
       <motion.div
         layoutScroll
         className={cn(
@@ -150,60 +214,90 @@ function HextechBarChart({
       >
         <div
           className={cn(
-            "flex min-h-0 flex-1 items-end border-b border-[rgba(200,170,110,.3)] px-0.5",
+            "relative flex min-h-0 flex-1 items-end border-b border-[rgba(200,170,110,.3)] px-0.5",
             fluid ? "w-full" : "min-w-full w-max",
             center && "justify-center",
           )}
           style={gapStyle}
         >
-          {columns.map((column) => (
-            <motion.div
-              key={column.id}
-              layout="position"
+          {plotOverlay ? (
+            <div className="pointer-events-none absolute inset-0">
+              {plotOverlay}
+            </div>
+          ) : null}
+          {columns.map((column, index) => (
+            <div
+              // Keyed by slot position, not `column.id`: bars never reorder
+              // themselves (there's always the same number of them, just
+              // fixed rank slots) — only the icon row below reorders to show
+              // which champion now occupies which slot. Keying by index
+              // means React reuses the same DOM node for a given slot across
+              // a re-sort, so a bar's height just tweens to its new value in
+              // place via the CSS transition on its segment, instead of
+              // Motion's `layout="position"` FLIP sliding the whole bar
+              // sideways at the same time a height transition is also
+              // playing on it.
+              key={index}
               onClick={onSelect ? () => onSelect(column.id) : undefined}
               className={cn(
-                "flex flex-col items-center justify-end gap-2 transition-[filter] duration-150",
-                fluid ? "min-w-0 flex-1" : cn(COLUMN_WIDTH_CLASS, "flex-none"),
-                onSelect && "cursor-pointer hover:brightness-125",
+                "flex flex-col items-center justify-end gap-2 transition-[filter,transform,box-shadow] duration-150",
+                fluid
+                  ? "min-w-0 flex-1"
+                  : cn(!columnWidth && COLUMN_WIDTH_CLASS, "flex-none"),
+                onSelect &&
+                  selectionStyle === "brightness" &&
+                  "cursor-pointer hover:brightness-125",
+                onSelect && selectionStyle === "lift" && "cursor-pointer",
               )}
+              style={{
+                ...columnWidthStyle,
+                ...(selectionStyle === "lift" && column.isSelected
+                  ? {
+                      transform: "translateY(-7px)",
+                      boxShadow: "0 0 0 1px rgba(200,170,110,.85)",
+                    }
+                  : undefined),
+              }}
             >
               {column.topLabel ? (
                 <div
                   className="font-display text-[19px]"
                   style={{
-                    color: column.isLeader
-                      ? "#e6fffb"
-                      : "var(--color-lol-text-secondary)",
+                    color:
+                      topLabelColor?.(column) ??
+                      (column.isLeader
+                        ? "#e6fffb"
+                        : "var(--color-lol-text-secondary)"),
                   }}
                 >
                   {column.topLabel}
                 </div>
               ) : null}
 
-              <div
-                className="h-2.75 w-2.75 rotate-45 border"
-                style={{
-                  background: column.isLeader ? "#e6fffb" : "#0b1620",
-                  borderColor: column.isLeader
-                    ? "#e6fffb"
-                    : "rgba(10,200,185,.75)",
-                  boxShadow: column.isLeader
-                    ? "0 0 22px rgba(10,224,207,.65)"
-                    : "none",
-                }}
-              />
+              {capStyle === "diamond" ? (
+                <div
+                  className="h-2.75 w-2.75 rotate-45 border"
+                  style={{
+                    background: column.isLeader ? "#e6fffb" : "#0b1620",
+                    borderColor: column.isLeader
+                      ? "#e6fffb"
+                      : "rgba(10,200,185,.75)",
+                    boxShadow: column.isLeader
+                      ? "0 0 22px rgba(10,224,207,.65)"
+                      : "none",
+                  }}
+                />
+              ) : null}
 
               <div
-                className={cn(
-                  "w-full items-center justify-center overflow-hidden border-t transition-[height] duration-450 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
-                )}
+                className={cn("w-full items-center justify-center overflow-hidden border-t")}
               >
                 {column.segments.map((segment) => (
                   <div
                     key={segment.key}
                     title={segment.title}
                     className={cn(
-                      "flex w-full items-center justify-center",
+                      "flex w-full items-center justify-center transition-[height] duration-450 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
                       segment.fillClassName,
                     )}
                     style={{
@@ -228,7 +322,7 @@ function HextechBarChart({
                   </div>
                 ))}
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
 
@@ -250,18 +344,22 @@ function HextechBarChart({
               <motion.div
                 key={column.id}
                 layout="position"
+                onLayoutAnimationStart={() => startMoving(column.id)}
+                onLayoutAnimationComplete={() => stopMoving(column.id)}
                 onClick={onSelect ? () => onSelect(column.id) : undefined}
                 className={cn(
                   "group flex flex-col items-center gap-1.25 transition-[filter] duration-150",
-                  fluid ? "min-w-0 flex-1" : cn(COLUMN_WIDTH_CLASS, "flex-none"),
+                  fluid
+                    ? "min-w-0 flex-1"
+                    : cn(!columnWidth && COLUMN_WIDTH_CLASS, "flex-none"),
                   onSelect && "cursor-pointer hover:brightness-125",
+                  movingIds.has(column.id) && "hex-move-glow",
                 )}
+                style={columnWidthStyle}
               >
                 {column.icon ? (
                   <div
-                    className={cn(
-                      "flex items-center justify-center overflow-hidden",
-                    )}
+                    className={cn("flex items-center justify-center")}
                     style={{ borderColor: iconEdge }}
                   >
                     {column.icon}

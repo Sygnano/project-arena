@@ -14,8 +14,9 @@ type Stat = {
 type Props = {
   /** Icon / image rendered on the left (36×36 or similar). */
   icon: ReactNode;
-  /** Primary text next to the icon (e.g. champion name). */
-  title: string;
+  /** Primary content next to the icon (e.g. champion name, or a custom
+   * multi-line node like TimePlayed's stacked month/day label). */
+  title: ReactNode;
   /** Secondary text below the title (e.g. "12 GAMES"). */
   subtitle?: string;
   /** Stat cells displayed to the right. */
@@ -77,7 +78,7 @@ function StatCell({
 function DetailBand({ icon, title, subtitle, stats, statsGrid }: Props) {
   return (
     <div
-      className="mt-5 grid items-center gap-6.5 pt-4.5"
+      className="mt-2 grid items-center gap-6.5 pt-4.5"
       style={{
         borderTop: "1px solid rgba(200,170,110,.28)",
         gridTemplateColumns: "240px minmax(0,1fr)",

@@ -3,9 +3,13 @@
 import { ResponsiveBar } from "@nivo/bar";
 import type { PingsStats } from "@arena/types";
 import { CategorySection } from "@/components/category-section";
+import { RecordColumn } from "@/components/record-column";
 
 type Props = {
   pings: PingsStats;
+  totalFistBumps: number;
+  totalPings: number;
+  totalSkillshotsDodged: number;
 };
 
 /** "allIn" -> "All In", "onMyWay" -> "On My Way", etc. — Riot's 14 ping
@@ -17,7 +21,12 @@ function humanize(key: string): string {
 /** Horizontal bar chart of every ping type, summed across every tracked
  * match — no champion dimension (pings aren't a champion-specific stat),
  * sorted so the most-used ping type is at the top. */
-const Pings = ({ pings }: Props) => {
+const Pings = ({
+  pings,
+  totalFistBumps,
+  totalPings,
+  totalSkillshotsDodged,
+}: Props) => {
   const chartData = Object.entries(pings.pings)
     .map(([type, count]) => ({ type: humanize(type), count }))
     // Ascending — Nivo's horizontal bar layout renders the last data item
@@ -52,6 +61,21 @@ const Pings = ({ pings }: Props) => {
               },
             },
           }}
+        />
+      </div>
+
+      <div
+        className="flex justify-center pt-6"
+        style={{ borderTop: "1px solid rgba(200,170,110,.28)" }}
+      >
+        <RecordColumn
+          heading="FOR THE RECORD"
+          headingColor="var(--color-lol-blue-300)"
+          rows={[
+            ["FIST BUMPS", totalFistBumps],
+            ["PINGS", totalPings],
+            ["SKILLSHOTS DODGED", totalSkillshotsDodged],
+          ]}
         />
       </div>
     </CategorySection>

@@ -1,155 +1,246 @@
 "use client";
 
-import { ResponsiveBar } from "@nivo/bar";
-import type { ChampionPicksStats } from "@arena/types";
+import { useMemo, useState } from "react";
+import type { ChampionPickBreakdown, ChampionPicksStats } from "@arena/types";
 import { CategorySection } from "@/components/category-section";
-import { championIconUrl } from "@/lib/riot";
+import { HextechPanel } from "@/components/hextech-panel";
 import {
-  GoldGradientDef,
-  goldGradientFill,
-  PrismaticGradientDef,
-  prismaticGradientFill,
-  SilverGradientDef,
-  silverGradientFill,
-} from "@/components/augment-gradients";
+  HextechBarChart,
+  type BarColumn,
+} from "@/components/hextech-bar-chart";
+import { RingFrame } from "@/components/dial";
+import { DiamondTabs } from "@/components/diamond-tabs";
+import { FadingRule } from "@/components/fading-rule";
+import { SidebarStatRows } from "@/components/sidebar-stat-row";
+import { TIER_STYLE } from "@/lib/tier-bars";
+import { championIconUrl } from "@/lib/riot";
 
 type Props = {
   championPicks: ChampionPicksStats;
+  nextSectionLabel?: string;
 };
 
-const CHAMPION_ICON_SIZE = 36;
-// Floor on each bar's own width (icon + breathing room either side) — once
-// enough champions are played that this times the champion count would
-// exceed the section's actual width, the outer div scrolls horizontally
-// instead of letting nivo squeeze every bar down to illegibility.
-const MIN_BAR_WIDTH = 56;
+type SortMode = "picks" | "rate";
 
-const PRISMATIC_GRADIENT_ID = "champion-picks-prismatic-fill";
-const GOLD_GRADIENT_ID = "champion-picks-gold-fill";
-const SILVER_GRADIENT_ID = "champion-picks-silver-fill";
+const BAR_MAX_HEIGHT = 380;
+const BAR_MIN_HEIGHT = 16;
 
-// Same augment-rarity mapping as TeamSlot's own stack — 1st place gets the
-// animated Prismatic fill, 2nd-3rd get static Gold, the rest get static
-// Silver. Keyed by `bar.id` (the stack key, e.g. "1st"), not champion data.
-function stackColor(bar: { id: string | number }): string {
-  if (bar.id === "1st") return prismaticGradientFill(PRISMATIC_GRADIENT_ID);
-  if (bar.id === "2nd-3rd") return goldGradientFill(GOLD_GRADIENT_ID);
-  return silverGradientFill(SILVER_GRADIENT_ID);
-}
+/**
+ * The design's middle stack segment (`top3ExclTop1`, 2nd-3rd place — see
+ * `ChampionPickBreakdown`) is labeled "TOP 4" in the original prototype's
+ * legend/sidebar text, a leftover from an earlier Arena team-size era (see
+ * CLAUDE.md §2 on why team size — and therefore what "top 4" even means —
+ * isn't stable). Relabeled to "TOP 3" here to match what the field actually
+ * counts and stay consistent with `PlacementStats.top3Finishes`'s "win"
+ * definition used everywhere else in the app; no data or layout changed.
+ */
+const TOP3_RATE_COLOR = "#e0b563";
+const FIRST_RATE_COLOR = "var(--color-augment-prismatic)";
 
-/** Custom x-axis tick: the champion's icon instead of plain text. Same
- * positioning as TeamSlot's own `renderTeamAxisTick`, minus the text
- * fallback — every bar here is a real, already-picked champion, always
- * resolvable via `championIconUrl`. */
-function renderChampionAxisTick({
-  value,
-  x,
-  y,
-  textX,
-  textY,
-  lineX,
-  lineY,
-  opacity,
-}: {
-  value: string;
-  x: number;
-  y: number;
-  textX: number;
-  textY: number;
-  lineX: number;
-  lineY: number;
-  opacity?: number;
-}) {
-  return (
-    <g transform={`translate(${x},${y})`} style={{ opacity }}>
-      <line
-        x1={0}
-        x2={lineX}
-        y1={0}
-        y2={lineY}
-        stroke="var(--color-lol-border-muted)"
-      />
-      <image
-        href={championIconUrl(value)}
-        x={textX - CHAMPION_ICON_SIZE / 2}
-        y={textY}
-        width={CHAMPION_ICON_SIZE}
-        height={CHAMPION_ICON_SIZE}
-      >
-        <title>{value}</title>
-      </image>
-    </g>
-  );
+function rankLabel(rank: number, total: number): string {
+  return `#${rank} OF ${total} PICKED`;
 }
 
 /**
- * Stacked vertical bar chart, one bar per champion the summoner has ever
- * picked, sorted by total picks descending (most-picked on the left — the
- * API already returns `championPicks.champions` in that order). Each bar
- * stacks 1st-place finishes, 2nd-3rd finishes, and everything lower, same
- * shape and gradient treatment as TeamSlot's own stack.
+ * Ranks champions by the active sort mode. Bar HEIGHT always reflects total
+ * picks regardless of sort (see design_handoff_arena_panels/README.md, 5a:
+ * "Bar total height = ... picks / maxPicks" is the only height formula
+ * given) — only the x-order changes between "BY PICKS" and "BY 1ST RATE".
  */
-const ChampionPicks = ({ championPicks }: Props) => {
-  const chartData = championPicks.champions.map((row) => ({
-    championName: row.championName,
-    "1st": row.top1,
-    "2nd-3rd": row.top3ExclTop1,
-    Remaining: row.remaining,
-  }));
-  const chartInnerWidth = chartData.length * MIN_BAR_WIDTH;
+function sortChampions(
+  champions: ChampionPickBreakdown[],
+  sort: SortMode,
+): ChampionPickBreakdown[] {
+  return [...champions].sort((a, b) =>
+    sort === "picks"
+      ? b.timesPicked - a.timesPicked
+      : b.top1 / b.timesPicked - a.top1 / a.timesPicked,
+  );
+}
+
+const ChampionPicks = ({
+  championPicks,
+  nextSectionLabel = "CHAMPIONS",
+}: Props) => {
+  const [sort, setSort] = useState<SortMode>("picks");
+  const champions = championPicks.champions;
+
+  const sorted = useMemo(
+    () => sortChampions(champions, sort),
+    [champions, sort],
+  );
+
+  const [selectedChampionId, setSelectedChampionId] = useState<number | null>(
+    () => sorted[0]?.championId ?? null,
+  );
+
+  const maxPicks = Math.max(1, ...champions.map((c) => c.timesPicked));
+  const totalPicks = champions.reduce((sum, c) => sum + c.timesPicked, 0);
+  const avgPicks = champions.length > 0 ? totalPicks / champions.length : 0;
+  const avgLineBottom = Math.round((avgPicks / maxPicks) * BAR_MAX_HEIGHT);
+
+  const selectedRank =
+    sorted.findIndex((c) => c.championId === selectedChampionId) + 1;
+  const selected =
+    sorted.find((c) => c.championId === selectedChampionId) ??
+    sorted[0] ??
+    null;
+
+  const columns: BarColumn[] = sorted.map((champion) => {
+    const total = Math.max(
+      BAR_MIN_HEIGHT,
+      Math.round((champion.timesPicked / maxPicks) * BAR_MAX_HEIGHT),
+    );
+    const isSelected = champion.championId === selectedChampionId;
+
+    // Segment heights are proportional shares of `total` (not independently
+    // scaled), so a champion's stack always sums back to its own bar total.
+    const scale = champion.timesPicked > 0 ? total / champion.timesPicked : 0;
+    const segments = (
+      [
+        [
+          "1st",
+          champion.top1,
+          TIER_STYLE.prismatic,
+          Math.max(
+            champion.top1 > 0 ? 3 : 0,
+            Math.round(champion.top1 * scale),
+          ),
+        ],
+        [
+          "top3",
+          champion.top3ExclTop1,
+          TIER_STYLE.gold,
+          Math.round(champion.top3ExclTop1 * scale),
+        ],
+        [
+          "rest",
+          champion.remaining,
+          TIER_STYLE.silver,
+          Math.round(champion.remaining * scale),
+        ],
+      ] as const
+    ).map(([key, value, tier, height]) => ({
+      key,
+      height,
+      label: value > 0 ? String(value) : undefined,
+      title: `${value} pick${value === 1 ? "" : "s"}`,
+      fillClassName: tier.fillClass,
+      borderColor: tier.edge,
+      boxShadow: tier.glow,
+    }));
+
+    return {
+      id: champion.championId,
+      topLabel: champion.timesPicked.toLocaleString(),
+      isSelected,
+      icon: (
+        <img
+          src={championIconUrl(champion.championName)}
+          alt={champion.championName}
+          width={36}
+          height={36}
+          style={{
+            opacity: isSelected ? 1 : 0.72,
+          }}
+        />
+      ),
+      segments,
+    };
+  });
+
+  const modeCaption =
+    sort === "picks"
+      ? "SORTED · BY TIMES PICKED"
+      : "SORTED · BY 1ST-PLACE RATE";
 
   return (
     <CategorySection
-      title="Champion Picks"
-      quote="Pick your poison."
+      title="PICKS"
+      quote="Only you can hear me, summoner. What masterpiece shall we play today ?"
+      imageUrl="/images/kda-bg.jpg"
+      nextSectionLabel={nextSectionLabel}
+      sidebar={
+        selected ? (
+          <>
+            <RingFrame size={262} className="mt-9.5">
+              <div className="h-[150px] w-[150px] overflow-hidden rounded-full border border-[rgba(200,170,110,.55)] shadow-[0_0_30px_rgba(10,200,185,.22)]">
+                <img
+                  src={championIconUrl(selected.championName)}
+                  alt={selected.championName}
+                  width={150}
+                  height={150}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            </RingFrame>
+
+            <div className="mt-5.5 text-center">
+              <div className="font-display text-[30px] tracking-[.1em] text-lol-gold-50">
+                {selected.championName}
+              </div>
+              <div className="mt-1.75 text-[13px] tracking-[.26em] text-lol-blue-300">
+                {rankLabel(selectedRank, sorted.length)}
+              </div>
+            </div>
+
+            <div className="mt-auto">
+              <SidebarStatRows
+                size="compact"
+                rows={[
+                  {
+                    label: "PICKED",
+                    value: selected.timesPicked.toLocaleString(),
+                  },
+                  {
+                    label: "TOP 3 RATE",
+                    value: `${(((selected.top1 + selected.top3ExclTop1) / selected.timesPicked) * 100).toFixed(0)}%`,
+                    valueColor: TOP3_RATE_COLOR,
+                  },
+                  {
+                    label: "1ST RATE",
+                    value: `${((selected.top1 / selected.timesPicked) * 100).toFixed(0)}%`,
+                    valueColor: FIRST_RATE_COLOR,
+                  },
+                ]}
+              />
+            </div>
+          </>
+        ) : null
+      }
     >
-      {/* Outer div is the scroll viewport (capped to the section's actual
-        width); inner div is sized so every bar gets at least MIN_BAR_WIDTH,
-        same technique as KDA's KillChart but on the horizontal axis. */}
-      <div className="h-full w-full overflow-x-auto overflow-y-hidden">
-        <div className="h-full" style={{ minWidth: chartInnerWidth }}>
-          {/* See TeamSlot's own copy of this comment for why these need a
-           * unique id per chart rather than a shared default. */}
-          <PrismaticGradientDef id={PRISMATIC_GRADIENT_ID} />
-          <GoldGradientDef id={GOLD_GRADIENT_ID} />
-          <SilverGradientDef id={SILVER_GRADIENT_ID} />
-          <ResponsiveBar
-            enableTotals={true}
-            data={chartData}
-            // nivo stacks vertical bars bottom-up in `keys` order, so
-            // "Remaining" (4th-6th) goes first/bottom and "1st" goes
-            // last/top.
-            keys={["Remaining", "2nd-3rd", "1st"]}
-            indexBy="championName"
-            groupMode="stacked"
-            margin={{ top: 40, right: 20, bottom: CHAMPION_ICON_SIZE + 25, left: 50 }}
-            padding={0.3}
-            colors={stackColor}
-            axisLeft={null}
-            borderRadius={2}
-            axisBottom={{
-              tickSize: 5,
-              tickPadding: 5,
-              renderTick: renderChampionAxisTick,
-            }}
-            enableGridY={false}
-            theme={{
-              text: { fill: "var(--color-lol-text-secondary)", fontSize: 12 },
-              axis: {
-                ticks: { text: { fill: "var(--color-lol-text-muted)" } },
-                legend: { text: { fill: "var(--color-lol-text-secondary)" } },
-              },
-              grid: { line: { stroke: "var(--color-lol-border-muted)" } },
-              tooltip: {
-                container: {
-                  background: "var(--color-lol-navy-900)",
-                  color: "var(--color-lol-text)",
-                },
-              },
-            }}
+      <HextechPanel>
+        <div className="mb-4 flex items-center gap-6">
+          <DiamondTabs
+            tabs={[
+              { key: "picks", label: "BY PICKS" },
+              { key: "rate", label: "BY 1ST RATE" },
+            ]}
+            active={sort}
+            onChange={setSort}
           />
+          <FadingRule />
+          <div className="text-[11px] tracking-[.28em] text-lol-text-muted">
+            GAMES BY CHAMPION · {modeCaption}
+          </div>
         </div>
-      </div>
+
+        {champions.length === 0 ? (
+          <div className="flex min-h-0 flex-1 items-center justify-center text-sm text-lol-text-muted">
+            No tracked matches yet.
+          </div>
+        ) : (
+          <HextechBarChart
+            columns={columns}
+            onSelect={(id) => setSelectedChampionId(id as number)}
+            gap={15}
+            center
+            topLabelColor={(column) =>
+              column.isSelected ? "#f0e6d2" : "#8a8578"
+            }
+          />
+        )}
+      </HextechPanel>
     </CategorySection>
   );
 };

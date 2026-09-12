@@ -1,12 +1,17 @@
-import { useState } from "react";
-import { cn } from "cn";
+"use client";
+
+import { useMemo, useState } from "react";
 import type { CalendarStats, TimePlayedStats } from "@arena/types";
 import { AnimatedNumber } from "@/components/animated-number";
 import { CategorySection } from "@/components/category-section";
 import { Dial } from "@/components/dial";
 import { Calendar } from "./Calendar";
+import { HourRadial } from "./HourRadial";
 import { HextechPanel } from "@/components/hextech-panel";
 import { DetailBand } from "@/components/detail-band";
+import { FadingRule } from "@/components/fading-rule";
+import { DiamondTabs } from "@/components/diamond-tabs";
+import { ordinal } from "@/lib/format";
 
 type SortMode = "games" | "wins" | "hour";
 
@@ -15,6 +20,11 @@ const SORT_MODES: { key: SortMode; label: string }[] = [
   { key: "wins", label: "BY WINS" },
   { key: "hour", label: "BY HOUR" },
 ];
+
+const MONTH_ABBREV = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  timeZone: "UTC",
+});
 
 type Props = {
   timePlayed: TimePlayedStats;
@@ -96,6 +106,7 @@ function SidebarStatRow({
 
 const TimePlayed = ({ timePlayed, gamesPlayed, calendar }: Props) => {
   const [sortMode, setSortMode] = useState<SortMode>("games");
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const hours = Math.floor(timePlayed.timePlayedSeconds / 3600);
   const minutes = Math.floor((timePlayed.timePlayedSeconds % 3600) / 60);
@@ -108,9 +119,51 @@ const TimePlayed = ({ timePlayed, gamesPlayed, calendar }: Props) => {
 
   const totalHours = +(timePlayed.timePlayedSeconds / 3600).toFixed(1);
 
+  const selectedDay = useMemo(
+    () =>
+      selectedDate
+        ? (calendar.days.find((day) => day.date === selectedDate) ?? null)
+        : null,
+    [calendar.days, selectedDate],
+  );
+
+  const detailTitle = selectedDay ? (
+    <div className="flex flex-col leading-none">
+      <span className="text-[12px] tracking-[.24em] text-lol-text-muted uppercase">
+        {MONTH_ABBREV.format(new Date(`${selectedDay.date}T00:00:00Z`))}
+      </span>
+      <span className="mt-1.5 text-[30px] text-lol-gold-50">
+        {Number(selectedDay.date.slice(-2))}
+      </span>
+    </div>
+  ) : (
+    <span className="text-[15px] tracking-[.14em] text-lol-text-muted">
+      SELECT A DATE
+    </span>
+  );
+
+  const detailStats = [
+    {
+      label: "TIME PLAYED",
+      value: selectedDay
+        ? `${(selectedDay.timePlayedSeconds / 3600).toFixed(1)}h`
+        : "—",
+      highlight: true,
+      bordered: false,
+    },
+    {
+      label: "GAMES",
+      value: selectedDay ? selectedDay.gamesPlayed.toLocaleString() : "—",
+    },
+    {
+      label: "BEST PLACEMENT",
+      value: selectedDay ? `${ordinal(selectedDay.bestPlacement)} PLACE` : "—",
+    },
+  ];
+
   return (
     <CategorySection
-      title="Time"
+      title="TIME"
       quote="It's not about how much time you have, it's about how you spend it."
       imageUrl="/images/kda-bg.jpg"
       nextSectionLabel="TEAMS"
@@ -118,24 +171,11 @@ const TimePlayed = ({ timePlayed, gamesPlayed, calendar }: Props) => {
         <>
           <Dial
             value={totalHours}
-            label="HOURS"
+            label="HOURS PLAYED"
             formatValue={(v) => v.toFixed(1)}
           />
 
           <div className="mt-auto flex flex-col gap-0.5">
-            <SidebarStatRow label="TIME PLAYED">
-              <div className="font-display text-[22px] text-lol-gold-50">
-                <AnimatedNumber value={hours} />h{" "}
-                <AnimatedNumber value={minutes} />m
-              </div>
-            </SidebarStatRow>
-
-            <SidebarStatRow label="GAMES PLAYED">
-              <div className="font-display text-[22px] text-lol-gold-50">
-                <AnimatedNumber value={gamesPlayed} />
-              </div>
-            </SidebarStatRow>
-
             <SidebarStatRow label="AVG GAME TIME">
               <DurationStat
                 major={avgMinutes}
@@ -164,47 +204,44 @@ const TimePlayed = ({ timePlayed, gamesPlayed, calendar }: Props) => {
         </>
       }
     >
-      <HextechPanel title="Calendar">
-        <div className="mb-5 flex items-center gap-2 border px-1 py-0.5" style={{ borderColor: "rgba(200,170,110,.22)" }}>
-          {SORT_MODES.map(({ key, label }) => {
-            const active = sortMode === key;
-            return (
-              <div
-                key={key}
-                onClick={() => setSortMode(key)}
-                className={cn(
-                  "cursor-pointer px-3 py-1.25 text-xs tracking-[.24em] transition-colors duration-150",
-                  active
-                    ? "bg-[rgba(200,170,110,.16)] text-lol-gold-50"
-                    : "text-[#8a8578] hover:bg-[rgba(200,170,110,.08)] hover:text-lol-gold-100",
-                )}
-              >
-                {label}
-              </div>
-            );
-          })}
+      <HextechPanel>
+        <div className="mb-3.5 flex items-center gap-6">
+          <DiamondTabs
+            tabs={SORT_MODES}
+            active={sortMode}
+            onChange={setSortMode}
+          />
+          <FadingRule />
+          <div className="text-[11px] tracking-[.28em] whitespace-nowrap text-lol-text-muted">
+            MATCHES BY DATE · SORTED ·{" "}
+            {SORT_MODES.find((m) => m.key === sortMode)?.label}
+          </div>
         </div>
-        <Calendar calendar={calendar} />
-        <DetailBand
-          icon={null}
-          title="SEP 17"
-          stats={[
-            {
-              label: "TIME PLAYED",
-              value: "44",
-              highlight: true,
-              bordered: false,
-            },
-            {
-              label: "GAMES",
-              value: "4",
-            },
-            {
-              label: "BEST PLACEMENT",
-              value: "1st PLACE",
-            },
-          ]}
-        />
+
+        {sortMode === "hour" ? (
+          <HourRadial gamesByHour={calendar.gamesByHour} />
+        ) : (
+          <>
+            <Calendar
+              calendar={calendar}
+              mode={sortMode}
+              onSelectDate={setSelectedDate}
+            />
+            <DetailBand
+              icon={
+                <div
+                  className="h-3 w-3 flex-none rotate-45 border"
+                  style={{
+                    borderColor: "rgba(10,200,185,.75)",
+                    background: "rgba(5,14,22,.75)",
+                  }}
+                />
+              }
+              title={detailTitle}
+              stats={detailStats}
+            />
+          </>
+        )}
       </HextechPanel>
     </CategorySection>
   );

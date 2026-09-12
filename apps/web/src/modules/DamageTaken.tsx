@@ -1,30 +1,33 @@
+"use client";
+
 import type { ChampionStats, DamageStats } from "@arena/types";
-import { ChampionBreakdownPanel } from "@/components/champion-breakdown-panel";
+import { Damage } from "./Damage";
 
 type Props = {
   damageTaken: DamageStats;
   champions: Record<number, ChampionStats>;
+  nextSectionLabel?: string;
 };
 
-const CATEGORIES = [
-  { key: "physical", label: "Physical", color: "var(--color-lol-damage)" },
-  { key: "magical", label: "Magical", color: "var(--color-lol-blue-300)" },
-  { key: "trueDamage", label: "True", color: "var(--color-lol-gold-300)" },
-] as const;
-
-const DamageTaken = ({ damageTaken, champions }: Props) => (
-  <ChampionBreakdownPanel
-    categoryTitle="Damage Taken"
-    totalLabel="Total Damage Taken"
-    maxGameLabel="Max Damage Taken (1 Game)"
-    categories={CATEGORIES}
-    stats={damageTaken}
-    champions={Object.values(champions).map((champion) => ({
-      championId: champion.championId,
-      championName: champion.championName,
-      total: champion.damageTaken.total,
-      maxGame: champion.damageTaken.maxGame,
-    }))}
+/**
+ * Thin wrapper around `Damage` for the DAMAGE TAKEN section — same panels,
+ * chart, sorting and motion, just pointed at `variant="taken"` (which
+ * switches every champion lookup to `champion.damageTaken` and swaps the
+ * title/quote/dial/detail-band labels accordingly). Kept as its own file
+ * rather than inlining `variant="taken"` at the call site so the summoner
+ * page's module list reads the same way every other section does — one
+ * import per visible section.
+ */
+const DamageTaken = ({
+  damageTaken,
+  champions,
+  nextSectionLabel = "AUGMENTS",
+}: Props) => (
+  <Damage
+    variant="taken"
+    damage={damageTaken}
+    champions={champions}
+    nextSectionLabel={nextSectionLabel}
   />
 );
 

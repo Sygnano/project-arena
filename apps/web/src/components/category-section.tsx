@@ -22,6 +22,11 @@ interface CategorySectionProps {
    * `children` filling the panel column; omit it entirely for a simple
    * single-column section where `children` fills the whole width. */
   sidebar?: React.ReactNode;
+  /** Content rendered beside the title/quote header, on a no-`sidebar`
+   * section only (e.g. Placement/Damage's horizontal stat strip) — pushed to
+   * the row's right edge by a flex spacer, bottom-aligned with the header.
+   * Ignored when `sidebar` is set (the sidebar layout has no room for it). */
+  headerRight?: React.ReactNode;
   /** Label for the bottom "scroll to next section" cue. Omit to skip the
    * cue (e.g. the last section on the page). */
   nextSectionLabel?: string;
@@ -48,6 +53,7 @@ export function CategorySection({
   imageUrl,
   backgroundPosition,
   sidebar,
+  headerRight,
   nextSectionLabel,
 }: CategorySectionProps) {
   const sectionRef = useRef<HTMLElement>(null);
@@ -65,7 +71,7 @@ export function CategorySection({
         {title}
       </div>
       <div className="mt-3 h-px w-14 bg-[rgba(200,170,110,.6)]" />
-      <div className="mt-3.5 min-h-[3.5em] text-sm text-lol-text-muted italic">
+      <div className="mt-3.5 min-h-[3.5em] text-md text-lol-text-muted italic">
         &ldquo;{quote}&rdquo;
       </div>
     </div>
@@ -121,7 +127,10 @@ export function CategorySection({
           {sidebar !== undefined ? (
             <div
               className="absolute inset-0 grid gap-12 px-21 pt-18 pb-26"
-              style={{ gridTemplateColumns: "344px minmax(0,1fr)" }}
+              style={{
+                gridTemplateColumns: "344px minmax(0,1fr)",
+                gridTemplateRows: "minmax(0,1fr)",
+              }}
             >
               <div className="flex flex-col">
                 {header}
@@ -131,7 +140,15 @@ export function CategorySection({
             </div>
           ) : (
             <div className="absolute inset-0 flex flex-col px-21 pt-18 pb-26">
-              <div className="mb-12">{header}</div>
+              <div className="flex items-end gap-12">
+                {header}
+                {headerRight ? (
+                  <>
+                    <div className="flex-1" />
+                    {headerRight}
+                  </>
+                ) : null}
+              </div>
               {/* `grid` rather than `flex` so its child stretches to fill
                 the remaining height via CSS Grid's default
                 `align-items: stretch` — a plain flex child stays

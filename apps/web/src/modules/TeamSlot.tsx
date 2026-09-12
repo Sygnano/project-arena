@@ -5,6 +5,7 @@ import {
   HextechBarChart,
   type BarColumn,
 } from "@/components/hextech-bar-chart";
+import { FadingRule } from "@/components/fading-rule";
 
 type Props = {
   teamSlot: TeamSlotStats;
@@ -41,7 +42,11 @@ function teamIconUrl(slug: string): string {
   return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-match-history/global/default/images/subteams/${slug}.svg`;
 }
 
-const BAR_MAX_HEIGHT = 380;
+// 380 used to fit here (the chart alone had the panel's full height); now
+// that a header row sits above it, the tallest column's topLabel needs this
+// trimmed down or it collides with that header — 330 matches Positions'
+// own BAR_MAX_HEIGHT, whose chart lives under the exact same header shape.
+const BAR_MAX_HEIGHT = 330;
 
 /**
  * Same three rarity tiers `HextechBarChart`'s KDA columns use for their top
@@ -123,12 +128,24 @@ function buildTeamSlotColumns(teamSlot: TeamSlotStats): BarColumn[] {
       topLabel: total.toLocaleString(),
       icon: slug ? (
         <div className="flex flex-col items-center gap-1.5">
-          <img
-            src={teamIconUrl(slug)}
-            alt={`Team ${row.teamId}`}
-            width={36}
-            height={36}
-          />
+          <div
+            className="my-2 flex h-12.5 w-12.5 rotate-45 items-center justify-center border"
+            style={{
+              borderColor: "rgba(10,200,185,.75)",
+              boxShadow: "rgba(10,200,185,.75)",
+              background: "rgba(5,14,22,.75)",
+            }}
+          >
+            <div className="font-display -rotate-45 text-[15px] tracking-[.04em] text-lol-gold-50">
+              <img
+                src={teamIconUrl(slug)}
+                alt={`Team ${row.teamId}`}
+                width={36}
+                height={36}
+              />
+            </div>
+          </div>
+
           <div className="mt-1 flex items-center gap-2 text-xs tracking-[.22em] text-lol-text-muted">
             <span className="h-px w-3 bg-[rgba(200,170,110,.4)]" />
             TEAM
@@ -163,13 +180,27 @@ const TeamSlot = ({ teamSlot }: Props) => {
 
   return (
     <CategorySection
-      title="Team Slot"
+      title="TEAM"
       quote="We are all kin of kin. Blood, of blood."
       imageUrl="/images/kda-bg.jpg"
     >
-      <HextechPanel bodyClassName="flex justify-end items-center h-full">
-        <div className="w-[70%]">
-          <HextechBarChart columns={columns} center fluid gap={48} />
+      <HextechPanel>
+        <div className="mb-3.5 flex items-center gap-6">
+          <FadingRule />
+          <div className="text-[11px] tracking-[.28em] text-lol-text-muted">
+            FINISHES BY TEAM SLOT
+          </div>
+        </div>
+
+        <div className="flex min-h-0 flex-1 items-center justify-center">
+          <div className="w-[70%]">
+            <HextechBarChart
+              columns={columns}
+              center
+              gap={48}
+              columnWidth={108}
+            />
+          </div>
         </div>
       </HextechPanel>
     </CategorySection>

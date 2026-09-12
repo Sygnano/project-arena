@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { cn } from "cn";
 import type { ChampionStats } from "@arena/types";
 import { CategorySection } from "@/components/category-section";
 import { HextechPanel } from "@/components/hextech-panel";
@@ -12,6 +11,9 @@ import {
 import { championIconUrl } from "@/lib/riot";
 import { Dial } from "@/components/dial";
 import { DetailBand } from "@/components/detail-band";
+import { DiamondTabs } from "@/components/diamond-tabs";
+import { FadingRule } from "@/components/fading-rule";
+import { TIER_STYLE, type TierStyle } from "@/lib/tier-bars";
 
 type Props = {
   kills: number;
@@ -77,46 +79,28 @@ function formatValue(value: number, metric: Metric): string {
 }
 
 /**
- * 1st/2nd/3rd place get a Hextech Prismatic/Gold/Silver bar fill (the
- * `.tier-bar-*` classes in globals.css) instead of the plain cyan gradient —
- * only the bar element itself changes tier-to-tier; the cap diamond and
- * value number above it stay on the existing `isLeader` (rank 0 only)
- * cyan/grey logic, and every rank past 3rd is untouched. `edge`/`glow` here
- * are the bar's own `border-top` color and box-shadow, which still need a
- * real value even when the fill comes from a class (an unset `border-top`
- * color would default to black against these bright fills).
+ * 1st place gets Prismatic, 2nd gets Gold, and every rank from 3rd on down
+ * gets Silver (the `.tier-bar-*` classes in globals.css) — 3rd used to be
+ * the only Silver rank, with everyone past it falling back to a plain cyan
+ * gradient; now that fallback is gone and Silver just covers "everyone not
+ * top two" instead. `edge`/`glow` are the bar's own `border-top` color and
+ * box-shadow, which still need a real value even when the fill comes from a
+ * class (an unset `border-top` color would default to black against these
+ * bright fills).
  */
-const BAR_TIER: Record<
-  number,
-  { fillClass: string; edge: string; glow: string }
-> = {
-  0: {
-    fillClass: "tier-bar-prismatic",
-    edge: "#f5eaff",
-    glow: "0 0 20px rgba(185,138,221,.55)",
-  },
-  1: {
-    fillClass: "tier-bar-gold",
-    edge: "var(--color-lol-gold-50)",
-    glow: "0 0 20px rgba(200,155,60,.55)",
-  },
-  2: {
-    fillClass: "tier-bar-silver",
-    edge: "#eef2f3",
-    glow: "0 0 16px rgba(185,196,200,.5)",
-  },
-};
+function tierForBar(index: number): TierStyle {
+  if (index === 0) return TIER_STYLE.prismatic;
+  if (index === 1) return TIER_STYLE.gold;
+  return TIER_STYLE.silver;
+}
 
 /**
  * Adapts a ranked `ChartRow[]` into the generic `HextechBarChart`'s
- * `BarColumn[]` shape — one single-segment column per champion. The tier
- * fill (top 3 ranks) vs. plain cyan "leader"/"rest" fill (everyone else) is
- * KDA-specific ranking logic, so it's computed here rather than in the
- * chart component itself.
+ * `BarColumn[]` shape — one single-segment column per champion.
  */
 function toBarColumns(rows: ChartRow[], metric: Metric): BarColumn[] {
   return rows.map((row, index) => {
-    const tier = BAR_TIER[index];
+    const tier = tierForBar(index);
     return {
       id: row.entry.championId,
       topLabel: formatValue(row.value, metric),
@@ -131,25 +115,13 @@ function toBarColumns(rows: ChartRow[], metric: Metric): BarColumn[] {
         />
       ),
       segments: [
-        tier
-          ? {
-              key: "value",
-              height: row.height,
-              fillClassName: tier.fillClass,
-              borderColor: tier.edge,
-              boxShadow: tier.glow,
-            }
-          : {
-              key: "value",
-              height: row.height,
-              background: row.isLeader
-                ? "linear-gradient(180deg,#0ae0cf,rgba(10,224,207,.16))"
-                : "linear-gradient(180deg,#0aa8a0,rgba(4,82,95,.2))",
-              borderColor: row.isLeader ? "#e6fffb" : "rgba(10,224,207,.55)",
-              boxShadow: row.isLeader
-                ? "0 0 22px rgba(10,224,207,.65)"
-                : "none",
-            },
+        {
+          key: "value",
+          height: row.height,
+          fillClassName: tier.fillClass,
+          borderColor: tier.edge,
+          boxShadow: tier.glow,
+        },
       ],
     };
   });
@@ -302,17 +274,20 @@ const KDA = ({
     roster[0] ??
     null;
 
-  const modeCaption =
-    mode === "total"
-      ? "SEASON TOTAL · BY CHAMPION"
-      : metric === "deaths"
-        ? "BEST SINGLE GAME · FEWEST DEATHS"
-        : "BEST SINGLE GAME · BY CHAMPION";
+  const modeLabel = mode === "total" ? "SEASON TOTAL" : "BEST SINGLE GAME";
+  // DEATHS+BEST sorts ascending (see `buildChartRows`'s doc comment) — called
+  // out as "FEWEST" rather than just naming the metric, since lower-is-better
+  // is the opposite of every other column here.
+  const sortLabel =
+    mode === "best" && metric === "deaths"
+      ? "FEWEST DEATHS"
+      : METRIC_LABEL[metric];
+  const modeCaption = `${modeLabel} · SORTED · BY ${sortLabel}`;
 
   return (
     <CategorySection
       title="KDA"
-      quote="In carnage, I bloom, like a flower in the dawn."
+      quote="Everyone's got a plan, 'til they get slammed into the ground."
       imageUrl="/images/kda-bg.jpg"
       nextSectionLabel={nextSectionLabel}
       sidebar={
@@ -351,68 +326,25 @@ const KDA = ({
         </>
       }
     >
-      <HextechPanel title={METRIC_LABEL[metric]}>
+      <HextechPanel>
         <div className="mb-5 flex items-center gap-6">
-          {METRICS.map((m) => {
-            const active = metric === m;
-            return (
-              <div
-                key={m}
-                onClick={() => setMetric(m)}
-                className={cn(
-                  "group flex cursor-pointer items-center gap-2 border-b px-0.5 pb-1.75 transition-colors duration-150",
-                  active
-                    ? "border-lol-gold-300 text-lol-gold-50"
-                    : "border-transparent text-[#8a8578] hover:border-[rgba(200,170,110,.35)] hover:text-lol-gold-100",
-                )}
-              >
-                <div
-                  className={cn(
-                    "h-1.5 w-1.5 rotate-45 bg-lol-gold-300 transition-opacity duration-150",
-                    active ? "opacity-100" : "opacity-0 group-hover:opacity-60",
-                  )}
-                />
-                <div className="text-[13px] tracking-[.26em]">
-                  {METRIC_LABEL[m]}
-                </div>
-              </div>
-            );
-          })}
-
-          <div
-            className="h-px flex-1"
-            style={{
-              background:
-                "linear-gradient(90deg, transparent, rgba(200,170,110,.28), transparent)",
-            }}
+          <DiamondTabs
+            tabs={[
+              { key: "total", label: "TOTAL" },
+              { key: "best", label: "BEST GAME" },
+            ]}
+            active={mode}
+            onChange={setMode}
           />
-
-          <div
-            className="flex items-center gap-3.5 border px-1 py-0.5"
-            style={{ borderColor: "rgba(200,170,110,.22)" }}
-          >
-            {(["total", "best"] as const).map((m) => {
-              const active = mode === m;
-              return (
-                <div
-                  key={m}
-                  onClick={() => setMode(m)}
-                  className={cn(
-                    "cursor-pointer px-3 py-1.25 text-xs tracking-[.24em] transition-colors duration-150",
-                    active
-                      ? "bg-[rgba(200,170,110,.16)] text-lol-gold-50"
-                      : "text-[#8a8578] hover:bg-[rgba(200,170,110,.08)] hover:text-lol-gold-100",
-                  )}
-                >
-                  {m === "total" ? "TOTAL" : "BEST GAME"}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="-mt-1.5 mb-2.5 flex justify-end">
-          <div className="text-[12.5px] tracking-[.28em] text-lol-text-muted">
+          <div className="h-4 w-px flex-none bg-[rgba(200,170,110,.25)]" />
+          <DiamondTabs
+            tabs={METRICS.map((m) => ({ key: m, label: METRIC_LABEL[m] }))}
+            active={metric}
+            onChange={setMetric}
+            gap={18}
+          />
+          <FadingRule />
+          <div className="text-[11px] tracking-[.28em] text-lol-text-muted">
             {modeCaption}
           </div>
         </div>

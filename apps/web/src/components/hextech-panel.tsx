@@ -41,7 +41,7 @@ const CORNER_DIAMOND_POSITIONS = [
  */
 function HextechPanel({ title, children, className, bodyClassName }: Props) {
   return (
-    <div className={cn("relative min-w-0 mt-6.5 self-stretch", className)}>
+    <div className={cn("relative min-h-0 min-w-0 mt-6.5 self-stretch", className)}>
       <div
         className="absolute inset-0 border"
         style={{

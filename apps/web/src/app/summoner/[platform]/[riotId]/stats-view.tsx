@@ -20,7 +20,6 @@ import { Kills } from "@/modules/Kills";
 import { Economy } from "@/modules/Economy";
 import { Ability } from "@/modules/Ability";
 import { Utility } from "@/modules/Utility";
-import { Fun } from "@/modules/Fun";
 import { Pings } from "@/modules/Pings";
 
 type Props = {
@@ -106,7 +105,6 @@ const SummonerStatsView = ({ region, gameName, tagLine }: Props) => {
         </div>
       </CategorySection>
 
-      {/* Template categories — titles only for now, real cards/graphs come next. */}
       <Positions placements={placements} gamesPlayed={profile.matchesPlayed} />
 
       <TimePlayed
@@ -116,19 +114,31 @@ const SummonerStatsView = ({ region, gameName, tagLine }: Props) => {
       />
       <TeamSlot teamSlot={teamSlot} />
       <KDA {...kda} champions={champions} />
-      <Kills {...kills} />
+      <Kills {...kills} totalSkillshotsHit={ability.totalSkillshotsHit} />
       <ChampionPicks championPicks={championPicks} />
       <Champions championCatalog={championCatalog} championPicks={championPicks} />
-      <BannedChampions bannedChampions={bannedChampions} />
-      <Damage damage={damage} champions={champions} />
+      <BannedChampions
+        bannedChampions={bannedChampions}
+        top3Finishes={placements.top3Finishes}
+        matchesPlayed={profile.matchesPlayed}
+      />
+      <Damage
+        damage={damage}
+        champions={champions}
+        nextSectionLabel="DAMAGE TAKEN"
+      />
       <DamageTaken damageTaken={damageTaken} champions={champions} />
       <Augments augments={augments} />
       <PrismaticItems prismaticItems={prismaticItems} />
       <Economy economy={economy} />
       <Ability ability={ability} champions={champions} />
       <Utility {...utility} />
-      <Fun {...fun} />
-      <Pings pings={pings} />
+      <Pings
+        pings={pings}
+        totalFistBumps={fun.totalFistBumps}
+        totalPings={fun.totalPings}
+        totalSkillshotsDodged={fun.totalSkillshotsDodged}
+      />
     </div>
   );
 };
