@@ -12,24 +12,31 @@ import { championIconUrl } from "@/lib/riot";
 import { Dial } from "@/components/dial";
 import { DetailBand } from "@/components/detail-band";
 import { DiamondTabs } from "@/components/diamond-tabs";
-import { FadingRule } from "@/components/fading-rule";
+import { LowSampleSwitch } from "@/components/low-sample-switch";
+import { PanelToolbar, ToolbarDivider } from "@/components/panel-toolbar";
 import { TIER_STYLE, type TierStyle } from "@/lib/tier-bars";
+import { barHeight } from "@/lib/bar-scale";
+import { MIN_SAMPLE, isLowSample, sortByRate } from "@/lib/sample";
+import { useChampionName } from "@/lib/champion-names";
+import { DossierLink } from "@/lib/champion-dossier";
+import { CursorTooltip } from "@/components/cursor-tooltip";
+import { ChampionResultsCard } from "@/modules/ChampionResultsCard";
+import { useChartHover } from "@/hooks/use-chart-hover";
+import { SECTION_BACKGROUNDS } from "@/lib/section-backgrounds";
+import { SidebarStatRows } from "@/components/sidebar-stat-row";
 
 type Props = {
   kills: number;
   deaths: number;
   assists: number;
   kda: number;
+  mostKills: number;
+  bestKda: number;
   champions: Record<number, ChampionStats>;
-  /** Label shown on the bottom handoff cue — the section this scrolls to
-   * when clicked. Defaults to whatever module actually follows KDA on the
-   * summoner page today; pass explicitly if that ever changes rather than
-   * relying on the default silently going stale. */
-  nextSectionLabel?: string;
 };
 
 export type Metric = "kills" | "deaths" | "assists" | "kda";
-export type Mode = "total" | "best";
+export type Mode = "perGame" | "total" | "best";
 
 /**
  * One champion's derived per-metric numbers for this chart — `kills`/
@@ -48,7 +55,13 @@ export type ChampionRosterEntry = {
   deaths: number;
   assists: number;
   kda: number;
+  /** Single-match records, each independently the best for its own metric:
+   * most kills, FEWEST deaths, most assists, best KDA. (Previously all four
+   * came from the best-KDA match, so "best game · kills" ranked by the kill
+   * count of whichever game had the best KDA, not the most kills.) */
   best: { kills: number; deaths: number; assists: number; kda: number };
+  /** The best-KDA match's own K/D/A line, for the detail band. */
+  bestKdaLine: { kills: number; deaths: number; assists: number };
   soloKills: number;
   largestKillingSpree: number;
 };
@@ -69,13 +82,16 @@ const METRIC_LABEL: Record<Metric, string> = {
   kda: "KDA",
 };
 
-const BAR_MIN_HEIGHT = 14;
-const BAR_MAX_HEIGHT = 300;
+// Percentages of the chart's own bar track (`HextechBarChart`'s
+// `heightUnit="percent"`), not px — the leader bar is deliberately capped
+// below 100% rather than always touching the track's top edge, leaving
+// headroom above the tallest column.
+const BAR_MIN_HEIGHT = 5;
+const BAR_MAX_HEIGHT = 70;
 
-function formatValue(value: number, metric: Metric): string {
-  return metric === "kda"
-    ? value.toFixed(2)
-    : Math.round(value).toLocaleString();
+function formatValue(value: number, metric: Metric, mode: Mode): string {
+  if (metric === "kda" || mode === "perGame") return value.toFixed(metric === "kda" ? 2 : 1);
+  return Math.round(value).toLocaleString();
 }
 
 /**
@@ -98,18 +114,28 @@ function tierForBar(index: number): TierStyle {
  * Adapts a ranked `ChartRow[]` into the generic `HextechBarChart`'s
  * `BarColumn[]` shape — one single-segment column per champion.
  */
-function toBarColumns(rows: ChartRow[], metric: Metric): BarColumn[] {
+function toBarColumns(
+  rows: ChartRow[],
+  metric: Metric,
+  mode: Mode,
+  displayName: (key: string) => string,
+): BarColumn[] {
   return rows.map((row, index) => {
     const tier = tierForBar(index);
+    const lowSample = mode !== "total" && isLowSample(row.entry.games);
     return {
       id: row.entry.championId,
-      topLabel: formatValue(row.value, metric),
+      topLabel: formatValue(row.value, metric, mode),
+      dimmed: lowSample,
+      ariaLabel: `${displayName(row.entry.championName)}: ${formatValue(row.value, metric, mode)} ${METRIC_LABEL[metric].toLowerCase()}, ${row.entry.games} games`,
       isLeader: row.isLeader,
       isSelected: row.isSelected,
       icon: (
         <img
+          loading="lazy"
+          decoding="async"
           src={championIconUrl(row.entry.championName)}
-          alt={row.entry.championName}
+          alt=""
           width={36}
           height={36}
         />
@@ -125,6 +151,40 @@ function toBarColumns(rows: ChartRow[], metric: Metric): BarColumn[] {
       ],
     };
   });
+}
+
+/** Hover card for one KDA column: the champion's name (the chart shows only
+ * an icon) and how its games FINISHED. Complements the detail band below,
+ * which carries the combat line for whichever champion is pinned. */
+function KdaHoverCard({
+  stats,
+  rank,
+  total,
+  sortLabel,
+  modeLabel,
+}: {
+  stats: ChampionStats;
+  rank: number;
+  total: number;
+  sortLabel: string;
+  modeLabel: string;
+}) {
+  return (
+    <ChampionResultsCard
+      stats={stats}
+      subtitle={
+        <span className="mt-1.5 block">
+          #{rank} of {total} · {modeLabel.toLowerCase()} · by {sortLabel.toLowerCase()}
+          {isLowSample(stats.matchesPlayed) ? " · few games" : ""}
+        </span>
+      }
+      footer={
+        <div className="mt-2.5 text-[10px] tracking-[.2em] text-lol-text-muted/70">
+          CLICK TO PIN BELOW
+        </div>
+      }
+    />
+  );
 }
 
 /**
@@ -143,6 +203,9 @@ function buildRoster(
       bestGame,
       soloKills,
       largestKillingSpree,
+      mostKills,
+      fewestDeaths,
+      mostAssists,
     } = champion.kda;
     const kda =
       totalDeaths === 0
@@ -159,11 +222,12 @@ function buildRoster(
       assists: totalAssists,
       kda,
       best: {
-        kills: bestGame.kills,
-        deaths: bestGame.deaths,
-        assists: bestGame.assists,
+        kills: mostKills,
+        deaths: fewestDeaths,
+        assists: mostAssists,
         kda: bestKda,
       },
+      bestKdaLine: bestGame,
       soloKills,
       largestKillingSpree,
     };
@@ -175,12 +239,16 @@ function metricValue(
   metric: Metric,
   mode: Mode,
 ): number {
-  return mode === "best" ? entry.best[metric] : entry[metric];
+  if (mode === "best") return entry.best[metric];
+  if (mode === "perGame" && metric !== "kda") {
+    return entry.games > 0 ? entry[metric] / entry.games : 0;
+  }
+  return entry[metric];
 }
 
 /**
  * Ranks the roster by the active metric/mode and maps each value to a bar
- * height. Two rules carry meaning here (see the design handoff's
+ * height. Three rules carry meaning here (see the design handoff's
  * "Ranking rules" section) and must not be simplified away:
  * - DEATHS+BEST GAME sorts ascending (fewest deaths wins) *and* inverts the
  *   height mapping, so the best result still renders as the tallest bar —
@@ -189,36 +257,52 @@ function metricValue(
  *   scaling from 0, since KDA values cluster in a narrow band and scaling
  *   from a true zero baseline would flatten every bar to nearly the same
  *   height.
+ * - Heights are mapped via `barHeight` (log scale), not linearly, so a
+ *   single outlier leader doesn't crater the 2nd/3rd bars down near
+ *   `BAR_MIN_HEIGHT` — see that function's doc comment.
  */
 function buildChartRows(
   roster: ChampionRosterEntry[],
   metric: Metric,
   mode: Mode,
   selectedChampionId: number | null,
+  mixLowSample = false,
 ): ChartRow[] {
   if (roster.length === 0) return [];
 
-  const lowestIsBest = metric === "deaths" && mode === "best";
-  const ranked = roster
-    .map((entry) => ({ entry, value: metricValue(entry, metric, mode) }))
-    .sort((a, b) => (lowestIsBest ? a.value - b.value : b.value - a.value));
+  // Fewer deaths is better per game and in a best game; a season TOTAL of
+  // deaths isn't a performance ranking at all, so it sorts by volume instead.
+  const lowestIsBest = metric === "deaths" && mode !== "total";
+  const withValues = roster.map((entry) => ({ entry, value: metricValue(entry, metric, mode) }));
+  // Averages and ratios from a handful of games are noise: those rank after
+  // every champion with enough games (and are dimmed in the chart).
+  const ranked =
+    mode === "total"
+      ? withValues.sort((a, b) => b.value - a.value)
+      : sortByRate(
+          withValues,
+          (row) => row.value,
+          (row) => row.entry.games,
+          lowestIsBest ? "asc" : "desc",
+          mixLowSample ? "mixed" : "after",
+        );
 
-  const values = ranked.map((row) => row.value);
+  // The scale comes from champions with enough games: a dimmed 1-game
+  // outlier (say, 20 kills in its only game) would otherwise set the
+  // ceiling and flatten every real bar. Outliers are clamped to the scale.
+  // Once the viewer mixes them in, they rank among the rest and must scale
+  // too — clamped, every mixed-in outlier would render as an equal max bar.
+  const scaled = ranked.filter(
+    (row) => mode === "total" || mixLowSample || !isLowSample(row.entry.games),
+  );
+  const values = (scaled.length > 0 ? scaled : ranked).map((row) => row.value);
   const hi = Math.max(...values);
   const lo = Math.min(...values);
-  const floor = metric === "kda" ? Math.max(0, lo - (hi - lo) * 0.45) : 0;
-  const span = Math.max(0.001, hi - floor);
 
   const heightFor = (v: number) =>
     lowestIsBest
-      ? Math.max(
-          BAR_MIN_HEIGHT,
-          Math.round(((hi + 1 - v) / (hi + 1 - lo)) * BAR_MAX_HEIGHT),
-        )
-      : Math.max(
-          BAR_MIN_HEIGHT,
-          Math.round(((v - floor) / span) * BAR_MAX_HEIGHT),
-        );
+      ? barHeight(hi - v, Math.max(0.001, hi - lo), BAR_MAX_HEIGHT, BAR_MIN_HEIGHT)
+      : barHeight(v, hi, BAR_MAX_HEIGHT, BAR_MIN_HEIGHT);
 
   return ranked.map(({ entry, value }, index) => ({
     entry,
@@ -245,119 +329,136 @@ const KDA = ({
   deaths,
   assists,
   kda,
+  mostKills,
+  bestKda,
   champions,
-  nextSectionLabel = "KILLS",
 }: Props) => {
   const [metric, setMetric] = useState<Metric>("kills");
   const [mode, setMode] = useState<Mode>("total");
+  // Outside TOTAL: rank champions under MIN_SAMPLE games with the rest (still dimmed).
+  const [mixLowSample, setMixLowSample] = useState(false);
+  const displayName = useChampionName();
 
   const roster = useMemo(() => buildRoster(champions), [champions]);
 
   const [selectedChampionId, setSelectedChampionId] = useState<number | null>(
     () =>
-      buildChartRows(roster, "kills", "total", null)[0]?.entry.championId ??
+      buildChartRows(roster, "kills", "perGame", null)[0]?.entry.championId ??
       null,
   );
 
   const chartRows = useMemo(
-    () => buildChartRows(roster, metric, mode, selectedChampionId),
-    [roster, metric, mode, selectedChampionId],
+    () => buildChartRows(roster, metric, mode, selectedChampionId, mixLowSample),
+    [roster, metric, mode, selectedChampionId, mixLowSample],
   );
 
   const barColumns = useMemo(
-    () => toBarColumns(chartRows, metric),
-    [chartRows, metric],
+    () => toBarColumns(chartRows, metric, mode, displayName),
+    [chartRows, metric, mode, displayName],
   );
+
+  const { hover, onHover, containerRef: hoverRef } = useChartHover<number>();
+  const hoveredIndex = hover
+    ? chartRows.findIndex((row) => row.entry.championId === hover.id)
+    : -1;
+  const hoveredRow = hoveredIndex === -1 ? null : chartRows[hoveredIndex];
 
   const selectedEntry =
     roster.find((entry) => entry.championId === selectedChampionId) ??
     roster[0] ??
     null;
 
-  const modeLabel = mode === "total" ? "SEASON TOTAL" : "BEST SINGLE GAME";
-  // DEATHS+BEST sorts ascending (see `buildChartRows`'s doc comment) — called
-  // out as "FEWEST" rather than just naming the metric, since lower-is-better
-  // is the opposite of every other column here.
+  const modeLabel =
+    mode === "perGame" ? "PER GAME" : mode === "total" ? "ALL GAMES" : "BEST SINGLE GAME";
+  // Deaths sort ascending outside TOTAL (see `buildChartRows`) — called out
+  // as "FEWEST" since lower-is-better is the opposite of every other column.
   const sortLabel =
-    mode === "best" && metric === "deaths"
-      ? "FEWEST DEATHS"
-      : METRIC_LABEL[metric];
-  const modeCaption = `${modeLabel} · SORTED · BY ${sortLabel}`;
+    mode !== "total" && metric === "deaths" ? "FEWEST DEATHS" : METRIC_LABEL[metric];
+  const modeCaption =
+    mode === "total"
+      ? `${modeLabel} · BY ${sortLabel}`
+      : `${modeLabel} · BY ${sortLabel} · UNDER ${MIN_SAMPLE} GAMES DIMMED`;
+
 
   return (
     <CategorySection
       title="KDA"
       quote="Everyone's got a plan, 'til they get slammed into the ground."
-      imageUrl="/images/kda-bg.jpg"
-      nextSectionLabel={nextSectionLabel}
+      imageUrl={SECTION_BACKGROUNDS.kda}
       sidebar={
         <>
           <Dial value={kda} label="KDA" />
 
-          <div className="mt-auto flex flex-col gap-0.5">
-            {(
-              [
-                ["KILLS", kills],
-                ["DEATHS", deaths],
-                ["ASSISTS", assists],
-              ] as const
-            ).map(([label, value], index, all) => (
-              <div
-                key={label}
-                className="flex items-center gap-3.5 px-1 py-3.25"
-                style={{
-                  borderTop: "1px solid rgba(200,170,110,.14)",
-                  borderBottom:
-                    index === all.length - 1
-                      ? "1px solid rgba(200,170,110,.14)"
-                      : undefined,
-                }}
-              >
-                <div className="h-1.75 w-1.75 flex-none rotate-45 bg-lol-gold-300" />
-                <div className="flex-1 text-sm tracking-[.12em] text-lol-text-secondary">
-                  {label}
-                </div>
-                <div className="font-display text-[22px] text-lol-gold-50">
-                  {value.toLocaleString()}
-                </div>
-              </div>
-            ))}
+          <div className="mt-auto">
+
+            <SidebarStatRows
+              rows={[
+                { label: "KILLS", value: kills.toLocaleString() },
+                { label: "DEATHS", value: deaths.toLocaleString() },
+                { label: "ASSISTS", value: assists.toLocaleString() },
+                { label: "MOST KILLS · 1 GAME", value: mostKills.toLocaleString() },
+                { label: "BEST KDA · 1 GAME", value: bestKda.toFixed(1) },
+              ]}
+            />
           </div>
         </>
       }
     >
       <HextechPanel>
-        <div className="mb-5 flex items-center gap-6">
+        <PanelToolbar
+          caption={modeCaption}
+          trailing={
+            mode !== "total" ? (
+              <LowSampleSwitch
+                checked={mixLowSample}
+                onChange={setMixLowSample}
+              />
+            ) : null
+          }
+        >
           <DiamondTabs
             tabs={[
               { key: "total", label: "TOTAL" },
               { key: "best", label: "BEST GAME" },
+              { key: "perGame", label: "PER GAME" },
             ]}
             active={mode}
             onChange={setMode}
           />
-          <div className="h-4 w-px flex-none bg-[rgba(200,170,110,.25)]" />
+          <ToolbarDivider />
           <DiamondTabs
             tabs={METRICS.map((m) => ({ key: m, label: METRIC_LABEL[m] }))}
             active={metric}
             onChange={setMetric}
             gap={18}
           />
-          <FadingRule />
-          <div className="text-[11px] tracking-[.28em] text-lol-text-muted">
-            {modeCaption}
-          </div>
-        </div>
+        </PanelToolbar>
 
         {roster.length === 0 ? (
           <div className="flex min-h-0 flex-1 items-center justify-center text-sm text-lol-text-muted">
             No tracked matches yet.
           </div>
         ) : (
-          <HextechBarChart
-            columns={barColumns}
-            onSelect={(id) => setSelectedChampionId(id as number)}
-          />
+          <div ref={hoverRef} className="flex min-h-0 min-w-0 w-full flex-1 flex-col">
+            <HextechBarChart
+              columns={barColumns}
+              onSelect={(id) => setSelectedChampionId(id as number)}
+              onHover={onHover}
+              highlightedId={hover?.id ?? null}
+              heightUnit="percent"
+            />
+            <CursorTooltip point={hoveredRow && champions[hoveredRow.entry.championId] ? hover!.point : null}>
+              {hoveredRow && champions[hoveredRow.entry.championId] ? (
+                <KdaHoverCard
+                  stats={champions[hoveredRow.entry.championId]}
+                  rank={hoveredIndex + 1}
+                  total={chartRows.length}
+                  sortLabel={sortLabel}
+                  modeLabel={modeLabel}
+                />
+              ) : null}
+            </CursorTooltip>
+          </div>
         )}
 
         {selectedEntry ? (
@@ -365,8 +466,10 @@ const KDA = ({
             icon={
               <div className="relative flex-none">
                 <img
+                  loading="lazy"
+                  decoding="async"
                   src={championIconUrl(selectedEntry.championName)}
-                  alt={selectedEntry.championName}
+                  alt=""
                   width={62}
                   height={62}
                   className="block border border-[rgba(200,170,110,.6)] object-cover"
@@ -381,7 +484,8 @@ const KDA = ({
                 />
               </div>
             }
-            title={selectedEntry.championName}
+            title={displayName(selectedEntry.championName)}
+            action={<DossierLink championId={selectedEntry.championId} />}
             subtitle={`${selectedEntry.games.toLocaleString()} GAMES`}
             stats={[
               {
@@ -403,8 +507,8 @@ const KDA = ({
                 value: selectedEntry.assists.toLocaleString(),
               },
               {
-                label: "BEST GAME",
-                value: `${selectedEntry.best.kills} / ${selectedEntry.best.deaths} / ${selectedEntry.best.assists}`,
+                label: "BEST KDA GAME",
+                value: `${selectedEntry.bestKdaLine.kills} / ${selectedEntry.bestKdaLine.deaths} / ${selectedEntry.bestKdaLine.assists}`,
                 nowrap: true,
               },
               {

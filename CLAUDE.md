@@ -14,9 +14,34 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
 
 ### Users & access
 
-- **Audience: friend group.** A small, fixed-ish list of tracked Riot IDs (starting with
-  `Sygnano#EUW`, EUW1 region), not arbitrary public lookup. Adding a new tracked summoner is an
-  admin/ingestion action, not a self-serve public flow.
+- **Audience: friend group, open search.** Built for the crew, but the splash page (`app/page.tsx`)
+  searches any Riot ID on any supported platform, and a successful search starts tracking it
+  (decided with the user when the splash page was added; this replaced "adding a summoner is an
+  admin action"). Flow: `POST /summoners/lookup` resolves the Riot ID through account-v1 (a 404
+  goes back to the form as an error), inserts the summoner if it's new, and enqueues a refresh
+  when `summoners.lastRefreshedAt` is missing or over 15 min old. The browser then lands on the
+  summoner URL itself, which shows the queue screen (`refresh-view.tsx`: queue position, then
+  "match X of Y" with an ETA) until the refresh is done, then `router.refresh()`es into the recap,
+  so a link shared mid-fetch still works, and an unknown Riot ID opened from a link is looked up
+  the same way. Inside the API process all Riot ingestion runs through
+  `apps/api/src/ingestion/refreshQueue.ts`, one summoner at a time: in memory (a restart drops the queue, the next visit re-enqueues) and with
+  searches first. A first fetch pulls the full history at ~2.4s per match on a dev key (2 calls
+  per match, 100 calls / 2 min), which is why there's a queue screen at all.
+- **Bulk ingestion is a crawler, run by hand.** There is no background poll loop in the API
+  (removed at the user's request; an automatic crawler is planned later).
+  `pnpm --filter @arena/api crawl [--summoners N]` (`apps/api/scripts/crawl.ts`) repeatedly
+  refreshes the summoner with the oldest `lastRefreshedAt` (never-refreshed first). Every
+  refresh, from the crawler or a web search, adds each participant of a newly stored match to
+  `summoners` with `lastRefreshedAt` null, so the crawl snowballs outward from whoever is in the
+  database. A match is stored once however many of its players get refreshed, and later
+  refreshes only ask Riot for games since the previous one (minus a 2h overlap). Discovered rows
+  take their Riot ID/icon/level from the match they were met in, and ingestion never overwrites
+  an existing row from match data: a match can predate a rename, and account-v1 is the only source of current
+  names. Two places call it: `POST /summoners/lookup`, and the crawler, which refreshes each
+  summoner's Riot ID/icon/level (account-v1 + summoner-v4, 2 calls) just before fetching their
+  matches. A failed profile refresh is logged and the crawl moves on to the matches. `summoners`
+  therefore holds far
+  more than the friend group, so anything listing it must limit/filter.
 - **No auth in v1.** All pages are public read-only within whatever the app's own deployment
   visibility is (i.e. no login, no accounts, no sessions). Do not add auth infrastructure
   speculatively — revisit only if we need personalization (favorites, alerts) later.
@@ -115,13 +140,23 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
     Arena- or rarity-specific either; its `specialRecipe` field looked promising — one item,
     Prowler's Claw, has `specialRecipe: 220007` linking it to the Prismatic anvil — but checking
     every item confirms it's the *only* one set that way, so it's not a usable marker). The actual
-    catalog was resolved via the user's own domain knowledge and cross-verified against real data:
-    every item with a 6-digit id in `443000`-`447999` (49 items total, e.g. `447106` "Dragonheart",
-    `443090` "Reaper's Toll", `446632` "Divine Sunderer") is a Prismatic Item — confirmed each
-    exists in Data Dragon's `item.json` with a real name, and that no id sharing that pattern falls
-    outside the range. This full list is hardcoded as `PRISMATIC_ITEM_IDS` in
-    `apps/api/src/itemData.ts`; extend it only after similarly verifying a new id against real
-    data, not by guessing from adjacency.
+    catalog: items with `maps["30"]: true` **and** `gold.total` exactly 2750 (48 items on 16.18,
+    e.g. `447106` "Dragonheart", `443090` "Reaper's Toll", `226630` "Goredrinker"). `maps["30"]`
+    alone is too broad, but together with the Prismatic price it matches real data exactly: every
+    one is held in tracked matches, and bought directly far less often than held (the anvil grants
+    it). An earlier version assumed "every id in `443000`-`447999`" and was wrong four ways, caught
+    by a Prismatic nobody had ever held across 342 matches: `443080` Twin Mask (not in Arena),
+    `446693` (a stale Prowler's Claw — Arena's is `226693`, held 160 times), `447111` Overlord's
+    Bloodmail (a 2500g Legendary, bought 370 of 450 times held), and missing Goredrinker `226630`.
+    The list is hardcoded as `PRISMATIC_ITEM_IDS` in `apps/api/src/itemData.ts`; after a patch,
+    recheck it with that price+map rule and against held counts, not by id range.
+- **PUUIDs are encrypted per Riot application.** A PUUID obtained with one app's API key returns
+  `400 Bad Request - Exception decrypting ...` under another app's key (a regenerated dev key on
+  the same app is fine). Every stored PUUID — `summoners`, `match_participants`, and inside the
+  `raw`/`timeline` blobs — belongs to the app of the key that ingested it. After switching to a key
+  from a different app, run `pnpm --filter @arena/db remap-puuids`: it re-resolves each player by
+  their latest Riot ID via account-v1 (~95 min at dev-key limits, resumable) and rewrites all
+  three. Players renamed since keep their old PUUID and will split from their new matches.
 - The Match-V5 **timeline** endpoint (`/lol/match/v5/matches/{matchId}/timeline`) is fetched
   alongside match details for every ingested match and stored in `matches.timeline` (nullable —
   matches ingested before this was added won't have one). Confirmed on real Arena data: it returns
@@ -131,6 +166,15 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   (`participantId` → `puuid`), not by array position. It is not parsed into structured
   event/purchase-timing tables yet — that's future work once a specific stat needs it (e.g. "time
   to first legendary item").
+- **Rounds (`match_rounds`) are derived, not sent by Riot.** `CHAMPION_SPECIAL_KILL`/`KILL_ACE`
+  cannot mark rounds: it fires only 4-6 times per match (vs ~30 duels) with no victim team, and
+  real full-team wipes go without one. `packages/db/src/parseRounds.ts` instead splits
+  `CHAMPION_KILL`s into rounds on >40s pauses (kill gaps are cleanly bimodal: <30s in a fight,
+  55-125s across the shop phase), pairs teams by who killed whom, and marks the fully-wiped team
+  as the loser (the last death breaks a both-wiped tie from revives). Measured on 341 matches:
+  10,558 duels, 5 ambiguous rounds and 3 unresolved duels skipped. Teams on a bye fight a ghost
+  that emits no events, so byes never appear. Filled at ingestion and by
+  `pnpm --filter @arena/db backfill-rounds` (rerun after changing the parser).
 - `matches.raw` and `matches.timeline` are **brotli-compressed `bytea`, not `jsonb`.** Measured on
   real Arena payloads (see git history around the migration for the exact numbers): app-level
   brotli (quality 9, via `compressJson`/`decompressJson` in `packages/db/src/compression.ts`) gets
@@ -170,6 +214,63 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
     (`220008`-`220011` are Arena-specific "voucher" items that redeem for anvils, `6032` is the
     ARAM equivalent of `220000`) — none of them appear even once across every real match ingested
     so far, so they're excluded; revisit only if one is ever actually observed.
+  - **Granted items vs. bought items.** Some Arena items never emit `ITEM_PURCHASED` at all, so
+    the timeline has no trace of them and end-of-match `items` is the only source: the
+    **Shardblade** (`220012`, "increase the effectiveness of stat shards", 17 of 333 tracked
+    matches), Prismatic Items (mostly — granted by the `220007` anvil), and the **special
+    upgrade items** `224403` The Golden Spatula, `228002` Wooglet's Witchcap and `223069` Void
+    Immolation (verified: Void Immolation appears exactly when a Sunfire Aegis/Hollow Radiance is
+    `ITEM_DESTROYED`, Wooglet's when a Rabadon's is). Ordinary **Legendary items** (2500g, mostly
+    `22xxxx` ids) ARE bought, so they come from `match_participants.purchased_item_ids` — every
+    item id bought in the match, undos removed, sales not subtracted (parsed in `parseMatch.ts`,
+    backfilled for all matches) — unioned with `items` to catch the few granted by a Legendary
+    anvil or an upgrade (Seraph's, Muramana). `apps/api/src/itemData.ts`'s
+    `getLegendaryItemFilter()` classifies Legendary as Data Dragon `gold.total >= 2000` minus
+    Prismatics, anvils/vouchers/Shardblade (`220000`-`220012`), the special items, boots,
+    consumables and trinkets. Win rate on these item stats = top-3 finish, like everywhere else.
+  - **Every Arena player carries the same trinket, so it dominates any naive
+    "most-held items" stat** — `match_participants.items` (end-of-match inventory
+    slots) always contains `3348` "Arcane Sweeper", Arena's free trinket, which is
+    never bought and never leaves the inventory. Measured on real data: it was the
+    single most-held item for all 60 champions the tracked summoner has played,
+    present in 100% of their games, burying the actual build. Filter it out via
+    Data Dragon's own `tags` containing `"Trinket"` (20 items carry it) rather than
+    hardcoding `3348`, so a patch swapping Arena's trinket doesn't silently
+    reintroduce the problem — `apps/api/src/itemData.ts`'s `getBuildItemFilter()`
+    does this, alongside excluding the `220000`-`220011` anvils/vouchers. That
+    file's Data Dragon `item.json` fetch is now memoized once as a full catalog
+    (`{namesById, trinketIds}`); `getItemNamesById()`, `getPrismaticItems()` and
+    `getBuildItemFilter()` are all projections of it, not separate requests.
+    Note that Arena serves its own `22xxxx`-prefixed variants of ordinary items
+    (e.g. `222510` "Dusk and Dawn", `223006` "Berserker's Greaves") — these are
+    real Data Dragon entries with working names and icons, not corrupt ids.
+  - **Boots** (`match_participants.bootsBought`/`.bootsSold`): Arena does not sell the normal
+    game's boot tree — no tier-1 `1001` "Boots", no `3006`/`3020`/etc. It serves its own 8 flat
+    500g variants (`223005` Ghostcrawlers, `223006` Berserker's Greaves, `223008` Gluttonous
+    Greaves, `223009` Boots of Swiftness, `223020` Sorcerer's Shoes, `223047` Plated Steelcaps,
+    `223111` Mercury's Treads, `223158` Ionian Boots of Lucidity), the same `22xxxx`-prefixed
+    re-skinning noted above for ordinary items. Verified across every ingested match: these 8 are
+    the only ids Data Dragon tags `Boots` that appear in any timeline event. The list lives in
+    `packages/db/src/parseMatch.ts` as `ARENA_BOOT_ITEM_IDS` (it must be available synchronously,
+    with no network call, to both the parser and the backfill script); `apps/api/src/itemData.ts`'s
+    `getArenaBoots()` decorates it with Data Dragon names and prices.
+    **`match_participants.items` cannot answer "did they buy boots"** — Arena players routinely sell
+    their boots later in the match for stats, so a pair that was bought and sold leaves no trace in
+    the end-of-match inventory (measured on the tracked summoner: 165 of 336 pairs sold, 163 of 333
+    matches finished barefoot). Boots therefore come from `timeline` ITEM_PURCHASED/ITEM_SOLD
+    events, and `items` is used only for the genuinely end-state question ("finished the match
+    wearing boots").
+    **`ITEM_UNDO` must be applied, not ignored** — ~10% of both boot purchases and sales in the
+    current dataset were undone in the shop (366 and 277 respectively). Riot emits one untyped
+    `ITEM_UNDO` event carrying `beforeId`/`afterId` rather than a typed undo-purchase/undo-sale
+    event: undoing a purchase is `{beforeId: <item>, afterId: 0}` with a positive `goldGain` (the
+    refund), undoing a sale is `{beforeId: 0, afterId: <item>}` with a negative one — confirmed
+    against real data, where all 643 boot-related undos took exactly those two shapes. Counting raw
+    ITEM_PURCHASED events without this overstates purchases (370 vs. the true 336). Any future stat
+    built from timeline item events needs the same correction.
+    `ITEM_DESTROYED` also fires for boots, but only a couple of times across the whole dataset
+    (something consumed/replaced them rather than the player selling), so it's deliberately not
+    folded into the sold count.
   - **Bans** (`matches.bannedChampionIds`): the ban list in the raw payload lives under
     `info.teams[].bans[]`, but Arena's `info.teams` is a vestige of the shared Match-V5 schema —
     it's just a fake win/loss pair (`teamId: 100`/`0`), not the real per-match subteams. The bans
@@ -193,20 +294,30 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
     champions (no champion-specific pattern, e.g. not a Karthus-passive artifact), have
     `totalTimeSpentDead` exceeding `timePlayedSeconds` — sometimes by 5x, with as few as 1 death.
     This looks like Riot's respawn-timer accounting breaking down under Arena's death/elimination
-    model. The raw value is still stored as-is (this project's consistent approach to Riot's own
-    data quirks — store the truth Riot gives, document the caveat, let consumers guard against it).
-    **Any future stat/leaderboard using this field must sanity-check it against
-    `timePlayedSeconds`** (e.g. discard or cap values that exceed it) rather than trusting it
-    directly — a naive average would be dominated by these outliers.
+    model. The column was dropped as unused (`packages/db/TRIMMED_DATA.md`); if it's ever
+    re-added, **any stat using it must sanity-check it against `timePlayedSeconds`** (e.g.
+    discard or cap values that exceed it) — a naive average would be dominated by these outliers.
   - **`killingSprees` is always `0` in Arena, and that's Riot's data, not our pipeline** — verified
     by decompressing stored `raw` payloads directly: `0` across every participant in a 40-match /
     720-participant sample (not just one tracked summoner), while `largestKillingSpree` on those
     same participants is populated normally (non-zero, e.g. `14`). Summoner's Rift's "killing
     spree" announcer mechanic (3+ kills without dying) appears to simply not be implemented for
     Arena's backend, while `largestKillingSpree` tracks something else Riot does still compute
-    (reads as max consecutive-kill streak, unrelated to the spree announcement itself). Store as-is
-    per this project's usual approach to Riot data quirks; don't treat a `0` here as a parsing bug
-    to chase.
+    (reads as max consecutive-kill streak, unrelated to the spree announcement itself). No longer
+    stored (`packages/db/TRIMMED_DATA.md`); don't treat a `0` in `raw` as a parsing bug to chase.
+  - **Summoner spells**: Arena offers exactly two, its own ids `2202` Flash and `2201` Flee
+    (Data Dragon `summoner.json`, `SummonerCherryFlash`/`SummonerCherryHold`, tagged mode
+    `CHERRY`). Verified on all 6,192 participant rows: everyone has both, but the **slot order
+    varies** (2,817 Flee-in-slot-1 vs 3,375 Flash-in-slot-1), so `summonerSpell1Casts` means
+    nothing without `summonerSpell1Id` — always pair a slot's casts with that slot's id
+    (`apps/api/src/stats/summonerSpells.ts`). Names/icons: `apps/api/src/summonerSpellData.ts`.
+  - **Damage curve** (`match_participants.frames`, one `[t, physical, magical, true]` tuple of
+    cumulative damage to champions per timeline frame — the only fields kept, see
+    `packages/db/TRIMMED_DATA.md`): the three splits can sum 0-2 below Riot's own total — its
+    per-type rounding, the end-of-game fields show the same gap. A player's frames keep coming,
+    flat, after their team is knocked out, until the match ends; a game that ended earlier than
+    another carries its final value forward when curves are summed or averaged, so the summed
+    curve's last point equals the season damage total exactly (verified).
   - **Pings** (14 distinct Riot counters — `allInPings`, `assistMePings`, etc.) are stored as one
     `pings` jsonb object, not 14 columns — they're informational, never filtered/sorted on
     individually.
@@ -235,7 +346,7 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
 | API + ingestion | Fastify (TS) | Chosen over Express: first-class TypeScript, schema validation (zod/typebox) on routes, and a plugin model that keeps "serve read queries" and "poll Riot API / run ingestion workers" cleanly separated inside one service without fighting each other. |
 | Database | Postgres | Relational fits this domain well (matches → teams → participants → augments/items joins, aggregate stat queries). |
 | ORM | Drizzle | Infers TS types straight from table definitions, so `packages/db`'s schema *is* a big part of `packages/types` instead of hand-maintaining two parallel sources of truth. |
-| Local/dev DB hosting | Cloud dev DB (Neon or Supabase Postgres, free tier) | No Docker installed on the dev machine; a cloud dev branch avoids a local Postgres install and matches how a small friend-group deploy would likely run anyway. `DATABASE_URL` is just an env var — swapping to self-hosted Postgres later is a non-event. |
+| Local/dev DB hosting | Local Postgres 18 (Windows service `postgresql-x64-18`, port 5432), database `arena` owned by role `arena` | Replaced the earlier Neon free-tier dev branch: a local database has no ~110 ms per-query round trip and no free-tier storage cap for the crawler to hit. Created with UTF8 + C collation (matching Neon). Schema comes from `pnpm --filter @arena/db migrate`. `DATABASE_URL` is just an env var in `apps/api/.env` and `packages/db/.env`, so moving to a hosted Postgres for deployment needs no code change. |
 | Riot API key tier | Personal/dev key for v1 | Friend-group scale fits comfortably inside dev-key rate limits (20 req/1s, 100 req/2min). Revisit only if scope moves toward "public tool." |
 
 ### Explicitly deferred / open decisions
@@ -255,7 +366,7 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
 apps/
   web/        → Next.js frontend (App Router). Profile pages, stats pages, leaderboard.
   api/        → Fastify service. REST API for the web app's data needs, plus Riot API ingestion
-                workers (polling tracked summoners, fetching/parsing match + timeline data,
+                workers (the refresh queue and the hand-run crawler, fetching/parsing match + timeline data,
                 writing into Postgres via packages/db).
 packages/
   types/      → Shared TS types not already covered by packages/db's inferred types (e.g. Riot
@@ -353,6 +464,11 @@ redesigning:
 - Keep `packages/db`'s Drizzle schema as the single source of truth for match/team/participant
   shapes; don't hand-write parallel interfaces in `packages/types` for things Drizzle already
   infers.
+- **Store only what the page reads.** The crawler multiplies every per-row byte by thousands of
+  matches, so a column that nothing renders is dropped, not kept "just in case". `matches.raw`
+  and `matches.timeline` are the deliberate exception: they're the archive every dropped field
+  can be re-derived from. `packages/db/TRIMMED_DATA.md` lists what was dropped, why, and how to
+  bring it back. Check it before adding a column, and add to it when you drop one.
 - Only `packages/db` should depend on `drizzle-orm` directly. It re-exports the query helpers
   consumers need (`eq`, `and`, `or`, `desc`, `asc`, `sql`) from its own `src/index.ts` — import
   those from `@arena/db`, not by adding `drizzle-orm` as a direct dependency of `apps/api` (or
@@ -369,7 +485,7 @@ redesigning:
   actual second consumer of those components.
 - **`apps/web/src` component layering** (three tiers, each building on the last):
   `components/ui/` = raw shadcn primitives, generated by the shadcn CLI, not hand-edited beyond
-  that. `components/` = small generic reusable pieces with no domain logic (`StatCard`,
+  that. `components/` = small generic reusable pieces with no domain logic (`AnimatedNumber`,
   `CategorySection`). `modules/` = richer, category-specific pieces (a damage breakdown chart, a
   kill timeline, anything with its own interaction state) that compose several `ui/` primitives
   plus domain knowledge — this is where the summoner page's per-category content (Damage, Kills,
@@ -382,16 +498,101 @@ redesigning:
   The shadcn CLI already set up the `@/hooks` import alias at init time even though nothing used it
   yet; this is that alias's home. kebab-case filename (`use-count-up.ts`), camelCase export
   (`useCountUp`), matching the rest of `apps/web/src`'s file-naming convention.
-- **`components/animated-stat.tsx`** (`AnimatedStat`, `"use client"`) is the generic count-up
-  number display — title + big primary number/label + smaller secondary number/label, animated via
-  `requestAnimationFrame` rather than CSS `@property`/`counter()` (that CSS-only technique only
-  tweens integers, which can't produce formatted output like `"18h 42m"` or a percentage). Its
-  `formatPrimary`/`formatSecondary` props are plain functions — **any Server Component module that
-  constructs one of these (e.g. a closure like `formatHoursMinutes`) and passes it in must be
-  `"use client"` itself**, not just `AnimatedStat`. A Server Component can't pass a function prop
-  to a Client Component at all (React can't serialize it across the RSC boundary) — this isn't
-  optional/stylistic, it's a hard runtime error ("Functions cannot be passed directly to Client
-  Components"), hit and fixed in `modules/TimePlayed.tsx`. Modules that only pass plain
-  numbers/strings into `AnimatedStat` can stay Server Components.
+- **`components/animated-number.tsx`** (`AnimatedNumber`, `"use client"`) is the generic count-up
+  number, animated via `requestAnimationFrame` (`hooks/use-count-up.ts`) rather than CSS
+  `@property`/`counter()` (that CSS-only technique only tweens integers, which can't produce formatted
+  output like `"18h 42m"` or a percentage). It shows the final value at once under
+  `prefers-reduced-motion`. Its `format` prop is a plain function — **any Server Component module
+  that constructs one (e.g. a closure like `formatHoursMinutes`) and passes it in must be
+  `"use client"` itself**. A Server Component can't pass a function prop to a Client Component at all
+  (React can't serialize it across the RSC boundary) — a hard runtime error ("Functions cannot be
+  passed directly to Client Components"), hit and fixed in `modules/TimePlayed`.
+- **Oversized `<img>` needs `max-w-none`.** Tailwind's preflight sets `max-width: 100%` on every
+  `<img>`, so art deliberately sized past its box (e.g. a 141% counter-rotated icon filling a
+  diamond, see `components/item-medallion.tsx`) gets its width silently clamped while an explicit
+  height isn't — the art ends up squashed and offset to one side.
+- **The summoner pages' top bar (`components/top-bar.tsx`, mounted by `app/summoner/layout.tsx`)
+  overlays the page rather than taking height**, because deck slides fill exactly one viewport. It
+  hides while scrolling down and comes back on scroll up, near the top edge, or while it holds
+  focus. Don't reserve space for it in a slide; keep a slide's key content out of its top ~56px
+  only if it must never be covered. Riot ID input rules live in `lib/riot-id.ts`
+  (`gameNameError`/`tagLineError`, mirrored by the API's `lookupSchema`), and `parseRiotIdSlug`
+  decodes the slug because Next passes dynamic params still percent-encoded.
+- **Summoner page structure lives in one slide registry** — the ordered `slides` array in
+  `app/summoner/[platform]/[riotId]/stats-view.tsx` (id, short label, chapter, render). Each section's
+  DOM id (`#augments` deep links), the previous section's "next" cue label and the chapter rail all
+  derive from it through `lib/slides.tsx`'s `SlideProvider`/`useSlide`. Don't pass hand-typed "next
+  section" labels to modules (they drifted from the real titles before this existed); to add, remove
+  or reorder a section, edit the registry.
+- **Two layout modes, `deck` and `flow`** (custom variants in `globals.css`). `deck` (≥1280px wide
+  AND ≥860px tall) is the designed full-viewport, scroll-snapped slide; everything smaller gets
+  `flow`, where sections grow to their content and the page scrolls normally. A section must never
+  rely on `h-screen overflow-hidden` to fit — that silently clipped ~200px of every sidebar slide on
+  a 1366×768 laptop. Table-like panels with fixed columns pass `HextechPanel`'s `contentMinWidth`
+  so narrow screens scroll the panel content horizontally as one unit.
+- **Never render `championName` as text.** It is Riot's internal key (`MonkeyKing`, `KSante`), right
+  for asset URLs only. Render `useChampionName()(championName)` (`lib/champion-names.tsx`), backed by
+  the stats response's `championDisplayNames` map (Data Dragon `name`, keyed by lowercased key).
+- **Every rate follows `lib/sample.ts`**: rate sorts go through `sortByRate` (rows under `MIN_SAMPLE`
+  games rank after the rest, ordered by the same rate, and render dimmed). Every list that demotes them shows `components/low-sample-switch.tsx` while a rate sort is active (Team Synergy's Teammate Picks, at the user's request, doesn't dim at all on its MOST GAMES count sort), which passes `lowSample: "mixed"` to rank everyone together (still dimmed) — except the Collection dossier and Bans (Bans keeps low-sample rows ranked last and dimmed, with no switch), and rate scales/maxima are computed from rows that
+  meet the sample unless the switch mixes them in (then every row scales, or all mixed-in outliers
+  clamp to one equal max bar) — a single-game outlier otherwise sets the ceiling and flattens every real bar
+  (hit and fixed on KDA per-game). Rate differences are a plain subtraction of two rates, formatted by
+  `formatSignedPoints` as "+4.2%" (the user asked for "%" over "pp", which few readers know) — never
+  a relative change (55% vs 50% is +5%, not +10%). "Win" on this page means a top 3 finish — say WIN / WINRATE / WIN % for it (never "TOP 3"),
+  and keep 1ST / 1ST RATE for first place.
+- **Augment and item rates compare with the average pick, not the per-game rate.** Longer games hold
+  more augments and build more items, and longer games finish higher (verified: 71% top 3 with 6
+  augments vs 16% with 3; 16.8 purchased items in 1st-place games vs 4.9 in 6th). Use
+  `pooledRate` (`lib/sample.ts`) for any "vs average" on a per-augment/per-item list; the plain
+  per-game rate is only a fair baseline for things that happen once per game (champions, teammates,
+  boots outcome, special items).
+- **Short deck viewports (860–999 px tall) shrink `.dial-fit` and `.sidebar-stat-row`** (globals.css)
+  so a sidebar with a description and five rows still clears the next-section cue. Check new sidebar
+  content at 1280×860, not only at 1920×1080. Grids that should fill their panel measure it
+  (`hooks/use-fit-columns.ts`) instead of hard-coding a column count tuned on one screen.
+  The three Hall of Fame grids (Arena, Augment and Prismatic God) are honeycombs built from
+  `components/hex-comb.tsx` (`HexComb`), which solves its own column count with hexagon row
+  geometry — a new catalog grid of that kind should use it rather than a square grid.
+- **Every section animates in when scrolled to.** `components/reveal.tsx`'s `Reveal` (a fade + lift
+  on one wrapper, driven by `hooks/use-section-in-view.ts`) is applied inside `CategorySection` and
+  `HeroSection`, so a new section gets it for free — `CategorySection` observes the whole `<section>`
+  and passes that one `inView` to each of its `Reveal`s (a block observed alone only counts as in
+  view in the container's middle 60%, so a full-width slide's title row, sitting above that band,
+  once stayed invisible on 10 slides) — and it replays on re-entry, since a deck slide
+  is something you scroll away from and back to. Richer per-section motion (HourStrip's growing
+  bars, the activity calendar's staggered cells) runs inside a block `Reveal` has already faded up.
+  A tab that swaps what a chart shows should replay that chart's entrance rather than recoloring
+  in place.
+- **Reduced motion:** `Providers` wraps the app in `MotionConfig reducedMotion="user"` and
+  `useCountUp` jumps to its final value; new JS animation must respect `prefers-reduced-motion` too.
+- **Production build beside a running dev server:** `NEXT_DIST_DIR=.next-build pnpm build` (the dev
+  server owns `.next`). `next build` rewrites `tsconfig.json`'s `include` for that directory; revert it.
+- **Chart hover cards follow the pointer and share one look.** Build them from
+  `components/hover-stat-card.tsx` (`HoverStatCard` + sections/rows/champions); position a
+  non-nivo card with `components/cursor-tooltip.tsx` and `hooks/use-chart-hover.ts` (handles touch:
+  a tap opens, the next outside tap or a scroll closes). `HextechBarChart` takes `onHover` +
+  `highlightedId`; nivo charts put the same card in their own `tooltip`. Add a card where it tells
+  more than what's already printed (icon-only columns, stacked counts, per-pair rates), and never
+  repeat the section's own pinned sidebar/detail band — complement it instead (Picks' sidebar has
+  results, so its card shows the combat line; KDA's band has combat, so its card shows results); tables
+  that already print names and numbers, and the collection slides, get none. To send someone to a
+  champion's full stats, use `DossierLink`/`openChampionDossier` (`lib/champion-dossier.tsx`) —
+  Collection listens for it.
+- **Bar charts use linear scales from zero** (`lib/bar-scale.ts`). A log or power scale was tried and
+  removed: with no axes on these charts it silently distorted every comparison.
+- **Section background art is served from `public/images/backgrounds/optimized/`**, generated by
+  `node scripts/optimize-backgrounds.mjs` from the full-size originals next to it (~13.6 MB → ~1.7 MB;
+  the photos are displayed heavily blurred). After adding art, rerun the script and point
+  `lib/section-backgrounds.ts` at the optimized file. Backgrounds attach lazily near the viewport
+  (`hooks/use-near-viewport.ts`).
+- **The stats endpoint is memoized per summoner** (`getSummonerStats` in `apps/api/src/routes/
+  summoners.ts`), keyed by that summoner's match count + latest game time, so it rebuilds only
+  after ingestion writes a new match (cold build ~3.75s, cached ~0.6s). Anything that changes the
+  response for reasons other than new matches (a code deploy restarts the process, which clears it)
+  must keep that in mind. Queries that depend only on the summoner are started together at the top
+  of `buildSummonerStats` (each still awaited where used; ~110 ms of latency per round trip to the
+  hosted database made the old one-after-another chain take ~9.5s). A new query should join that
+  block unless it genuinely needs an earlier result; prefer a subquery over waiting for one.
 - This file should be updated whenever a decision in §3's "explicitly deferred" list gets made, or
   when scope (§1) changes (e.g. friend-group → public tool would flip several decisions above).

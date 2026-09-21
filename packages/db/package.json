@@ -14,7 +14,9 @@
     "studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit",
     "backfill-compress-matches": "tsx --env-file=.env scripts/backfill-compress-matches.ts",
-    "backfill-reparse-participants": "tsx --env-file=.env scripts/backfill-reparse-participants.ts"
+    "backfill-reparse-participants": "tsx --env-file=.env scripts/backfill-reparse-participants.ts",
+    "backfill-rounds": "tsx --env-file=.env scripts/backfill-rounds.ts",
+    "remap-puuids": "tsx --env-file=../../apps/api/.env --env-file=.env scripts/remap-puuids.ts"
   },
   "dependencies": {
     "@arena/types": "workspace:*",

@@ -1,5 +1,8 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useRef, type ReactNode } from "react";
 import { cn } from "cn";
+import { useDragScroll } from "@/hooks/use-drag-scroll";
 
 type Props = {
   /** Content of the title cartouche that cuts through the broken top edge —
@@ -13,6 +16,11 @@ type Props = {
   className?: string;
   /** Extra classes for the padded body div the children render into. */
   bodyClassName?: string;
+  /** Minimum width (px) the panel's content needs — for table-like panels
+   * with fixed columns. On narrower screens the whole content (header row,
+   * list and detail band together) scrolls horizontally as one unit instead
+   * of overflowing the page or scrolling each part separately. */
+  contentMinWidth?: number;
 };
 
 const CORNER_DIAMOND_POSITIONS = [
@@ -39,7 +47,10 @@ const CORNER_DIAMOND_POSITIONS = [
  * theme (see globals.css), not a multi-background system, so there's
  * nothing to parameterize yet.
  */
-function HextechPanel({ title, children, className, bodyClassName }: Props) {
+function HextechPanel({ title, children, className, bodyClassName, contentMinWidth }: Props) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  useDragScroll(scrollerRef, "x");
+
   return (
     <div className={cn("relative min-h-0 min-w-0 mt-6.5 self-stretch", className)}>
       <div
@@ -92,7 +103,18 @@ function HextechPanel({ title, children, className, bodyClassName }: Props) {
           bodyClassName,
         )}
       >
-        {children}
+        {contentMinWidth ? (
+          <div
+            ref={scrollerRef}
+            className="scroll-contain-x -mx-2 flex min-h-0 flex-1 flex-col overflow-x-auto overflow-y-hidden px-2"
+          >
+            <div className="flex min-h-0 flex-1 flex-col" style={{ minWidth: contentMinWidth }}>
+              {children}
+            </div>
+          </div>
+        ) : (
+          children
+        )}
       </div>
     </div>
   );

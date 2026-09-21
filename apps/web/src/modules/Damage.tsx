@@ -1,17 +1,28 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { cn } from "cn";
 import { motion, MotionConfig } from "motion/react";
 import type { ChampionStats, DamageBreakdown, DamageStats } from "@arena/types";
 import { CategorySection } from "@/components/category-section";
 import { HextechPanel } from "@/components/hextech-panel";
 import { Dial } from "@/components/dial";
 import { DiamondTabs } from "@/components/diamond-tabs";
-import { FadingRule } from "@/components/fading-rule";
+import { PanelToolbar, ToolbarDivider } from "@/components/panel-toolbar";
+import { LowSampleSwitch } from "@/components/low-sample-switch";
 import { DetailBand } from "@/components/detail-band";
 import { SidebarStatRows } from "@/components/sidebar-stat-row";
+import { ValuePercentRow, SortHeaderLabel } from "@/components/sortable-stat-row";
 import { championIconUrl } from "@/lib/riot";
+import { DAMAGE_TYPE_COLORS } from "@/lib/damage-types";
 import { formatCompact } from "@/lib/format";
+import { pressable } from "@/lib/a11y";
+import { useDragScroll } from "@/hooks/use-drag-scroll";
+import { useChampionName } from "@/lib/champion-names";
+import { DossierLink } from "@/lib/champion-dossier";
+import { perGame } from "@/lib/per-game";
+import { MIN_SAMPLE, isLowSample, sortByRate } from "@/lib/sample";
+import { SECTION_BACKGROUNDS } from "@/lib/section-backgrounds";
 
 type Props = {
   /** Which damage stats this section shows — `"dealt"` (default) or
@@ -23,10 +34,14 @@ type Props = {
   variant?: "dealt" | "taken";
   damage: DamageStats;
   champions: Record<number, ChampionStats>;
-  nextSectionLabel?: string;
+  /** Shown as an extra sidebar row alongside PHYSICAL/MAGICAL/TRUE, following
+   * the TOTAL / BEST GAME / PER GAME tabs. Skillshots landed for `"dealt"`,
+   * skillshots dodged for `"taken"` — each only makes sense paired with its
+   * matching damage direction. */
+  skillshots?: { total: number; best: number };
 };
 
-type Mode = "total" | "best";
+type Mode = "perGame" | "total" | "best";
 type Metric = "total" | "physical" | "magical" | "trueDamage";
 
 const METRICS: Metric[] = ["total", "physical", "magical", "trueDamage"];
@@ -37,11 +52,9 @@ const METRIC_LABEL: Record<Metric, string> = {
   trueDamage: "TRUE",
 };
 
-const COLORS = {
-  physical: "#ff8c34",
-  magical: "#00b0f0",
-  trueDamage: "#ffffff",
-} as const;
+/** Local alias for the shared palette (see `lib/damage-types.ts`) — kept so
+ * this file's many `COLORS.physical` references read unchanged. */
+const COLORS = DAMAGE_TYPE_COLORS;
 
 function sumBreakdown(breakdown: DamageBreakdown): number {
   return breakdown.physical + breakdown.magical + breakdown.trueDamage;
@@ -54,7 +67,10 @@ function sumBreakdown(breakdown: DamageBreakdown): number {
  * still pins 0 -> 0% and 1 (the leader) -> 100%, but compresses the low end
  * upward, so real gaps still read as gaps without every non-leader bar
  * looking crushed against the axis. */
-const BAR_WIDTH_EXPONENT = 0.55;
+// Linear (exponent 1): bar length is proportional to the value. An earlier
+// 0.55 power drew a third of the leader at ~55% width, which read as a much
+// closer race than the numbers are.
+const BAR_WIDTH_EXPONENT = 1;
 function barWidthPercent(value: number, max: number): number {
   if (max <= 0) return 0;
   const ratio = Math.min(1, Math.max(0, value / max));
@@ -65,24 +81,19 @@ type Row = {
   championId: number;
   championName: string;
   matchesPlayed: number;
-  /** Mode-dependent (season total or single best-game breakdown) — drives
-   * the stacked bar and the TOTAL column (both need one coherent breakdown
-   * that actually sums to a real total, not three independently-maxed
-   * numbers). */
+  /** Mode-dependent: the season total, the per-game average, or in "best"
+   * mode one single game — the top total game, or when sorted by one type the
+   * game where that type peaked (`bestGameByType`). Drives the bar and every
+   * column, so they always sum to one real total. */
   active: DamageBreakdown;
   seasonTotal: DamageBreakdown;
   bestGame: DamageBreakdown;
-  /** Mode-dependent: in "best" mode, each field is independently maxed
-   * across every game (see `ChampionDamageStats.bestByType`); in "total"
-   * mode this is the same as `seasonTotal` (a season sum is already its own
-   * independent-per-type total). Drives the PHYS/MAGIC/TRUE columns. */
-  activeByType: DamageBreakdown;
 };
 
 function columnValue(row: Row, metric: Metric): number {
   return metric === "total"
     ? sumBreakdown(row.active)
-    : row.activeByType[metric];
+    : row.active[metric];
 }
 
 type SortDir = "asc" | "desc";
@@ -111,61 +122,6 @@ const SLOT_PITCH = ROW_HEIGHT + ROW_GAP;
 const ICON_SIZE = 36;
 const ROW_PADDING_X = 6;
 
-/** "value | pct%" sidebar row, laid out as fixed-width grid columns rather
- * than one string — same reasoning as `BannedChampions`' `CountPercentValue`:
- * right-aligning free text puts the "|" at a different x position per row
- * whenever the value/percent digit counts differ. Only meaningful in TOTAL
- * mode: BEST GAME's three numbers are each an independent per-game max (see
- * `Row.activeByType`), so they don't actually sum back to a "total" the way
- * a percentage-of-total implies — callers only pass this in that mode.
- * The pct column is 72px, same as `CountPercentValue`'s — narrower (it used
- * to be 52px) left no slack for a right-aligned "38.8%" to breathe against
- * the "|" column, since the digits ran all the way to that column's edge. */
-function ValuePercentRow({ value, pct }: { value: string; pct: number }) {
-  return (
-    <div
-      className="grid items-baseline font-display text-[22px] text-lol-gold-50"
-      style={{ gridTemplateColumns: "60px 4px 72px" }}
-    >
-      <span className="text-left tabular-nums">{value}</span>
-      <span className="text-center text-lol-text-muted">|</span>
-      <span className="text-right tabular-nums">{pct.toFixed(1)}%</span>
-    </div>
-  );
-}
-
-/**
- * A right-aligned, sortable column header label: the label itself plus (when
- * this column is the active sort key) a small ▲/▼ showing direction.
- * `tracking-[.22em]` letter-spacing pads *after* every character including
- * the last, which visibly shifts a right-aligned string's glyphs left of the
- * box's true right edge — the `marginRight` cancels exactly that trailing
- * gap so the label's last glyph (or the indicator, when shown) actually
- * touches the column's right edge, aligned with the value below it.
- */
-function SortHeaderLabel({
-  label,
-  active,
-  dir,
-}: {
-  label: string;
-  active: boolean;
-  dir: SortDir;
-}) {
-  return (
-    <span className="inline-flex items-center gap-1 text-[9.5px]">
-      <span className="tracking-[.22em]" style={{ marginRight: "-.22em" }}>
-        {label}
-      </span>
-      {active && (
-        <span className="text-[7px] leading-none">
-          {dir === "desc" ? "▼" : "▲"}
-        </span>
-      )}
-    </span>
-  );
-}
-
 /**
  * Rebuilt on the same row-list template as `BannedChampions` (see
  * design_handoff_arena_panels/README.md, "the tier-fill system" and CLAUDE.md's
@@ -181,12 +137,18 @@ const Damage = ({
   variant = "dealt",
   damage,
   champions,
-  nextSectionLabel = "AUGMENTS",
+  skillshots,
 }: Props) => {
   const dmgWord = variant === "taken" ? "TAKEN" : "DMG";
   const [mode, setMode] = useState<Mode>("total");
+  const displayName = useChampionName();
   const [metric, setMetric] = useState<Metric>("total");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  // PER GAME only: rank champions under MIN_SAMPLE games together with the
+  // rest instead of after them. They stay dimmed either way.
+  const [mixLowSample, setMixLowSample] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+  useDragScroll(listRef, "y");
 
   // Clicking the already-active column flips direction; picking a new one
   // (from a header or the metric tabs) always starts descending.
@@ -209,22 +171,37 @@ const Damage = ({
           championName: champion.championName,
           matchesPlayed: champion.matchesPlayed,
           active:
-            mode === "best" ? championDamage.maxGame : championDamage.total,
-          activeByType:
-            mode === "best" ? championDamage.bestByType : championDamage.total,
+            mode === "best"
+              ? metric === "total"
+                ? championDamage.maxGame
+                : championDamage.bestGameByType[metric]
+              : mode === "perGame"
+                ? perGame(championDamage.total, champion.matchesPlayed)
+                : championDamage.total,
           seasonTotal: championDamage.total,
           bestGame: championDamage.maxGame,
         };
       }),
-    [champions, mode, variant],
+    [champions, mode, variant, metric],
   );
 
   const rows = useMemo(() => {
+    // Per-game averages from a handful of games are noise: they rank after
+    // every champion with enough games, and render dimmed.
+    if (mode === "perGame") {
+      return sortByRate(
+        roster,
+        (row) => columnValue(row, metric),
+        (row) => row.matchesPlayed,
+        sortDir,
+        mixLowSample ? "mixed" : "after",
+      );
+    }
     const dirSign = sortDir === "desc" ? 1 : -1;
     return [...roster].sort(
       (a, b) => dirSign * (columnValue(b, metric) - columnValue(a, metric)),
     );
-  }, [roster, metric, sortDir]);
+  }, [roster, metric, sortDir, mode, mixLowSample]);
 
   const [selectedChampionId, setSelectedChampionId] = useState<number | null>(
     () => rows[0]?.championId ?? null,
@@ -237,35 +214,51 @@ const Damage = ({
   // — so e.g. sorting by Magic makes the top magic damage dealer's bar read
   // as 100%, not as "however much of their total damage happened to be
   // magic."
+  // Scale from champions with enough games in PER GAME mode, so a dimmed
+  // one-game outlier can't shrink every trustworthy bar (widths clamp at 100%).
+  // Mixed in by the viewer, they scale too, or they'd all clamp to 100%.
+  const scaleRows =
+    mode === "perGame" && !mixLowSample
+      ? rows.filter((r) => !isLowSample(r.matchesPlayed))
+      : rows;
   const maxMetricValue = Math.max(
     1,
-    ...rows.map((r) => columnValue(r, metric)),
+    ...(scaleRows.length > 0 ? scaleRows : rows).map((r) => columnValue(r, metric)),
   );
   const seasonGrandTotal = sumBreakdown(damage.total);
-  const dialValue = sumBreakdown(
-    mode === "best" ? damage.maxGame : damage.total,
-  );
-  // Same independent-per-type correction as the grid's PHYS/MAGIC/TRUE
-  // columns (see `Row.activeByType`) — in "best" mode these are each maxed
-  // across all games separately, not the breakdown of one single game.
-  const sidebarBreakdown = mode === "best" ? damage.bestByType : damage.total;
+  const totalGames = Object.values(champions).reduce((sum, c) => sum + c.matchesPlayed, 0);
+  // In "best" mode: the one game the grid's columns come from (see
+  // `Row.active`) — the top total game, or the top game for the sorted type.
+  const sidebarBreakdown =
+    mode === "best"
+      ? metric === "total"
+        ? damage.maxGame
+        : damage.bestGameByType[metric]
+      : mode === "perGame"
+        ? perGame(damage.total, totalGames)
+        : damage.total;
+  const dialValue = sumBreakdown(sidebarBreakdown);
 
-  const modeCaption = mode === "total" ? "SEASON TOTAL" : "BEST SINGLE GAME";
+  const modeCaption =
+    mode === "perGame"
+      ? `PER GAME · UNDER ${MIN_SAMPLE} GAMES DIMMED`
+      : mode === "total"
+        ? "ALL GAMES"
+        : metric === "total"
+          ? "BEST SINGLE GAME"
+          : `BEST SINGLE ${METRIC_LABEL[metric]} GAME`;
 
-  // Percentages only make sense against a real total (TOTAL mode) — see
-  // `ValuePercentRow`'s doc comment for why BEST GAME skips them.
+  // Every mode's breakdown is one real total (a single game in BEST GAME),
+  // so the percentages always add up.
   const sidebarTotal = sumBreakdown(sidebarBreakdown);
   const sidebarRow = (label: string, value: number) => ({
     label,
-    value:
-      mode === "total" ? (
-        <ValuePercentRow
-          value={formatCompact(value)}
-          pct={sidebarTotal > 0 ? (value / sidebarTotal) * 100 : 0}
-        />
-      ) : (
-        formatCompact(value)
-      ),
+    value: (
+      <ValuePercentRow
+        value={formatCompact(value)}
+        pct={sidebarTotal > 0 ? (value / sidebarTotal) * 100 : 0}
+      />
+    ),
   });
 
   return (
@@ -276,13 +269,12 @@ const Damage = ({
           ? "Next time, try to leave a dent!"
           : "Whatever, let's just start shooting!"
       }
-      imageUrl="/images/kda-bg.jpg"
-      nextSectionLabel={nextSectionLabel}
+      imageUrl={variant === "taken" ? SECTION_BACKGROUNDS.damageTaken : SECTION_BACKGROUNDS.damage}
       sidebar={
         <>
           <Dial
             value={dialValue}
-            label={`${mode === "total" ? "TOTAL" : "BEST"} ${dmgWord}`}
+            label={`${mode === "perGame" ? "PER GAME" : mode === "total" ? "TOTAL" : "BEST"} ${dmgWord}`}
             labelPosition="bottom"
             formatValue={formatCompact}
           />
@@ -293,34 +285,57 @@ const Damage = ({
                 sidebarRow("PHYSICAL", sidebarBreakdown.physical),
                 sidebarRow("MAGICAL", sidebarBreakdown.magical),
                 sidebarRow("TRUE", sidebarBreakdown.trueDamage),
+                ...(skillshots
+                  ? [
+                      {
+                        label: variant === "taken" ? "SKILLSHOTS DODGED" : "SKILLSHOTS HIT",
+                        value:
+                          mode === "best"
+                            ? skillshots.best.toLocaleString()
+                            : mode === "perGame"
+                              ? (totalGames > 0 ? skillshots.total / totalGames : 0).toLocaleString(
+                                  undefined,
+                                  { maximumFractionDigits: 1 },
+                                )
+                              : skillshots.total.toLocaleString(),
+                      },
+                    ]
+                  : []),
               ]}
             />
           </div>
         </>
       }
     >
-      <HextechPanel>
-        <div className="mb-3.5 flex items-center gap-6">
+      <HextechPanel contentMinWidth={700}>
+        <PanelToolbar
+          caption={`${modeCaption} · SORTED · BY ${METRIC_LABEL[metric]}`}
+          trailing={
+            mode === "perGame" ? (
+              <LowSampleSwitch
+                checked={mixLowSample}
+                onChange={setMixLowSample}
+              />
+            ) : null
+          }
+        >
           <DiamondTabs
             tabs={[
               { key: "total", label: "TOTAL" },
               { key: "best", label: "BEST GAME" },
+              { key: "perGame", label: "PER GAME" },
             ]}
             active={mode}
             onChange={setMode}
           />
-          <div className="h-4 w-px flex-none bg-[rgba(200,170,110,.25)]" />
+          <ToolbarDivider />
           <DiamondTabs
             tabs={METRICS.map((m) => ({ key: m, label: METRIC_LABEL[m] }))}
             active={metric}
             onChange={sortBy}
             gap={18}
           />
-          <FadingRule />
-          <div className="text-[11px] tracking-[.28em] text-lol-text-muted">
-            {modeCaption} · SORTED · BY {METRIC_LABEL[metric]}
-          </div>
-        </div>
+        </PanelToolbar>
 
         <div
           // pl-1.5/pr-2.5 (6px/10px), not a symmetric px-1.5: the scrollable
@@ -337,15 +352,16 @@ const Damage = ({
           }}
         >
           <div />
-          <div className="text-[9.5px] tracking-[.22em] text-[#7f7a6e]">
+          <div className="text-[11px] tracking-[.22em] text-[#a09b8c]">
             CHAMPION
           </div>
-          <div
+          <button
+            type="button"
             onClick={() => sortBy("total")}
             className="cursor-pointer text-right select-none hover:text-lol-gold-100"
             style={{
               color:
-                metric === "total" ? "var(--color-lol-gold-50)" : "#7f7a6e",
+                metric === "total" ? "var(--color-lol-gold-50)" : "#a09b8c",
             }}
           >
             <SortHeaderLabel
@@ -353,8 +369,9 @@ const Damage = ({
               active={metric === "total"}
               dir={sortDir}
             />
-          </div>
-          <div
+          </button>
+          <button
+            type="button"
             onClick={() => sortBy("physical")}
             className="cursor-pointer text-right select-none hover:opacity-100"
             style={{
@@ -367,8 +384,9 @@ const Damage = ({
               active={metric === "physical"}
               dir={sortDir}
             />
-          </div>
-          <div
+          </button>
+          <button
+            type="button"
             onClick={() => sortBy("magical")}
             className="cursor-pointer text-right select-none hover:opacity-100"
             style={{
@@ -381,8 +399,9 @@ const Damage = ({
               active={metric === "magical"}
               dir={sortDir}
             />
-          </div>
-          <div
+          </button>
+          <button
+            type="button"
             onClick={() => sortBy("trueDamage")}
             className="cursor-pointer text-right select-none hover:opacity-100"
             style={{
@@ -395,7 +414,7 @@ const Damage = ({
               active={metric === "trueDamage"}
               dir={sortDir}
             />
-          </div>
+          </button>
         </div>
 
         {rows.length === 0 ? (
@@ -404,6 +423,7 @@ const Damage = ({
           </div>
         ) : (
           <div
+            ref={listRef}
             className="min-h-0 flex-1 overflow-y-auto py-1.5 pr-1"
             style={{
               scrollbarWidth: "thin",
@@ -438,8 +458,12 @@ const Damage = ({
                 return (
                   <div
                     key={index}
-                    onClick={() => setSelectedChampionId(row.championId)}
-                    className="absolute inset-x-0 grid cursor-pointer items-center gap-4 px-1.5 transition-colors duration-150"
+                    {...pressable(() => setSelectedChampionId(row.championId), { pressed: isSelected })}
+                    aria-label={`${displayName(row.championName)}, ${row.matchesPlayed} games`}
+                    className={cn(
+                      "absolute inset-x-0 grid cursor-pointer items-center gap-4 px-1.5 transition-[background,opacity] duration-150",
+                      mode === "perGame" && isLowSample(row.matchesPlayed) && "opacity-45",
+                    )}
                     style={{
                       top: index * SLOT_PITCH,
                       height: ROW_HEIGHT,
@@ -457,7 +481,7 @@ const Damage = ({
                     <div />
 
                     <div className="font-body truncate text-[16px] text-lol-gold-50">
-                      {row.championName}
+                      {displayName(row.championName)}
                     </div>
 
                     <div className="flex min-w-0 items-center gap-3">
@@ -511,7 +535,7 @@ const Damage = ({
                         opacity: metric === "physical" ? 1 : 0.55,
                       }}
                     >
-                      {formatCompact(row.activeByType.physical)}
+                      {formatCompact(row.active.physical)}
                     </div>
                     <div
                       className="text-right font-display text-[15px]"
@@ -520,7 +544,7 @@ const Damage = ({
                         opacity: metric === "magical" ? 1 : 0.55,
                       }}
                     >
-                      {formatCompact(row.activeByType.magical)}
+                      {formatCompact(row.active.magical)}
                     </div>
                     <div
                       className="text-right font-display text-[15px]"
@@ -529,7 +553,7 @@ const Damage = ({
                         opacity: metric === "trueDamage" ? 1 : 0.55,
                       }}
                     >
-                      {formatCompact(row.activeByType.trueDamage)}
+                      {formatCompact(row.active.trueDamage)}
                     </div>
                   </div>
                 );
@@ -547,6 +571,7 @@ const Damage = ({
                   <motion.div
                     key={row.championId}
                     layout="position"
+                    aria-hidden
                     onClick={() => setSelectedChampionId(row.championId)}
                     className="absolute cursor-pointer overflow-hidden"
                     style={{
@@ -557,8 +582,10 @@ const Damage = ({
                     }}
                   >
                     <img
+                      loading="lazy"
+                      decoding="async"
                       src={championIconUrl(row.championName)}
-                      alt={row.championName}
+                      alt=""
                       width={ICON_SIZE}
                       height={ICON_SIZE}
                       className="h-full w-full"
@@ -575,8 +602,10 @@ const Damage = ({
             icon={
               <div className="relative flex-none">
                 <img
+                  loading="lazy"
+                  decoding="async"
                   src={championIconUrl(selected.championName)}
-                  alt={selected.championName}
+                  alt=""
                   width={62}
                   height={62}
                   className="block border border-[rgba(200,170,110,.6)] object-cover"
@@ -591,30 +620,34 @@ const Damage = ({
                 />
               </div>
             }
-            title={selected.championName}
+            title={displayName(selected.championName)}
+            action={<DossierLink championId={selected.championId} />}
             subtitle={`${selected.matchesPlayed.toLocaleString()} GAMES`}
             stats={[
               {
-                label: `TOTAL ${dmgWord}`,
-                value: formatCompact(sumBreakdown(selected.seasonTotal)),
+                label: `${mode === "perGame" ? "PER GAME" : mode === "total" ? "TOTAL" : "BEST"} ${dmgWord}`,
+                value: formatCompact(sumBreakdown(selected.active)),
                 highlight: true,
                 bordered: false,
               },
               {
-                label: "% OF TOTAL",
-                value: `${((sumBreakdown(selected.seasonTotal) / seasonGrandTotal) * 100).toFixed(1)}%`,
+                label: "% OF ALL",
+                value:
+                  seasonGrandTotal > 0
+                    ? `${((sumBreakdown(selected.seasonTotal) / seasonGrandTotal) * 100).toFixed(1)}%`
+                    : "—",
               },
               {
                 label: "PHYSICAL",
-                value: formatCompact(selected.seasonTotal.physical),
+                value: formatCompact(selected.active.physical),
               },
               {
                 label: "MAGICAL",
-                value: formatCompact(selected.seasonTotal.magical),
+                value: formatCompact(selected.active.magical),
               },
               {
                 label: "TRUE",
-                value: formatCompact(selected.seasonTotal.trueDamage),
+                value: formatCompact(selected.active.trueDamage),
               },
               {
                 label: "BEST GAME",

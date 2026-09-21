@@ -18,7 +18,8 @@ type Props = {
 function FadingRule({ className }: Props) {
   return (
     <div
-      className={cn("h-px flex-1", className)}
+      aria-hidden
+      className={cn("h-px min-w-8 flex-1", className)}
       style={{
         background:
           "linear-gradient(90deg, rgba(200,170,110,.28), transparent)",

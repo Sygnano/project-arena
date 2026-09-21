@@ -6,7 +6,7 @@ import { Damage } from "./Damage";
 type Props = {
   damageTaken: DamageStats;
   champions: Record<number, ChampionStats>;
-  nextSectionLabel?: string;
+  skillshotsDodged?: { total: number; best: number };
 };
 
 /**
@@ -18,16 +18,12 @@ type Props = {
  * page's module list reads the same way every other section does — one
  * import per visible section.
  */
-const DamageTaken = ({
-  damageTaken,
-  champions,
-  nextSectionLabel = "AUGMENTS",
-}: Props) => (
+const DamageTaken = ({ damageTaken, champions, skillshotsDodged }: Props) => (
   <Damage
     variant="taken"
     damage={damageTaken}
     champions={champions}
-    nextSectionLabel={nextSectionLabel}
+    skillshots={skillshotsDodged}
   />
 );
 

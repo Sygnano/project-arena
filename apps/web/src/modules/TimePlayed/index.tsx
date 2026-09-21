@@ -6,20 +6,32 @@ import { AnimatedNumber } from "@/components/animated-number";
 import { CategorySection } from "@/components/category-section";
 import { Dial } from "@/components/dial";
 import { Calendar } from "./Calendar";
-import { HourRadial } from "./HourRadial";
+import { HourStrip } from "./HourStrip";
 import { HextechPanel } from "@/components/hextech-panel";
+import { SidebarStatRow } from "@/components/sidebar-stat-row";
 import { DetailBand } from "@/components/detail-band";
-import { FadingRule } from "@/components/fading-rule";
 import { DiamondTabs } from "@/components/diamond-tabs";
+import { PanelToolbar } from "@/components/panel-toolbar";
 import { ordinal } from "@/lib/format";
+import { isLowSample } from "@/lib/sample";
+import { SECTION_BACKGROUNDS } from "@/lib/section-backgrounds";
 
 type SortMode = "games" | "wins" | "hour";
 
 const SORT_MODES: { key: SortMode; label: string }[] = [
-  { key: "games", label: "BY GAMES" },
-  { key: "wins", label: "BY WINS" },
+  { key: "games", label: "GAMES" },
+  { key: "wins", label: "PLACEMENT" },
   { key: "hour", label: "BY HOUR" },
 ];
+
+/** What each view shows. These tabs change the coloring or the chart, not
+ * an ordering, so the caption says so rather than "SORTED". Day and hour
+ * buckets are UTC (see `CalendarDayStats`), and the caption says that too. */
+const MODE_CAPTION: Record<SortMode, string> = {
+  games: "DAYS COLORED BY GAMES PLAYED · UTC",
+  wins: "DAYS COLORED BY BEST PLACEMENT · UTC",
+  hour: "GAMES BY HOUR OF DAY · UTC",
+};
 
 const MONTH_ABBREV = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -28,7 +40,6 @@ const MONTH_ABBREV = new Intl.DateTimeFormat("en-US", {
 
 type Props = {
   timePlayed: TimePlayedStats;
-  gamesPlayed: number;
   calendar: CalendarStats;
 };
 
@@ -77,39 +88,19 @@ function DurationStat({
   );
 }
 
-/** A single row in the sidebar stat list — diamond bullet + label + value. */
-function SidebarStatRow({
-  label,
-  children,
-  last,
-}: {
-  label: string;
-  children: React.ReactNode;
-  last?: boolean;
-}) {
-  return (
-    <div
-      className="flex items-center gap-3.5 px-1 py-3.25"
-      style={{
-        borderTop: "1px solid rgba(200,170,110,.14)",
-        borderBottom: last ? "1px solid rgba(200,170,110,.14)" : undefined,
-      }}
-    >
-      <div className="h-1.75 w-1.75 flex-none rotate-45 bg-lol-gold-300" />
-      <div className="flex-1 text-sm tracking-[.12em] text-lol-text-secondary">
-        {label}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-const TimePlayed = ({ timePlayed, gamesPlayed, calendar }: Props) => {
+const TimePlayed = ({ timePlayed, calendar }: Props) => {
   const [sortMode, setSortMode] = useState<SortMode>("games");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-
-  const hours = Math.floor(timePlayed.timePlayedSeconds / 3600);
-  const minutes = Math.floor((timePlayed.timePlayedSeconds % 3600) / 60);
+  // Defaults to the busiest hour so the band has something to say at once.
+  const [selectedHour, setSelectedHour] = useState<number>(() =>
+    calendar.gamesByHour.reduce((best, games, hour, all) => (games > all[best] ? hour : best), 0),
+  );
+  const hourGames = calendar.gamesByHour[selectedHour] ?? 0;
+  const hourAvg = calendar.avgPlacementByHour[selectedHour];
+  const hourTop1 = calendar.top1ByHour[selectedHour] ?? 0;
+  const hourTop3 = calendar.top3ByHour[selectedHour] ?? 0;
+  const hourTop3Rate = hourGames > 0 ? ((calendar.top3ByHour[selectedHour] ?? 0) / hourGames) * 100 : null;
+  const hourLabel = `${String(selectedHour).padStart(2, "0")}:00`;
 
   const avgMinutes = Math.floor(timePlayed.averageGameSeconds / 60);
   const avgSeconds = Math.floor(timePlayed.averageGameSeconds % 60);
@@ -161,12 +152,12 @@ const TimePlayed = ({ timePlayed, gamesPlayed, calendar }: Props) => {
     },
   ];
 
+
   return (
     <CategorySection
       title="TIME"
       quote="It's not about how much time you have, it's about how you spend it."
-      imageUrl="/images/kda-bg.jpg"
-      nextSectionLabel="TEAMS"
+      imageUrl={SECTION_BACKGROUNDS.timePlayed}
       sidebar={
         <>
           <Dial
@@ -176,6 +167,7 @@ const TimePlayed = ({ timePlayed, gamesPlayed, calendar }: Props) => {
           />
 
           <div className="mt-auto flex flex-col gap-0.5">
+
             <SidebarStatRow label="AVG GAME TIME">
               <DurationStat
                 major={avgMinutes}
@@ -194,32 +186,90 @@ const TimePlayed = ({ timePlayed, gamesPlayed, calendar }: Props) => {
               />
             </SidebarStatRow>
 
-            <SidebarStatRow label="LONGEST STREAK" last>
+            <SidebarStatRow label="LONGEST DAY STREAK">
               <CountStat
                 value={timePlayed.longestStreakDays}
                 unit={timePlayed.longestStreakDays === 1 ? "day" : "days"}
               />
+            </SidebarStatRow>
+
+            <SidebarStatRow label="MOST GAMES IN A DAY">
+              <CountStat
+                value={timePlayed.mostGamesInADay}
+                unit={timePlayed.mostGamesInADay === 1 ? "game" : "games"}
+              />
+            </SidebarStatRow>
+
+            <SidebarStatRow label="FAVORITE DAY" last>
+              {timePlayed.favoriteDayOfWeek?.toUpperCase() ?? "—"}
             </SidebarStatRow>
           </div>
         </>
       }
     >
       <HextechPanel>
-        <div className="mb-3.5 flex items-center gap-6">
+        <PanelToolbar
+          caption={MODE_CAPTION[sortMode]}
+        >
           <DiamondTabs
             tabs={SORT_MODES}
             active={sortMode}
             onChange={setSortMode}
           />
-          <FadingRule />
-          <div className="text-[11px] tracking-[.28em] whitespace-nowrap text-lol-text-muted">
-            MATCHES BY DATE · SORTED ·{" "}
-            {SORT_MODES.find((m) => m.key === sortMode)?.label}
-          </div>
-        </div>
+        </PanelToolbar>
 
         {sortMode === "hour" ? (
-          <HourRadial gamesByHour={calendar.gamesByHour} />
+          <>
+            <div className="min-h-0 flex-1">
+              <HourStrip
+                calendar={calendar}
+                gamesByHour={calendar.gamesByHour}
+                top1ByHour={calendar.top1ByHour}
+                top3ByHour={calendar.top3ByHour}
+                selectedHour={selectedHour}
+                onSelectHour={setSelectedHour}
+              />
+            </div>
+            <DetailBand
+              icon={
+                <div
+                  className="h-3 w-3 flex-none rotate-45 border"
+                  style={{
+                    borderColor: "rgba(10,200,185,.75)",
+                    background: "rgba(5,14,22,.75)",
+                  }}
+                />
+              }
+              title={
+                <div className="flex flex-col leading-none">
+                  <span className="text-[12px] tracking-[.24em] text-lol-text-muted">
+                    {isLowSample(hourGames) ? "FEW GAMES · UTC" : "UTC · CLICK AN HOUR"}
+                  </span>
+                  <span className="mt-1.5 text-[30px] text-lol-gold-50">{hourLabel}</span>
+                </div>
+              }
+              stats={[
+                {
+                  label: "GAMES",
+                  value: hourGames.toLocaleString(),
+                  highlight: true,
+                  bordered: false,
+                },
+                {
+                  label: "1ST",
+                  value: hourTop1.toLocaleString(),
+                },
+                {
+                  label: "WINS",
+                  value: hourTop3Rate == null ? "—" : `${hourTop3} · ${hourTop3Rate.toFixed(0)}%`,
+                },
+                {
+                  label: "AVG PLACEMENT",
+                  value: hourAvg == null ? "—" : hourAvg.toFixed(2),
+                },
+              ]}
+            />
+          </>
         ) : (
           <>
             <Calendar

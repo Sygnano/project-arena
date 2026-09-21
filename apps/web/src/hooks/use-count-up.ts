@@ -12,6 +12,8 @@ import { useEffect, useRef, useState } from "react";
  * `useInView` so the count-up starts when the number actually scrolls into
  * view, not the moment it mounts off-screen and finishes before anyone
  * sees it.
+ *
+ * Under `prefers-reduced-motion: reduce` the target is shown immediately.
  */
 export function useCountUp(target: number, durationMs: number, enabled = true): number {
   const [value, setValue] = useState(0);
@@ -20,9 +22,14 @@ export function useCountUp(target: number, durationMs: number, enabled = true): 
   useEffect(() => {
     if (!enabled) return;
     const start = performance.now();
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
 
     function tick(now: number) {
-      const progress = Math.min((now - start) / durationMs, 1);
+      const progress = reduceMotion
+        ? 1
+        : Math.min((now - start) / durationMs, 1);
       const eased = 1 - (1 - progress) ** 4; // ease-out quartic
       setValue(target * eased);
       if (progress < 1) frameRef.current = requestAnimationFrame(tick);

@@ -1,16 +1,27 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { motion, MotionConfig } from "motion/react";
 import { cn } from "cn";
 import type { BannedChampionsStats } from "@arena/types";
 import { CategorySection } from "@/components/category-section";
 import { HextechPanel } from "@/components/hextech-panel";
 import { Dial } from "@/components/dial";
 import { DiamondTabs } from "@/components/diamond-tabs";
+import { PanelToolbar } from "@/components/panel-toolbar";
 import { DetailBand } from "@/components/detail-band";
+import { formatSignedPoints } from "@/components/delta-cell";
 import { SidebarStatRows } from "@/components/sidebar-stat-row";
+import { ValuePercentRow } from "@/components/sortable-stat-row";
 import { TIER_STYLE, tierForBanRate } from "@/lib/tier-bars";
 import { championIconUrl } from "@/lib/riot";
+import { pressable } from "@/lib/a11y";
+import { useDragScroll } from "@/hooks/use-drag-scroll";
+import { useSectionInView } from "@/hooks/use-section-in-view";
+import { useChampionName } from "@/lib/champion-names";
+import { MIN_SAMPLE, isLowSample, sortByRate } from "@/lib/sample";
+import { SortHeader } from "@/components/sort-header";
+import { SECTION_BACKGROUNDS } from "@/lib/section-backgrounds";
 
 type Props = {
   bannedChampions: BannedChampionsStats;
@@ -22,31 +33,53 @@ type Props = {
   matchesPlayed: number;
 };
 
-type BanSort = "rate" | "swing";
+/** The swing rail has no sort of its own: people click it to reach one end
+ * of the rail, which is exactly what sorting by winrate does. */
+type BanSort = "champion" | "rate" | "win";
 
+/** The direction each column sorts in when you first click it: names read
+ * A-Z, every number reads biggest-first. */
+const NATURAL_DIR: Record<BanSort, "asc" | "desc"> = {
+  champion: "asc",
+  rate: "desc",
+  win: "desc",
+};
+
+const SORT_LABEL: Record<BanSort, string> = {
+  champion: "BY NAME",
+  rate: "BY BAN RATE",
+  win: "BY WIN %",
+};
+
+/** Sorts whose leading rows are a rate over a handful of games, so low-sample
+ * rows rank last and render dimmed (see `lib/sample.ts`). */
+const RATE_SORTS: readonly BanSort[] = ["win"];
+
+/** Row geometry as real numbers (the rows' `py-1.25` around a 36px icon, and
+ * the list's `gap-0.75`): the icon layer is positioned by `index * SLOT_PITCH`
+ * rather than flowing with the rows — same split as `Damage.tsx`. */
+const ROW_HEIGHT = 46;
+const ROW_GAP = 3;
+const SLOT_PITCH = ROW_HEIGHT + ROW_GAP;
+const ICON_SIZE = 36;
+const ROW_PADDING_X = 6;
+
+/** Half-width of the swing rail, in px (the rail is 240px, baseline centered). */
 const SWING_CLAMP = 108;
-const SWING_PX_PER_POINT = 17;
+/** The rail's full-scale deflection never drops below this many percentage
+ * points, so a page of tiny swings isn't blown up to look dramatic. It used
+ * a fixed 17px per point, which pinned every swing beyond ±6.4% to the same
+ * end of the rail. */
+const MIN_SWING_SCALE_PP = 10;
 
-function formatSignedPercent(delta: number): string {
-  const sign = delta > 0 ? "+" : delta < 0 ? "−" : "±";
-  return `${sign}${Math.abs(delta).toFixed(1)}%`;
-}
-
-/** "count | pct%" sidebar value, laid out as fixed-width grid columns rather
- * than one string — right-aligning free text puts the "|" at a different x
- * position per row whenever the count/percent digit counts differ. Fixed
- * columns keep the "|" on the same vertical line across rows. */
+/** "count | pct%" sidebar value — see `ValuePercentRow`. */
 function CountPercentValue({ count, total }: { count: number; total: number }) {
-  const pct = total > 0 ? (count / total) * 100 : 0;
   return (
-    <div
-      className="grid items-baseline font-display text-[22px] text-lol-gold-50"
-      style={{ gridTemplateColumns: "48px 4px 72px" }}
-    >
-      <span className="text-left tabular-nums">{count.toLocaleString()}</span>
-      <span className="text-center text-lol-text-muted">|</span>
-      <span className="text-right tabular-nums">{pct.toFixed(1)}%</span>
-    </div>
+    <ValuePercentRow
+      value={count.toLocaleString()}
+      pct={total > 0 ? (count / total) * 100 : 0}
+      valueMinWidth="2.2em"
+    />
   );
 }
 
@@ -56,7 +89,26 @@ const BannedChampions = ({
   matchesPlayed,
 }: Props) => {
   const [sort, setSort] = useState<BanSort>("rate");
+  const [dir, setDir] = useState<"asc" | "desc">("desc");
+
+  // Clicking the column the list is already sorted by flips it; clicking any
+  // other column sorts by it in that column's natural direction.
+  function sortBy(next: BanSort) {
+    setDir((current) =>
+      next === sort ? (current === "desc" ? "asc" : "desc") : NATURAL_DIR[next],
+    );
+    setSort(next);
+  }
+
+  const isRateSort = RATE_SORTS.includes(sort);
+  const listRef = useRef<HTMLDivElement>(null);
+  useDragScroll(listRef, "y");
+  // Bars and swing rails start empty and grow in each time the slide is
+  // scrolled to; they sit at their real values otherwise, so a re-sort tweens
+  // each slot from its old champion's value to the new one's.
+  const [layersRef, grown] = useSectionInView<HTMLDivElement>();
   const champions = bannedChampions.champions;
+  const displayName = useChampionName();
 
   const baseline = matchesPlayed > 0 ? (top3Finishes / matchesPlayed) * 100 : 0;
 
@@ -73,20 +125,43 @@ const BannedChampions = ({
     [byBanRate],
   );
 
+  // Winrates from a handful of games are noise, so they rank after every
+  // champion with enough games behind the number (and render dimmed).
   const sorted = useMemo(() => {
-    if (sort === "rate") return byBanRate;
-    return [...champions].sort((a, b) => {
-      const deltaA =
-        a.winRateWhenNotBanned == null
-          ? -Infinity
-          : Math.abs(a.winRateWhenNotBanned - baseline);
-      const deltaB =
-        b.winRateWhenNotBanned == null
-          ? -Infinity
-          : Math.abs(b.winRateWhenNotBanned - baseline);
-      return deltaB - deltaA;
-    });
-  }, [champions, byBanRate, sort, baseline]);
+    if (sort === "champion") {
+      return [...champions].sort(
+        (a, b) =>
+          (dir === "asc" ? 1 : -1) *
+          displayName(a.championName).localeCompare(
+            displayName(b.championName),
+          ),
+      );
+    }
+    if (sort === "rate") {
+      return dir === "desc" ? byBanRate : [...byBanRate].reverse();
+    }
+    // Champions nobody ever got to pick have no winrate to rank on, so they
+    // sit at the end regardless of direction.
+    const withRate = champions.filter((c) => c.winRateWhenNotBanned != null);
+    const withoutRate = champions.filter((c) => c.winRateWhenNotBanned == null);
+    return [
+      ...sortByRate(
+        withRate,
+        (c) => c.winRateWhenNotBanned!,
+        (c) => c.gamesOpenAndPicked,
+        dir,
+        "after",
+      ),
+      ...withoutRate,
+    ];
+  }, [champions, byBanRate, sort, dir, displayName]);
+
+  const swingScalePp = Math.max(
+    MIN_SWING_SCALE_PP,
+    ...champions
+      .filter((c) => c.winRateWhenNotBanned != null && !isLowSample(c.gamesOpenAndPicked))
+      .map((c) => Math.ceil(Math.abs(c.winRateWhenNotBanned! - baseline))),
+  );
 
   const rows = sorted;
 
@@ -102,15 +177,16 @@ const BannedChampions = ({
     (c) => c.winRateWhenNotBanned == null,
   ).length;
 
-  const modeCaption =
-    sort === "rate" ? "SORTED · BY BAN RATE" : "SORTED · BY SWING VS BASELINE";
+  const modeCaption = `SORTED · ${SORT_LABEL[sort]}${
+    isRateSort ? ` · UNDER ${MIN_SAMPLE} GAMES DIMMED` : ""
+  }`;
+
 
   return (
     <CategorySection
       title="BANS"
       quote="More of a dog person, huh?"
-      imageUrl="/images/kda-bg.jpg"
-      nextSectionLabel="DAMAGE"
+      imageUrl={SECTION_BACKGROUNDS.bannedChampions}
       sidebar={
         <>
           <Dial
@@ -120,6 +196,7 @@ const BannedChampions = ({
           />
 
           <div className="mt-auto">
+
             <SidebarStatRows
               rows={[
                 {
@@ -127,7 +204,7 @@ const BannedChampions = ({
                   value: (
                     <CountPercentValue
                       count={bannedChampions.noBanCount}
-                      total={bannedChampions.totalBans}
+                      total={bannedChampions.totalBans + bannedChampions.noBanCount}
                     />
                   ),
                 },
@@ -147,186 +224,271 @@ const BannedChampions = ({
         </>
       }
     >
-      <HextechPanel>
-        <div className="mb-3.5 flex items-center gap-6">
+      <HextechPanel contentMinWidth={640}>
+        <PanelToolbar
+          caption={modeCaption}
+        >
           <DiamondTabs
             tabs={[
               { key: "rate", label: "MOST BANNED" },
-              { key: "swing", label: "BIGGEST SWING" },
+              { key: "win", label: "BEST WINRATE" },
             ]}
             active={sort}
-            onChange={setSort}
+            onChange={sortBy}
+            label="Sort champions by"
           />
-          <div
-            className="h-px flex-1"
-            style={{
-              background:
-                "linear-gradient(90deg, rgba(200,170,110,.28), transparent)",
-            }}
-          />
-          <div className="text-[11px] tracking-[.28em] text-lol-text-muted">
-            {modeCaption}
-          </div>
-        </div>
+        </PanelToolbar>
 
         <div
           className="grid items-center gap-4 pb-2"
           style={{
-            gridTemplateColumns: "36px 104px minmax(0,1fr) 240px 62px",
+            gridTemplateColumns: "36px 104px minmax(0,1fr) minmax(160px,240px) 62px",
             borderBottom: "1px solid rgba(200,170,110,.16)",
           }}
         >
           <div />
-          <div className="text-[9.5px] tracking-[.22em] text-[#7f7a6e]">
+          <SortHeader
+            active={sort === "champion"}
+            dir={dir}
+            onSort={() => sortBy("champion")}
+          >
             CHAMPION
-          </div>
-          <div className="text-[9.5px] tracking-[.22em] text-[#7f7a6e]">
+          </SortHeader>
+          <SortHeader
+            active={sort === "rate"}
+            dir={dir}
+            onSort={() => sortBy("rate")}
+          >
             BAN RATE
-          </div>
-          <div className="flex items-center justify-between text-[9.5px] tracking-[.18em] text-[#7f7a6e]">
-            <span className="text-lol-garnet">◀ WORSE</span>
-            <span>BASELINE</span>
-            <span className="text-lol-blue-300">BETTER ▶</span>
-          </div>
-          <div className="text-right text-[9.5px] tracking-[.22em] text-[#7f7a6e]">
+          </SortHeader>
+          <SortHeader
+            active={sort === "win"}
+            dir={dir}
+            onSort={() => sortBy("win")}
+            fill
+            caret={false}
+            className="tracking-[.18em]"
+          >
+            <span className="flex items-center justify-between">
+              <span className="text-lol-garnet">−{swingScalePp}%</span>
+              <span>YOUR {baseline.toFixed(0)}%</span>
+              <span className="text-lol-blue-300">+{swingScalePp}%</span>
+            </span>
+          </SortHeader>
+          <SortHeader
+            active={sort === "win"}
+            dir={dir}
+            onSort={() => sortBy("win")}
+            align="right"
+          >
             WIN %
-          </div>
+          </SortHeader>
         </div>
 
         <div
-          className="flex min-h-0 flex-1 flex-col justify-start gap-0.75 overflow-y-auto py-1.5 pr-1"
+          ref={listRef}
+          className="min-h-0 flex-1 overflow-y-auto py-1.5 pr-1"
           style={{
             scrollbarWidth: "thin",
             scrollbarColor: "rgba(200,170,110,.45) transparent",
           }}
         >
-          {rows.map((champion) => {
-            const tier = TIER_STYLE[tierForBanRate(champion.banRate)];
-            const isSelected = champion.championId === selectedChampionId;
-            const winRate = champion.winRateWhenNotBanned;
-            const delta = winRate == null ? null : winRate - baseline;
-            const dotLeft =
-              delta == null
-                ? 120
-                : 120 +
-                  Math.max(
-                    -SWING_CLAMP,
-                    Math.min(SWING_CLAMP, delta * SWING_PX_PER_POINT),
-                  );
-            const dotColor =
-              delta == null
-                ? "transparent"
-                : delta >= 0
-                  ? "#0ae0cf"
-                  : "var(--color-lol-garnet)";
+          {/*
+           * Two decoupled layers, as in Damage.tsx: the row layer is keyed by
+           * RANK, so a re-sort keeps each bar in place and tweens it to the
+           * new champion's value; the icon layer is keyed by championId and
+           * FLIPs each portrait to its new rank on top.
+           */}
+          <div
+            ref={layersRef}
+            className="relative flex-none"
+            style={{ height: rows.length * SLOT_PITCH - ROW_GAP }}
+          >
+            {rows.map((champion, index) => {
+              const tier = TIER_STYLE[tierForBanRate(champion.banRate)];
+              const isSelected = champion.championId === selectedChampionId;
+              const winRate = champion.winRateWhenNotBanned;
+              const delta = winRate == null ? null : winRate - baseline;
+              const dotLeft =
+                delta == null || !grown
+                  ? 120
+                  : 120 +
+                    Math.max(
+                      -SWING_CLAMP,
+                      Math.min(
+                        SWING_CLAMP,
+                        (delta / swingScalePp) * SWING_CLAMP,
+                      ),
+                    );
+              const dotColor =
+                delta == null
+                  ? "transparent"
+                  : delta >= 0
+                    ? "#0ae0cf"
+                    : "var(--color-lol-garnet)";
 
-            return (
-              <div
-                key={champion.championId}
-                onClick={() => setSelectedChampionId(champion.championId)}
-                className="grid cursor-pointer items-center gap-4 px-1.5 py-1.25 transition-colors duration-150"
-                style={{
-                  gridTemplateColumns: "36px 104px minmax(0,1fr) 240px 62px",
-                  background: isSelected
-                    ? "rgba(200,170,110,.09)"
-                    : "transparent",
-                  boxShadow: isSelected
-                    ? "inset 0 0 0 1px rgba(200,170,110,.45)"
-                    : undefined,
-                }}
-              >
-                <div className={cn("h-9 w-9 overflow-hidden")}>
-                  <img
-                    src={championIconUrl(champion.championName)}
-                    alt={champion.championName}
-                    width={36}
-                    height={36}
-                    className="h-full w-full "
-                  />
-                </div>
+              return (
+                <div
+                  key={index}
+                  {...pressable(
+                    () => setSelectedChampionId(champion.championId),
+                    {
+                      pressed: isSelected,
+                    },
+                  )}
+                  aria-label={`${displayName(champion.championName)}: banned in ${champion.banRate.toFixed(0)}% of games${
+                    winRate == null
+                      ? ""
+                      : `, winrate when open ${winRate.toFixed(0)}% over ${champion.gamesOpenAndPicked} games`
+                  }`}
+                  className={cn(
+                    "absolute inset-x-0 grid cursor-pointer items-center gap-4 px-1.5 transition-[background,opacity] duration-150",
+                    isRateSort &&
+                      isLowSample(champion.gamesOpenAndPicked) &&
+                      "opacity-45",
+                  )}
+                  style={{
+                    top: index * SLOT_PITCH,
+                    height: ROW_HEIGHT,
+                    gridTemplateColumns:
+                      "36px 104px minmax(0,1fr) minmax(160px,240px) 62px",
+                    background: isSelected
+                      ? "rgba(200,170,110,.09)"
+                      : "transparent",
+                    boxShadow: isSelected
+                      ? "inset 0 0 0 1px rgba(200,170,110,.45)"
+                      : undefined,
+                  }}
+                >
+                  {/* Icon sits in the layer above — this reserves its column. */}
+                  <div />
 
-                <div className="font-body truncate text-[16px] text-lol-gold-50">
-                  {champion.championName}
-                </div>
-
-                <div className="flex min-w-0 items-center gap-3">
-                  <div
-                    className="relative h-3 flex-1 min-w-0"
-                    style={{ background: "rgba(240,230,210,.05)" }}
-                  >
-                    <div
-                      className={cn("h-3", tier.fillClass)}
-                      style={{
-                        width: `${champion.banRate}%`,
-                        borderTop: `1px solid ${tier.edge}`,
-                        boxShadow: tier.glow,
-                      }}
-                    />
+                  <div className="font-body truncate text-[16px] text-lol-gold-50">
+                    {displayName(champion.championName)}
                   </div>
-                  <div className="w-10 flex-none font-display text-[15px] text-lol-text-secondary">
-                    {champion.banRate.toFixed(0)}%
-                  </div>
-                </div>
 
-                <div className="relative h-5.5 w-60">
-                  <div
-                    className="absolute inset-x-0"
-                    style={{
-                      top: 11,
-                      height: 1,
-                      background: "rgba(240,230,210,.07)",
-                    }}
-                  />
-                  <div
-                    className="absolute"
-                    style={{
-                      left: 120,
-                      top: 2,
-                      width: 1,
-                      height: 18,
-                      background: "rgba(200,170,110,.45)",
-                    }}
-                  />
-                  {delta != null ? (
+                  <div className="flex min-w-0 items-center gap-3">
                     <div
-                      className="absolute"
+                      className="relative h-3 flex-1 min-w-0"
+                      style={{ background: "rgba(240,230,210,.05)" }}
+                    >
+                      <div
+                        className={cn(
+                          "h-3 transition-[width] duration-500 ease-out motion-reduce:transition-none",
+                          tier.fillClass,
+                        )}
+                        style={{
+                          width: grown ? `${champion.banRate}%` : "0%",
+                          borderTop: `1px solid ${tier.edge}`,
+                          boxShadow: tier.glow,
+                        }}
+                      />
+                    </div>
+                    <div className="w-10 flex-none font-display text-[15px] text-lol-text-secondary">
+                      {champion.banRate.toFixed(0)}%
+                    </div>
+                  </div>
+
+                  <div className="relative h-5.5 w-60">
+                    <div
+                      className="absolute inset-x-0"
                       style={{
                         top: 11,
                         height: 1,
-                        left: Math.min(120, dotLeft),
-                        width: Math.abs(dotLeft - 120),
-                        background: dotColor,
+                        background: "rgba(240,230,210,.07)",
                       }}
                     />
-                  ) : null}
-                  <div
-                    className="absolute h-1.75 w-1.75 rotate-45 transition-[left] duration-250 ease-in-out"
-                    style={{
-                      left: dotLeft - 3.5,
-                      top: 8,
-                      background: dotColor,
-                      opacity: delta == null ? 0 : 1,
-                    }}
-                  />
-                </div>
+                    <div
+                      className="absolute"
+                      style={{
+                        left: 120,
+                        top: 2,
+                        width: 1,
+                        height: 18,
+                        background: "rgba(200,170,110,.45)",
+                      }}
+                    />
+                    {delta != null ? (
+                      <div
+                        className="absolute transition-[left,width] duration-500 ease-out motion-reduce:transition-none"
+                        style={{
+                          top: 11,
+                          height: 1,
+                          left: Math.min(120, dotLeft),
+                          width: Math.abs(dotLeft - 120),
+                          background: dotColor,
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      className="absolute h-1.75 w-1.75 rotate-45 transition-[left,opacity] duration-500 ease-out motion-reduce:transition-none"
+                      style={{
+                        left: dotLeft - 3.5,
+                        top: 8,
+                        background: dotColor,
+                        opacity: delta == null ? 0 : 1,
+                      }}
+                    />
+                  </div>
 
-                <div className="text-right font-display text-[16px] text-lol-text-secondary">
-                  {winRate == null ? (
-                    <span className="text-lol-text-disabled">—</span>
-                  ) : (
-                    `${winRate.toFixed(0)}%`
-                  )}
+                  <div className="text-right font-display text-[16px] text-lol-text-secondary">
+                    {winRate == null ? (
+                      <span className="text-lol-text-disabled">—</span>
+                    ) : (
+                      `${winRate.toFixed(0)}%`
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+
+            <MotionConfig
+              transition={{
+                type: "spring",
+                stiffness: 450,
+                damping: 25,
+                mass: 0.8,
+              }}
+            >
+              {rows.map((champion, index) => (
+                <motion.div
+                  key={champion.championId}
+                  layout="position"
+                  aria-hidden
+                  onClick={() => setSelectedChampionId(champion.championId)}
+                  className={cn(
+                    "absolute cursor-pointer overflow-hidden transition-opacity duration-150",
+                    // The row's dimming doesn't reach this separate layer.
+                    isRateSort &&
+                      isLowSample(champion.gamesOpenAndPicked) &&
+                      "opacity-45",
+                  )}
+                  style={{
+                    left: ROW_PADDING_X,
+                    top: index * SLOT_PITCH + (ROW_HEIGHT - ICON_SIZE) / 2,
+                    width: ICON_SIZE,
+                    height: ICON_SIZE,
+                  }}
+                >
+                  <img
+                    loading="lazy"
+                    decoding="async"
+                    src={championIconUrl(champion.championName)}
+                    alt=""
+                    width={ICON_SIZE}
+                    height={ICON_SIZE}
+                    className="h-full w-full"
+                  />
+                </motion.div>
+              ))}
+            </MotionConfig>
+          </div>
         </div>
 
-        <div className="mt-2 text-[10.5px] leading-relaxed text-lol-text-muted tracking-[.26em]">
-          <span className="text-lol-garnet">◀ WORSE THAN BASELINE</span>: : YOUR
-          WINRATE DECREASE IF OPS TAKE THE CHAMP |{" "}
-          <span className="text-lol-blue-300">BETTER THAN BASELINE ▶</span>:
-          YOUR WINRATE INCREASE IF OPS TAKE THE CHAMP
+        <div className="mt-2 text-[11px] leading-relaxed text-lol-text-muted tracking-[.26em]">
+          WIN % = YOUR WINRATE IN GAMES WHERE THE CHAMPION WAS NOT BANNED AND
+          SOMEONE PICKED IT. THE RAIL SHOWS HOW FAR THAT SITS FROM YOUR OVERALL{" "}
+          {baseline.toFixed(0)}%.
         </div>
 
         {selected ? (
@@ -334,8 +496,10 @@ const BannedChampions = ({
             icon={
               <div className="relative flex-none">
                 <img
+                  loading="lazy"
+                  decoding="async"
                   src={championIconUrl(selected.championName)}
-                  alt={selected.championName}
+                  alt=""
                   width={62}
                   height={62}
                   className="block border border-[rgba(200,170,110,.6)] object-cover"
@@ -350,7 +514,7 @@ const BannedChampions = ({
                 />
               </div>
             }
-            title={selected.championName}
+            title={displayName(selected.championName)}
             subtitle={`${selected.totalBans.toLocaleString()} BANS`}
             stats={[
               {
@@ -371,11 +535,11 @@ const BannedChampions = ({
                 nowrap: true,
               },
               {
-                label: "WIN WHEN OPEN",
+                label: "WINRATE WHEN OPEN",
                 value:
                   selected.winRateWhenNotBanned == null
                     ? "—"
-                    : `${selected.winRateWhenNotBanned.toFixed(0)}%`,
+                    : `${selected.winRateWhenNotBanned.toFixed(0)}% · ${selected.gamesOpenAndPicked}G`,
                 nowrap: true,
               },
               {
@@ -383,7 +547,7 @@ const BannedChampions = ({
                 value:
                   selected.winRateWhenNotBanned == null
                     ? "—"
-                    : formatSignedPercent(
+                    : formatSignedPoints(
                         selected.winRateWhenNotBanned - baseline,
                       ),
                 nowrap: true,

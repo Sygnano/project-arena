@@ -7,7 +7,7 @@ function RecordColumn({
 }: {
   heading: string;
   headingColor: string;
-  rows: readonly [string, number][];
+  rows: readonly [string, number | string][];
   className?: string;
   bordered?: boolean;
 }) {
@@ -19,7 +19,7 @@ function RecordColumn({
       }
     >
       <div
-        className="mb-3.5 text-[10px] tracking-[.28em]"
+        className="mb-3.5 text-[11px] tracking-[.28em]"
         style={{ color: headingColor }}
       >
         {heading}
@@ -34,7 +34,7 @@ function RecordColumn({
             {label}
           </div>
           <div className="font-display text-[21px] text-lol-gold-50">
-            {value.toLocaleString()}
+            {typeof value === "number" ? value.toLocaleString() : value}
           </div>
         </div>
       ))}

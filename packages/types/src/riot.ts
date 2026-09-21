@@ -27,6 +27,11 @@ export interface RiotArenaParticipantDto {
   puuid: string;
   riotIdGameName: string;
   riotIdTagline: string;
+  /** The player's profile icon and account level at the time of the match —
+   * what the crawler stores for summoners it discovers here, so it needs
+   * no Summoner-V4 call per player. */
+  profileIcon: number;
+  summonerLevel: number;
   /** Groups participants into their Arena team for this match. Team size
    * is derived by counting participants that share a playerSubteamId —
    * never assume a fixed number per team (confirmed via real match data:
@@ -87,6 +92,11 @@ export interface RiotArenaParticipantDto {
   spell2Casts: number;
   spell3Casts: number;
   spell4Casts: number;
+  /** Summoner spell id in each slot (Data Dragon summoner.json `key`).
+   * Arena offers only two spells, Flash (2202) and Flee (2201), and every
+   * player has both; the slot order varies, so read the id, never assume. */
+  summoner1Id: number;
+  summoner2Id: number;
   summoner1Casts: number;
   summoner2Casts: number;
   allInPings: number;
@@ -194,6 +204,9 @@ export interface RiotParticipantFrame {
   position: { x: number; y: number };
   damageStats: {
     totalDamageDoneToChampions: number;
+    physicalDamageDoneToChampions: number;
+    magicDamageDoneToChampions: number;
+    trueDamageDoneToChampions: number;
     totalDamageTaken: number;
   };
 }

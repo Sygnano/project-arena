@@ -7,6 +7,8 @@ out/
 .env.*
 !.env.example
 *.log
+# Progress file of packages/db/scripts/remap-puuids.ts.
+.puuid-remap.json
 .DS_Store
 
 # Its own separate git repo/workspace (see CLAUDE.md) — not tracked here.

@@ -8,7 +8,8 @@
     "build": "tsc",
     "start": "node --env-file=.env dist/index.js",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.scripts.json",
-    "backfill-missing-timelines": "tsx --env-file=.env scripts/backfill-missing-timelines.ts"
+    "backfill-missing-timelines": "tsx --env-file=.env scripts/backfill-missing-timelines.ts",
+    "crawl": "tsx --env-file=.env scripts/crawl.ts"
   },
   "dependencies": {
     "@arena/db": "workspace:*",

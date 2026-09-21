@@ -6,6 +6,7 @@ const DDRAGON_VERSION = "16.17.1";
 interface DataDragonChampion {
   id: string;
   key: string;
+  name: string;
 }
 
 interface DataDragonChampionList {
@@ -16,9 +17,14 @@ interface DataDragonChampionList {
 // (see CLAUDE.md §2 on caching static reference data locally). Memoized as
 // a promise so concurrent requests during a cold start share one fetch
 // instead of racing to fetch it multiple times.
-let championNamesPromise: Promise<Map<number, string>> | null = null;
+let championListPromise: Promise<DataDragonChampion[]> | null = null;
 
-async function fetchChampionNamesById(): Promise<Map<number, string>> {
+function getChampionList(): Promise<DataDragonChampion[]> {
+  championListPromise ??= fetchChampionList();
+  return championListPromise;
+}
+
+async function fetchChampionList(): Promise<DataDragonChampion[]> {
   const res = await fetch(
     `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/data/en_US/champion.json`,
   );
@@ -26,8 +32,12 @@ async function fetchChampionNamesById(): Promise<Map<number, string>> {
     throw new Error(`Failed to fetch Data Dragon champion list: ${res.status}`);
   }
   const json = (await res.json()) as DataDragonChampionList;
+  return Object.values(json.data);
+}
+
+async function buildChampionNamesById(): Promise<Map<number, string>> {
   const byId = new Map<number, string>();
-  for (const champion of Object.values(json.data)) {
+  for (const champion of await getChampionList()) {
     // Data Dragon's `id` (e.g. "MonkeyKing") is the same PascalCase name
     // Riot's Match-V5 API puts in match_participants.championName — this is
     // what apps/web's championIconUrl() expects, not the display `name`
@@ -43,8 +53,22 @@ async function fetchChampionNamesById(): Promise<Map<number, string>> {
  * banned in 100% of matches, for instance, can by definition never appear
  * there). */
 function getChampionNamesById(): Promise<Map<number, string>> {
-  championNamesPromise ??= fetchChampionNamesById();
-  return championNamesPromise;
+  return buildChampionNamesById();
 }
 
-export { getChampionNamesById };
+/**
+ * Lowercased Riot champion key -> display name (e.g. "monkeyking" ->
+ * "Wukong", "ksante" -> "K'Sante"). match_participants.championName is the
+ * key, which is right for asset URLs but wrong to show a person. Lowercased
+ * because Riot's match data and Data Dragon disagree on casing for at least
+ * one champion ("FiddleSticks" vs "Fiddlesticks").
+ */
+async function getChampionDisplayNames(): Promise<Record<string, string>> {
+  const names: Record<string, string> = {};
+  for (const champion of await getChampionList()) {
+    names[champion.id.toLowerCase()] = champion.name;
+  }
+  return names;
+}
+
+export { getChampionNamesById, getChampionDisplayNames };

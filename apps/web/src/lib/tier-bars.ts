@@ -6,8 +6,7 @@
  * Picks, Banned Champions, and Placement all needed the identical
  * `{fillClass, edge, glow}` triples — see
  * design_handoff_arena_panels/README.md, "The tier-fill system (apply
- * app-wide)". KDA's and TeamSlot's own local tables are left as-is (already
- * shipped, byte-identical values) rather than migrated onto this.
+ * app-wide)".
  */
 export type Tier = "prismatic" | "gold" | "silver";
 
@@ -60,8 +59,8 @@ export function tierForBanRate(banRate: number): Tier {
 /** Representative flat swatches per tier — a stand-in for the full animated
  * `.tier-bar-*` gradients (see the doc comment above `TIER_STYLE`) for
  * callers that need interpolatable colors rather than a CSS background,
- * e.g. TimePlayed's activity calendar, which recolors every day cell
- * continuously rather than in three fixed bands. Picked from the same
+ * e.g. ranked charts that recolor continuously rather than in three
+ * fixed bands. Picked from the same
  * source values `.tier-bar-*` itself is built from in globals.css
  * (`--color-augment-silver`, `--color-lol-gold-400`,
  * `--color-augment-prismatic(-pink)`). `prismaticPink` is only an
@@ -87,9 +86,8 @@ function lerpRgb(
 }
 
 /** Interpolates silver (t=0) -> gold (t=0.5) -> prismatic (t=1), clamping
- * `t` to `[0,1]` first. Used by TimePlayed's activity calendar to give every
- * day cell a continuous color along the app's rarity-tier palette instead of
- * a hardcoded 3-band scale.
+ * `t` to `[0,1]` first. Gives ranked rows a continuous color along the app's
+ * rarity-tier palette instead of a hardcoded 3-band scale.
  *
  * The top half routes through `prismaticPink` (t=0.75) as an extra stop
  * rather than lerping gold straight to prismatic-violet in one hop. Two
@@ -124,21 +122,31 @@ export function tierGradient(t: number): string {
   );
 }
 
-/** Maps a day's games-played count to a `tierGradient` position — silver
- * starting at 1 game, gold at 5, prismatic from 10+. */
-export function gamesTierPosition(games: number): number {
-  if (games <= 1) return 0;
-  if (games >= 10) return 1;
-  if (games <= 5) return ((games - 1) / (5 - 1)) * 0.5;
-  return 0.5 + ((games - 5) / (10 - 5)) * 0.5;
+/** A calendar day's tier by games played: 1+ -> Silver, 3+ -> Gold,
+ * 5+ -> Prismatic. Flat bands on purpose (no gradient between them). */
+export function tierForDayGames(games: number): Tier | null {
+  if (games >= 5) return "prismatic";
+  if (games >= 3) return "gold";
+  if (games >= 1) return "silver";
+  return null;
 }
 
-/** Maps a day's average placement to a `tierGradient` position — inverted,
- * since a LOWER placement is better: prismatic at an average of 1st, gold at
- * 3rd, silver from 6th (worst) down. */
-export function placementTierPosition(avgPlacement: number): number {
-  if (avgPlacement <= 1) return 1;
-  if (avgPlacement >= 6) return 0;
-  if (avgPlacement <= 3) return 1 - ((avgPlacement - 1) / (3 - 1)) * 0.5;
-  return 0.5 - ((avgPlacement - 3) / (6 - 3)) * 0.5;
+/** A calendar day's tier by its best finish: played -> Silver, a win (top 3)
+ * -> Gold, a 1st place -> Prismatic. */
+export function tierForDayBestPlacement(bestPlacement: number): Tier {
+  if (bestPlacement <= 1) return "prismatic";
+  if (bestPlacement <= 3) return "gold";
+  return "silver";
+}
+
+/** A card/ring tier by BEST FINISH: 1st place -> Prismatic, top 3 -> Gold,
+ * played without a top 3 -> Silver, never played -> `null`. Shared by every
+ * hall-of-fame grid and framed card so a ring means the same thing everywhere. */
+export function tierForBestFinish(
+  outcome: { top1: number; top3ExclTop1: number } | undefined,
+): Tier | null {
+  if (!outcome) return null;
+  if (outcome.top1 > 0) return "prismatic";
+  if (outcome.top3ExclTop1 > 0) return "gold";
+  return "silver";
 }

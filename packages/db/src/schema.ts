@@ -23,8 +23,10 @@ const bytea = customType<{ data: Buffer }>({
 });
 
 /**
- * A tracked Riot account. "Tracked" means the ingestion worker polls this
- * summoner's Arena match history — it is not a public lookup index.
+ * A Riot account we know about: looked up from the web app, or discovered
+ * by the crawler (`apps/api/scripts/crawl.ts`) as a participant in an
+ * ingested match. The crawler refreshes whoever has the oldest
+ * `lastRefreshedAt` (never-refreshed rows first).
  */
 export const summoners = pgTable("summoners", {
   puuid: text("puuid").primaryKey(),
@@ -33,8 +35,14 @@ export const summoners = pgTable("summoners", {
   region: text("region").notNull(),
   profileIconId: integer("profile_icon_id"),
   summonerLevel: integer("summoner_level"),
-  trackedSince: timestamp("tracked_since", { withTimezone: true }).notNull().defaultNow(),
-});
+  /** When ingestion last finished pulling this summoner's matches from Riot.
+   * Null until the first refresh completes, which is the state of every
+   * summoner the crawler discovers. */
+  lastRefreshedAt: timestamp("last_refreshed_at", { withTimezone: true }),
+}, (table) => [
+  // The crawler's "who's next" lookup: oldest refresh first, nulls first.
+  index("summoners_last_refreshed_at_idx").on(table.lastRefreshedAt.asc().nullsFirst()),
+]);
 
 /**
  * One Arena match. `raw` keeps the full Riot Match-V5 payload so the parser
@@ -53,10 +61,7 @@ export const summoners = pgTable("summoners", {
 export const matches = pgTable("matches", {
   matchId: text("match_id").primaryKey(),
   region: text("region").notNull(),
-  queueId: integer("queue_id").notNull(),
   gameCreation: timestamp("game_creation", { withTimezone: true }).notNull(),
-  gameDuration: integer("game_duration_seconds").notNull(),
-  patch: text("patch"),
   raw: bytea("raw").notNull(),
   // Raw Match-V5 timeline payload (frame-by-frame events: item purchases,
   // wards, kills, ...) — not parsed into structured columns yet, kept as-is
@@ -68,7 +73,6 @@ export const matches = pgTable("matches", {
   // not attributable to a specific team or player, hence living here on
   // `matches` rather than duplicated across every match_participants row).
   bannedChampionIds: integer("banned_champion_ids").array(),
-  ingestedAt: timestamp("ingested_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 /**
@@ -95,7 +99,6 @@ export const matchParticipants = pgTable(
     placement: smallint("placement").notNull(),
     championId: integer("champion_id").notNull(),
     championName: text("champion_name").notNull(),
-    champLevel: integer("champ_level").notNull(),
     // Arena augment IDs selected, in pick order. Stored as jsonb rather
     // than a fixed-width set of columns since Riot has changed how many
     // augments a player can hold before (currently 4).
@@ -106,7 +109,6 @@ export const matchParticipants = pgTable(
     assists: integer("assists").notNull(),
     goldEarned: integer("gold_earned").notNull(),
     damageDealtToChampions: integer("damage_dealt_to_champions").notNull(),
-    win: boolean("win").notNull(),
 
     // --- Everything below is nullable: added after the columns above, so
     // matches ingested before this was added won't have values. All are
@@ -144,13 +146,18 @@ export const matchParticipants = pgTable(
     /** Fist-bump interactions participated in (challenges.fistBumpParticipation). */
     fistBumps: integer("fist_bumps"),
 
-    // Ability casts: Q/W/E/R + both summoner spells.
+    // Ability casts: Q/W/E/R + both summoner spells. Which spell sits in
+    // each summoner slot is `summonerSpell1Id`/`summonerSpell2Id` below —
+    // the order varies between players, so pair a slot's casts with its id.
     qCasts: integer("q_casts"),
     wCasts: integer("w_casts"),
     eCasts: integer("e_casts"),
     rCasts: integer("r_casts"),
     summonerSpell1Casts: integer("summoner_spell_1_casts"),
     summonerSpell2Casts: integer("summoner_spell_2_casts"),
+    /** Data Dragon summoner spell id (summoner.json `key`) in each slot. */
+    summonerSpell1Id: integer("summoner_spell_1_id"),
+    summonerSpell2Id: integer("summoner_spell_2_id"),
 
     // All 13 ping types as one object rather than 13 columns — these are
     // informational/fun stats, never filtered/sorted on individually.
@@ -183,15 +190,29 @@ export const matchParticipants = pgTable(
     /** Item 220007 ("Prismatic Item" anvil). */
     prismaticAnvilsBought: integer("prismatic_anvils_bought"),
 
-    totalTimeSpentDead: integer("total_time_spent_dead"),
+    // Boots bought/sold over the course of the match, in purchase/sale
+    // order — derived from `timeline` ITEM_PURCHASED/ITEM_SOLD events
+    // (undo-corrected, see parseMatch.ts's `bootTransactions`), NOT from
+    // `items` above. End-of-match inventory can't answer "did they buy
+    // boots" at all: Arena players routinely sell their boots later in the
+    // match, so a pair bought and sold leaves no trace in `items`.
+    // Stored as id arrays rather than counts so the per-boot breakdown
+    // (which pair, how often) is recoverable, same reasoning as `augments`.
+    // Both null for matches ingested before timelines were fetched.
+    bootsBought: jsonb("boots_bought").$type<number[]>(),
+    bootsSold: jsonb("boots_sold").$type<number[]>(),
+    // Every item id bought during the match (timeline ITEM_PURCHASED, undos
+    // removed, sales NOT subtracted) — the "did they ever buy X" source that
+    // end-of-match `items` can't be, since Arena players sell mid-match.
+    // Null for matches ingested before timelines were fetched.
+    purchasedItemIds: jsonb("purchased_item_ids").$type<number[]>(),
+
     damageSelfMitigated: integer("damage_self_mitigated"),
     doubleKills: integer("double_kills"),
     tripleKills: integer("triple_kills"),
     quadraKills: integer("quadra_kills"),
     pentaKills: integer("penta_kills"),
-    killingSprees: integer("killing_sprees"),
     largestKillingSpree: integer("largest_killing_spree"),
-    largestMultiKill: integer("largest_multi_kill"),
     firstBloodKill: boolean("first_blood_kill"),
     firstBloodAssist: boolean("first_blood_assist"),
     itemsPurchased: integer("items_purchased"),
@@ -202,27 +223,14 @@ export const matchParticipants = pgTable(
     flawlessAces: integer("flawless_aces"),
     saveAllyFromDeath: integer("save_ally_from_death"),
 
-    /** One entry per timeline frame (~1/minute) for this participant —
-     * gold/xp/level/position/damage over time, for match-detail graphs
-     * (gold/damage curves, a death/fight heatmap). Deliberately NOT the
-     * full Riot participantFrame (no championStats — that's build-order/
-     * replay-tool data): measured at ~2.5KB JSON / participant / match,
-     * ~3MB total across the whole current dataset, so plain jsonb rather
-     * than brotli bytea like raw/timeline — not worth the complexity at
-     * this size. Null for matches ingested before timelines were fetched. */
-    frames: jsonb("frames").$type<
-      Array<{
-        /** ms since game start */
-        t: number;
-        gold: number;
-        xp: number;
-        level: number;
-        x: number;
-        y: number;
-        dmgToChamps: number;
-        dmgTaken: number;
-      }>
-    >(),
+    /** One `[t, physical, magical, true]` tuple per timeline frame
+     * (~1/minute): ms since game start, then cumulative damage to champions
+     * by type. Feeds the damage curve, which is the only reader. Tuples,
+     * not objects, and only these four fields: see TRIMMED_DATA.md for what
+     * was dropped (gold/xp/level/position/damage taken) and how to recover
+     * it from `matches.timeline`. Null for matches ingested before
+     * timelines were fetched. */
+    frames: jsonb("frames").$type<Array<[t: number, physical: number, magical: number, trueDamage: number]>>(),
   },
   (table) => [
     primaryKey({ columns: [table.matchId, table.puuid] }),
@@ -231,6 +239,27 @@ export const matchParticipants = pgTable(
     // per-summoner stats aggregate filters on.
     index("match_participants_puuid_idx").on(table.puuid),
   ],
+);
+
+/**
+ * One duel inside an Arena round: two teams fought and `winnerTeamId`'s
+ * team survived. Derived from timeline CHAMPION_KILL events by
+ * `parseRounds()` (see its comment for the method and its measured error
+ * rate) — Riot sends no per-round data. `roundNumber` is the round's
+ * position among rounds that had kills, starting at 1. Matches without a
+ * stored timeline have no rows here.
+ */
+export const matchRounds = pgTable(
+  "match_rounds",
+  {
+    matchId: text("match_id")
+      .notNull()
+      .references(() => matches.matchId, { onDelete: "cascade" }),
+    roundNumber: smallint("round_number").notNull(),
+    winnerTeamId: integer("winner_team_id").notNull(),
+    loserTeamId: integer("loser_team_id").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.matchId, table.roundNumber, table.winnerTeamId] })],
 );
 
 export type Summoner = typeof summoners.$inferSelect;

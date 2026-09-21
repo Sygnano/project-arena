@@ -2,6 +2,14 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Summoner-page layout modes. `deck` is the full-viewport, scroll-snapped,
+   fixed-composition slide layout the sections were designed for; it needs a
+   wide AND tall viewport (a sidebar slide's content measures ~860px tall).
+   Anything smaller gets `flow`: sections grow to their content and scroll
+   normally instead of clipping it behind overflow-hidden. */
+@custom-variant deck (@media (min-width: 1280px) and (min-height: 860px));
+@custom-variant flow (@media not all and (min-width: 1280px) and (min-height: 860px));
+
 /* ═══════════════════════════════════════════════════
    LoL / Hextech design tokens — ported from
    ../../project-arena/src/index.css
@@ -337,10 +345,132 @@
 .kda-rise {
   animation: kda-rise 6s ease-in-out infinite;
 }
+/* Hall of Fame grid cells (AugmentHallOfFame) replaying in when a filter tab
+ * swaps the roster, in a diagonal wave set by `--hof-delay`. Animates
+ * `transform` while the hover zoom uses Tailwind's separate `scale`
+ * property, and fills only `backwards`, so the hover zoom still works. */
+@keyframes hof-cell-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.7);
+  }
+}
+.hof-cell-in {
+  animation: hof-cell-in 460ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  animation-delay: var(--hof-delay, 0ms);
+}
 @media (prefers-reduced-motion: reduce) {
+  .hof-cell-in {
+    animation: none;
+  }
+}
+/* Welcome card's medallion (apps/web/src/modules/Welcome.tsx) reuses the
+ * same `dial-spin`/`dial-breathe`/`kda-rise` keyframes above at the design's
+ * own slower durations, rather than redefining identical `rotate(360deg)`/
+ * opacity-pulse/rise keyframes under new names. */
+.welcome-spin-slow {
+  animation: dial-spin 64s linear infinite;
+}
+.welcome-spin-reverse {
+  animation: dial-spin 44s linear infinite reverse;
+}
+.welcome-breathe-glow {
+  animation: dial-breathe 7s ease-in-out infinite;
+}
+.welcome-rise {
+  animation: kda-rise 2.6s ease-in-out infinite;
+}
+/* Splash page and queue screen entrance: a one-shot fade + lift, staggered
+ * per element through an inline animation-delay. */
+@keyframes splash-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+.splash-rise {
+  animation: splash-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .splash-rise,
   .dial-spin,
   .dial-breathe,
-  .kda-rise {
+  .kda-rise,
+  .welcome-spin-slow,
+  .welcome-spin-reverse,
+  .welcome-breathe-glow,
+  .welcome-rise {
+    animation: none;
+  }
+}
+
+/* The hover treatment on a gallery card (modules/ChampionGallery/
+ * ChampionCard.tsx) — the champion's name stays hidden until the card is
+ * hovered, then fades in, lifts and picks up a gold bloom. Driven by CSS on
+ * the card's own hover rather than React state, so hovering never re-renders
+ * a 60+ card list mid-scroll; `.coverflow-card` is the wrapper the gallery
+ * puts around every card.
+ *
+ * `transform-origin: bottom center` keeps the name anchored to the card's
+ * bottom edge as it scales, so it grows upward into the art instead of
+ * pushing down through the frame. */
+.coverflow-card .champion-card-name {
+  opacity: 0;
+  transform: translateY(4px);
+  transform-origin: bottom center;
+  transition:
+    opacity 200ms ease-out,
+    transform 200ms cubic-bezier(0.2, 0.8, 0.3, 1),
+    text-shadow 200ms ease-out,
+    color 200ms ease-out;
+}
+.coverflow-card:hover .champion-card-name {
+  opacity: 1;
+  transform: translateY(-6px) scale(1.12);
+  color: #f5ead6;
+  text-shadow:
+    0 0 20px rgba(200, 170, 110, 0.85),
+    0 2px 10px rgba(0, 0, 0, 0.95);
+}
+@media (prefers-reduced-motion: reduce) {
+  .coverflow-card .champion-card-name,
+  .coverflow-card:hover .champion-card-name {
+    transform: none;
+  }
+}
+
+/* The activity calendar (modules/TimePlayed/Calendar.tsx) recolors every day
+ * cell when switching between the Games/Placement tabs — same `rect` nodes
+ * (nivo's TimeRange fork keys them by date, unaffected by mode), just a new
+ * `fill`. Without this the colors snap instantly; nivo doesn't animate its
+ * own SVG attribute changes. */
+.calendar-time-range rect {
+  transition: fill 300ms ease-out;
+  /* The staggered entrance in modules/TimePlayed/Calendar.tsx scales each day
+   * cell up; without these an SVG transform would scale it about the SVG's
+   * own origin and fling the cell across the grid. */
+  transform-box: fill-box;
+  transform-origin: center;
+}
+/* Prismatic days (fill points at Calendar.tsx's animated gradient) glow
+ * with the same violet halo as the Prismatic tier bars, gently pulsing. */
+.calendar-time-range rect[style*="calendar-prismatic-fill"] {
+  filter: drop-shadow(0 0 6px rgba(185, 138, 221, 0.55));
+  animation: calendar-prismatic-glow 3s ease-in-out infinite alternate;
+}
+@keyframes calendar-prismatic-glow {
+  from {
+    filter: drop-shadow(0 0 4px rgba(185, 138, 221, 0.4));
+  }
+  to {
+    filter: drop-shadow(0 0 10px rgba(185, 138, 221, 0.7));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .calendar-time-range rect {
+    transition: none;
+  }
+  .calendar-time-range rect[style*="calendar-prismatic-fill"] {
     animation: none;
   }
 }
@@ -375,65 +505,80 @@
 }
 
 /* Hextech bar-chart tier fills (components/hextech-bar-chart.tsx, via
- * `BarSegment.fillClassName`) — a rarity-tier bar/segment gets a genuine
- * Hextech Prismatic/Gold/Silver identity instead of a plain cyan fill,
- * reusing the exact same gradient tokens and animated-sheen technique as the
- * augment-rarity borders above, just as a full bar FILL rather than a
- * border-box-clipped ring. First built for KDA's top-3 bars (one tier per
- * whole bar); TeamSlot's stacked bars reuse the same three classes per
- * segment instead. Gold/Silver are the same 2-layer "static metal ramp +
- * animated sheen band" as `.augment-frame-{gold,silver}`; Prismatic doesn't
- * need a separate sheen layer since the gradient's own color cycle already
- * reads as shimmer (same reasoning as `.augment-frame-prismatic`) — its
- * `repeat-x`/`background-size: 100% 100%`/`-100% 0` shift is copied
- * verbatim from that rule since it's the only combination already verified
- * to tile this gradient seamlessly. */
+ * `BarSegment.fillClassName`, plus the small split bars elsewhere).
+ * Deliberately calmer than the augment-rarity frames above, which they used
+ * to copy verbatim: a bar is a big flat area, and stacked bars put three of
+ * them edge to edge. The old version restarted a light-to-dark metal ramp in
+ * every slice (hard light/dark seams between segments), ran an independent
+ * diagonal sheen per slice (out of phase with its neighbours) and a
+ * full-saturation rainbow — too many shades at once. Now each tier is one
+ * soft top-lit tone, the same gentle shading layer on all three so a stack
+ * reads as one solid, and a 1px inset highlight/shadow marks slice
+ * boundaries instead of a gradient restart. Prismatic keeps its iridescence
+ * but muted and slowly drifting; the glow is applied once per whole bar by
+ * the chart, not here. */
+.tier-bar-prismatic,
+.tier-bar-gold,
+.tier-bar-silver {
+  --tier-bar-shade: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0) 40%,
+    rgba(0, 0, 0, 0.12) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.22);
+}
 .tier-bar-prismatic {
-  background-image: var(--gradient-augment-prismatic);
-  background-repeat: repeat-x;
-  background-size: 100% 100%;
-  animation: tier-bar-prismatic-shift 6s linear infinite;
+  background-color: #c9a9e4;
+  /* One oversized, NON-repeating diagonal tile that pans corner to corner and
+   * back. A repeating tile can't be slanted without a seam (a tilted
+   * gradient's tile edges never match up), but a single tile 4x the bar's
+   * size always covers it fully, so no tile edge is ever on screen. */
+  background-image:
+    var(--tier-bar-shade),
+    linear-gradient(
+      135deg,
+      #d9a3cf 0%,
+      #b99be0 20%,
+      #9fbde8 40%,
+      #a3d6c6 60%,
+      #b99be0 80%,
+      #d9a3cf 100%
+    );
+  background-repeat: no-repeat;
+  background-size:
+    100% 100%,
+    400% 400%;
+  animation: tier-bar-prismatic-shift 10s ease-in-out infinite alternate;
 }
 .tier-bar-gold {
+  background-color: #c4974a;
   background-image:
-    var(--gradient-augment-sheen-gold), var(--gradient-hextech-gold);
-  background-repeat: repeat, no-repeat;
-  background-size:
-    100% 100%,
-    100% 100%;
-  background-position:
-    0 0,
-    0 0;
-  animation: tier-bar-sheen-sweep 5s linear infinite;
+    var(--tier-bar-shade),
+    linear-gradient(180deg, #d4ab62 0%, #bb8c40 100%);
 }
 .tier-bar-silver {
+  background-color: #b4bfc3;
   background-image:
-    var(--gradient-augment-sheen-silver), var(--gradient-augment-silver);
-  background-repeat: repeat, no-repeat;
-  background-size:
-    100% 100%,
-    100% 100%;
-  background-position:
-    0 0,
-    0 0;
-  animation: tier-bar-sheen-sweep 5s linear infinite;
+    var(--tier-bar-shade),
+    linear-gradient(180deg, #cdd5d8 0%, #a5b0b5 100%);
 }
 @keyframes tier-bar-prismatic-shift {
-  to {
-    background-position: -100% 0;
+  from {
+    background-position:
+      0 0,
+      0% 0%;
   }
-}
-@keyframes tier-bar-sheen-sweep {
   to {
     background-position:
-      -100% 0,
-      0 0;
+      0 0,
+      100% 100%;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tier-bar-prismatic,
-  .tier-bar-gold,
-  .tier-bar-silver {
+  .tier-bar-prismatic {
     animation: none;
   }
 }
@@ -493,6 +638,13 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+  /* One keyboard focus style for every interactive element on the page —
+     a gold Hextech ring, only for keyboard (focus-visible) focus. */
+  :focus-visible {
+    outline: 1px solid var(--color-lol-gold-300);
+    outline-offset: 3px;
+    box-shadow: 0 0 0 4px rgba(200, 170, 110, 0.18);
   }
   body {
     @apply bg-background text-foreground;
@@ -613,4 +765,65 @@
   .debug {
     @apply border-2 border-red-500;
   }
+}
+
+/* Horizontal scrollers contain only their own axis: `contain` on both axes
+   would swallow the vertical wheel and stop the page changing sections.
+   Vertical lists get no containment at all — `useWheelScrollsSideways`
+   hands the wheel to the page at their end, on the next gesture. */
+.scroll-contain-x {
+  overscroll-behavior-x: contain;
+}
+
+/* Click-and-drag-to-scroll affordance, applied by `useDragScroll` only once
+   its container actually overflows on the axis it drags. */
+.drag-scrollable {
+  cursor: grab;
+}
+.drag-scrollable.is-drag-scrolling {
+  cursor: grabbing;
+  user-select: none;
+}
+
+/* Visually hidden but still read by screen readers. */
+.sr-only-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Sidebar dials keep their designed ring size (they used to be squashed into
+   ovals by the flex column), and shrink as a whole on short deck viewports so
+   a five-row sidebar still fits above the next-section cue. */
+@media (min-width: 1280px) and (min-height: 860px) and (max-height: 999px) {
+  .dial-fit {
+    zoom: 0.74;
+  }
+  .sidebar-stat-row {
+    padding-block: 8px;
+  }
+}
+
+/* Offscreen sections (see hooks/use-page-upkeep.ts) pause their decorative
+   CSS animations; failed remote images are hidden rather than showing a
+   broken-image glyph. Headings focused by section navigation get no ring:
+   the scroll itself shows where focus went. */
+section[data-offscreen] *,
+section[data-offscreen] *::before,
+section[data-offscreen] *::after {
+  animation-play-state: paused !important;
+}
+img[data-broken] {
+  visibility: hidden;
+}
+h1[tabindex="-1"]:focus,
+h2[tabindex="-1"]:focus {
+  outline: none;
+  box-shadow: none;
 }

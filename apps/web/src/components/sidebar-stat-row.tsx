@@ -54,7 +54,7 @@ function SidebarStatRow({
   const classes = SIZE_CLASSES[size];
   return (
     <div
-      className={cn("flex items-center", classes.row)}
+      className={cn("sidebar-stat-row flex items-center", classes.row)}
       style={{
         borderTop: "1px solid rgba(200,170,110,.14)",
         borderBottom: last ? "1px solid rgba(200,170,110,.14)" : undefined,

@@ -18,10 +18,8 @@ interface AnimatedNumberProps {
 }
 
 /**
- * Just the typography — a number that counts up to `value`, nothing else.
- * `AnimatedStat` composes this into a titled card; use this one directly
- * for an animated number anywhere outside that card shape (inline in text,
- * a custom layout, etc).
+ * Just the typography — a number that counts up to `value` once it scrolls
+ * into view, nothing else.
  */
 export function AnimatedNumber({
   value,

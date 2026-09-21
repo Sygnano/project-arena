@@ -147,8 +147,34 @@ function CarouselContent({ className, ...props }: React.ComponentProps<"div">) {
       // flex-grow), it otherwise resolves its width via a circular
       // content-based calculation through CarouselItem's basis-full slide,
       // landing on an arbitrary, too-small width instead of the parent's
-      // actual available width. w-full forces it to fill that space.
-      className="w-full overflow-hidden"
+      // actual available width. w-full forces it to fill that space. h-full
+      // does the same on the cross axis, for a consumer (Guest of Honor)
+      // whose slides need to stretch to the carousel's actual height rather
+      // than stay content-sized.
+      //
+      // Only the scroll axis needs clipping — that's what hides the
+      // off-screen slides embla lines up side by side (or stacked, for a
+      // vertical carousel). Clipping the cross axis too was clipping Guest
+      // of Honor's champion dial: it sits flush against the top of its
+      // slide with no margin to spare, so on a tight viewport its ring
+      // chrome (rendered exactly at its own box edge, see `IdentityRing`)
+      // had no room to round-trip through subpixel layout without a sliver
+      // getting cropped. The cross axis has nothing else stacked along it to
+      // hide, so leaving it visible costs nothing — done via `clip-path`
+      // rather than `overflow-x-hidden overflow-y-visible`, because the CSS
+      // overflow spec computes a `visible` value on one axis as `auto`
+      // instead whenever the other axis isn't `visible` too, which would
+      // silently turn this right back into a (scrollbar-less but still
+      // clipping) scroll container instead of true unclipped overflow.
+      // `clip-path` isn't part of that spec rule, so it clips one axis
+      // without touching the other at all.
+      className="h-full w-full overflow-visible"
+      style={{
+        clipPath:
+          orientation === "horizontal"
+            ? "inset(-10000px 0)"
+            : "inset(0 -10000px)",
+      }}
       data-slot="carousel-content"
     >
       <div

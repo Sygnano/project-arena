@@ -19,6 +19,8 @@ type Props = {
   title: ReactNode;
   /** Secondary text below the title (e.g. "12 GAMES"). */
   subtitle?: string;
+  /** Link or button under the subtitle (e.g. a `DossierLink`). */
+  action?: ReactNode;
   /** Stat cells displayed to the right. */
   stats: Stat[];
   /** Grid column template for the stats row — override when the default
@@ -75,15 +77,15 @@ function StatCell({
  * stat cells on the right. Used below charts (KDA's champion detail,
  * champion stats, etc.) to show a summary for the selected item.
  */
-function DetailBand({ icon, title, subtitle, stats, statsGrid }: Props) {
+function DetailBand({ icon, title, subtitle, action, stats, statsGrid }: Props) {
   return (
-    <div
-      className="mt-2 grid items-center gap-6.5 pt-4.5"
-      style={{
-        borderTop: "1px solid rgba(200,170,110,.28)",
-        gridTemplateColumns: "240px minmax(0,1fr)",
-      }}
-    >
+    // Laid out by the PANEL's width (a container query), not the viewport's:
+    // the same band sits in panels from ~500px to ~1300px wide. Below 64rem
+    // the identity block stacks over the stats and the stat cells wrap; at
+    // 64rem and up they sit side by side in fixed columns. A viewport
+    // breakpoint here let 7 stat cells overlap in a 1366px-wide window.
+    <div className="@container mt-2 pt-4.5" style={{ borderTop: "1px solid rgba(200,170,110,.28)" }}>
+    <div className="grid items-center gap-x-6.5 gap-y-3 @5xl:grid-cols-[240px_minmax(0,1fr)]">
       <div className="flex min-w-0 items-center gap-4">
         {icon}
         <div className="min-w-0">
@@ -91,15 +93,16 @@ function DetailBand({ icon, title, subtitle, stats, statsGrid }: Props) {
             {title}
           </div>
           {subtitle ? (
-            <div className="mt-1 text-xs tracking-[.22em] text-[#7f7a6e]">
+            <div className="mt-1 text-xs tracking-[.22em] text-[#a09b8c]">
               {subtitle}
             </div>
           ) : null}
+          {action ? <div className="mt-1.5">{action}</div> : null}
         </div>
       </div>
 
       <div
-        className="grid"
+        className="flex flex-wrap gap-y-3 @5xl:grid"
         style={{
           gridTemplateColumns:
             statsGrid ?? `repeat(${stats.length},minmax(0,1fr))`,
@@ -116,6 +119,7 @@ function DetailBand({ icon, title, subtitle, stats, statsGrid }: Props) {
           />
         ))}
       </div>
+    </div>
     </div>
   );
 }
