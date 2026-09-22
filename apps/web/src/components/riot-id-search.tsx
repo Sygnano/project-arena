@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { cn } from "cn";
 import { lookupSummoner } from "@/app/actions";
+import { formatRetryAfter } from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DEFAULT_SEARCH_PLATFORM, platformRegionName, SEARCH_PLATFORMS } from "@/lib/riot";
 import { gameNameError, sanitizeTagLine, summonerPath, tagLineError } from "@/lib/riot-id";
@@ -113,7 +114,9 @@ function RiotIdSearch({ variant, autoFocus, onNavigate, className }: Props) {
             ? `No summoner ${gameName.trim()}#${tagLine.trim()} on ${platformLabel(platform)}. Check the spelling and the server.`
             : result.error === "invalid"
               ? "That isn't a valid Riot ID."
-              : "The stats service isn't answering. Try again in a moment.",
+              : result.error === "rate_limited"
+                ? `Too many searches from your connection. Try again ${formatRetryAfter(result.retryAfterSeconds)}.`
+                : "The stats service isn't answering. Try again in a moment.",
         );
         return;
       }

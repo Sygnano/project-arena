@@ -71,6 +71,7 @@ import { buildSummonerSpellStats } from "../stats/summonerSpells.js";
 import { buildDamageCurveStats, type DamageCurveGameRow } from "../stats/damageCurves.js";
 import { isSupportedRegion, riot, RiotApiError } from "../riot/index.js";
 import { refreshQueue } from "../ingestion/index.js";
+import { clientIp, SlidingWindowLimiter } from "../rateLimit.js";
 
 // Caps `TeamSynergyStats.champions`/`.matrix` to this many individually-named
 // arcs — a friend group's tracked history can span far more distinct
@@ -99,6 +100,17 @@ const RECENT_PLACEMENTS_COUNT = 10;
 // before the recap shows.
 const REFRESH_STALE_MS = 15 * 60_000;
 
+// Lookups (every search, refresh and "fetch matches" press) per visitor IP.
+// Generous for a person typing, tight for a script: an unknown Riot ID
+// costs two Riot calls.
+const lookupLimiter = new SlidingWindowLimiter(30, 10 * 60_000);
+// First fetches (a never-fetched summoner's whole history, ~2.4s a match
+// on a dev key) per visitor IP: the expensive thing to abuse.
+const firstFetchLimiter = new SlidingWindowLimiter(5, 60 * 60_000);
+// New first fetches are refused while this many jobs already wait, so a
+// flood can't push the friend group's refreshes back by hours.
+const MAX_WAITING_JOBS = 10;
+
 // Riot ID rules: a 3-16 character game name (any letters, digits, spaces)
 // and a 3-5 character alphanumeric tag line. Counted in code points, since
 // names can use non-Latin scripts. Mirrored in apps/web/src/lib/riot-id.ts.
@@ -115,12 +127,11 @@ const lookupSchema = z.object({
     .string()
     .trim()
     .regex(/^[\p{L}\p{N}]{3,5}$/u),
-});
-
-const addSummonerSchema = z.object({
-  gameName: z.string().min(1),
-  tagLine: z.string().min(1),
-  region: z.string().min(1),
+  // Queue the first fetch of a never-fetched summoner. Only the summoner
+  // page's "fetch matches" button sends it: a search alone just resolves
+  // the Riot ID, so a first full-history fetch always takes a deliberate
+  // click. Stale summoners that were fetched before refresh either way.
+  fetch: z.boolean().optional(),
 });
 
 async function buildSummonerStats(summoner: Summoner): Promise<SummonerStatsResponse> {
@@ -2452,6 +2463,10 @@ async function buildSummonerStats(summoner: Summoner): Promise<SummonerStatsResp
  * query that turns every repeat page view into a lookup.
  */
 const statsCache = new Map<string, { key: string; response: Promise<SummonerStatsResponse> }>();
+// Kept to the most recently viewed summoners: every recap otherwise stays in
+// memory for the process's lifetime. The Map's insertion order is the
+// recency order (a hit moves its entry to the end).
+const STATS_CACHE_MAX = 50;
 
 async function getSummonerStats(summoner: Summoner): Promise<SummonerStatsResponse> {
   const [freshness] = await db
@@ -2465,10 +2480,18 @@ async function getSummonerStats(summoner: Summoner): Promise<SummonerStatsRespon
   const key = `${freshness.matchCount}:${freshness.lastGame ?? ""}`;
 
   const cached = statsCache.get(summoner.puuid);
-  if (cached && cached.key === key) return cached.response;
+  if (cached && cached.key === key) {
+    statsCache.delete(summoner.puuid);
+    statsCache.set(summoner.puuid, cached);
+    return cached.response;
+  }
 
   const response = buildSummonerStats(summoner);
+  statsCache.delete(summoner.puuid);
   statsCache.set(summoner.puuid, { key, response });
+  if (statsCache.size > STATS_CACHE_MAX) {
+    statsCache.delete(statsCache.keys().next().value!);
+  }
   // A failed build must not stay cached as a rejected promise.
   response.catch(() => {
     if (statsCache.get(summoner.puuid)?.response === response) {
@@ -2501,73 +2524,10 @@ async function findSummonerByRiotId(region: string, gameName: string, tagLine: s
 }
 
 export async function summonerRoutes(app: FastifyInstance) {
-  // `?recent=N`: only the N most recently refreshed summoners (the splash
-  // page's shortcuts). The table also holds every player ingestion has seen
-  // in a stored match, so the full list is thousands of rows.
-  app.get<{ Querystring: { recent?: string } }>("/summoners", async (request) => {
-    const recent = Number(request.query.recent);
-    if (!Number.isInteger(recent) || recent <= 0) return db.select().from(summoners);
-    return db
-      .select()
-      .from(summoners)
-      .where(sql`${summoners.lastRefreshedAt} is not null`)
-      .orderBy(desc(summoners.lastRefreshedAt))
-      .limit(Math.min(recent, 50));
-  });
-
-  // Adds a new tracked summoner to the friend group (see CLAUDE.md §1 —
-  // this is an admin action, not a public self-serve flow).
-  app.post("/summoners", async (request, reply) => {
-    const body = addSummonerSchema.parse(request.body);
-    const account = await riot.getAccountByRiotId(body.gameName, body.tagLine, body.region);
-    const summoner = await riot.getSummonerByPuuid(account.puuid, body.region);
-
-    // Re-posting an already-tracked summoner refreshes their profile info
-    // (icon/level change over time) rather than no-op-ing.
-    const [row] = await db
-      .insert(summoners)
-      .values({
-        puuid: account.puuid,
-        riotIdGameName: account.gameName,
-        riotIdTagline: account.tagLine,
-        region: body.region,
-        profileIconId: summoner.profileIconId,
-        summonerLevel: summoner.summonerLevel,
-      })
-      .onConflictDoUpdate({
-        target: summoners.puuid,
-        set: {
-          riotIdGameName: account.gameName,
-          riotIdTagline: account.tagLine,
-          profileIconId: summoner.profileIconId,
-          summonerLevel: summoner.summonerLevel,
-        },
-      })
-      .returning();
-
-    reply.code(201);
-    return row;
-  });
-
-  // Manual refresh trigger for one tracked summoner — queued like any other
-  // refresh; poll the status route for progress.
-  app.post<{ Params: { puuid: string } }>("/summoners/:puuid/ingest", async (request, reply) => {
-    const [summoner] = await db
-      .select()
-      .from(summoners)
-      .where(eq(summoners.puuid, request.params.puuid));
-    if (!summoner) {
-      reply.code(404);
-      return { error: "Summoner not tracked" };
-    }
-    refreshQueue.enqueue(summoner, "user");
-    reply.code(202);
-    return refreshQueue.view(summoner.puuid);
-  });
-
   // The web app's search: resolves a Riot ID, starts tracking it if it's new
   // (anyone can be looked up, see CLAUDE.md §1), and queues a refresh when
-  // its data is missing or stale. Answers with the canonical Riot ID (Riot's
+  // its data is stale — or, with `fetch`, when it was never fetched (see
+  // lookupSchema). Answers with the canonical Riot ID (Riot's
   // casing) so the web app can build the summoner page URL from it.
   app.post("/summoners/lookup", async (request, reply) => {
     const parsed = lookupSchema.safeParse(request.body);
@@ -2575,7 +2535,14 @@ export async function summonerRoutes(app: FastifyInstance) {
       reply.code(400);
       return { error: "invalid_riot_id" };
     }
-    const { region, gameName, tagLine } = parsed.data;
+    const { region, gameName, tagLine, fetch } = parsed.data;
+    const ip = clientIp(request);
+
+    const allowed = lookupLimiter.hit(ip);
+    if (!allowed.ok) {
+      reply.code(429).header("retry-after", allowed.retryAfterSeconds);
+      return { error: "rate_limited", retryAfterSeconds: allowed.retryAfterSeconds };
+    }
 
     let summoner = await findSummonerByRiotId(region, gameName, tagLine);
     if (!summoner) {
@@ -2613,8 +2580,23 @@ export async function summonerRoutes(app: FastifyInstance) {
       }
     }
 
-    const lastRefreshed = summoner.lastRefreshedAt?.getTime() ?? 0;
-    if (Date.now() - lastRefreshed > REFRESH_STALE_MS) refreshQueue.enqueue(summoner, "user");
+    const lastRefreshed = summoner.lastRefreshedAt?.getTime();
+    const firstFetch =
+      lastRefreshed === undefined && fetch === true && !refreshQueue.isActive(summoner.puuid);
+    if (firstFetch) {
+      if (refreshQueue.waitingCount() >= MAX_WAITING_JOBS) {
+        reply.code(503);
+        return { error: "busy" };
+      }
+      const fetchAllowed = firstFetchLimiter.hit(ip);
+      if (!fetchAllowed.ok) {
+        reply.code(429).header("retry-after", fetchAllowed.retryAfterSeconds);
+        return { error: "rate_limited", retryAfterSeconds: fetchAllowed.retryAfterSeconds };
+      }
+      refreshQueue.enqueue(summoner, "user");
+    } else if (lastRefreshed !== undefined && Date.now() - lastRefreshed > REFRESH_STALE_MS) {
+      refreshQueue.enqueue(summoner, "user");
+    }
 
     return {
       region: summoner.region,
@@ -2624,9 +2606,10 @@ export async function summonerRoutes(app: FastifyInstance) {
     };
   });
 
-  // Where a summoner's refresh stands, for the summoner page's queue screen.
-  // Never calls Riot: an unknown Riot ID is a 404 here, and the page then
-  // looks it up through POST /summoners/lookup.
+  // Where a summoner's refresh stands, for the summoner page (queue screen,
+  // "never fetched" screen, the recap's "updated" line). Never calls Riot:
+  // an unknown Riot ID is a 404 here, and it's looked up through
+  // POST /summoners/lookup once someone presses "fetch matches".
   app.get<{ Params: { region: string; gameName: string; tagLine: string } }>(
     "/summoners/by-riot-id/:region/:gameName/:tagLine/status",
     async (request, reply) => {
@@ -2644,6 +2627,8 @@ export async function summonerRoutes(app: FastifyInstance) {
         region: summoner.region,
         gameName: summoner.riotIdGameName,
         tagLine: summoner.riotIdTagline,
+        profileIconId: summoner.profileIconId,
+        summonerLevel: summoner.summonerLevel,
         lastRefreshedAt: summoner.lastRefreshedAt?.toISOString() ?? null,
         matchCount,
         job: refreshQueue.view(summoner.puuid),

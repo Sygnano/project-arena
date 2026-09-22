@@ -93,6 +93,12 @@ export const SEARCH_PLATFORMS = [
 
 export const DEFAULT_SEARCH_PLATFORM = "euw1";
 
+/** Whether a `[platform]` URL segment is a server the search offers. */
+export function isKnownPlatform(platform: string): boolean {
+  const id = platform.toLowerCase();
+  return SEARCH_PLATFORMS.some((option) => option.id === id);
+}
+
 export function platformRegionName(platform: string): string {
   return PLATFORM_REGION_NAME[platform.toLowerCase()] ?? platform.toUpperCase();
 }

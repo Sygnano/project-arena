@@ -43,7 +43,7 @@ const CORNER_DIAMOND_POSITIONS = [
  *
  * The corner diamonds' fill (`bg-lol-navy-950`) and the cartouche's
  * background (`#040c14`, the design's "panel ink" token) are hardcoded
- * rather than themed — Arena Stats is a single, permanently dark Hextech
+ * rather than themed — Arena Journey is a single, permanently dark Hextech
  * theme (see globals.css), not a multi-background system, so there's
  * nothing to parameterize yet.
  */

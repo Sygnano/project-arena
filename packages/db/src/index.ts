@@ -1,5 +1,6 @@
 export * from "./schema.js";
 export * from "./client.js";
+export * from "./migrate.js";
 export * from "./compression.js";
 export * from "./parseMatch.js";
 export * from "./parseRounds.js";

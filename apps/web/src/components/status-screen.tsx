@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { cn } from "cn";
+import { SiteFooter } from "@/components/site-footer";
 
 type Props = {
   /** Visual above the text; defaults to the turning hextech emblem. */
@@ -27,14 +28,15 @@ function HextechEmblem({ children }: { children?: ReactNode }) {
 
 /**
  * A centered, full-screen message in the summoner pages' style: emblem,
- * letter-spaced eyebrow, Beaufort title, body and actions. Used by the
- * queue screen and the "no Arena games" screen.
+ * letter-spaced eyebrow, Beaufort title, body and actions, over the site
+ * footer (the about link). Used by the queue, "no recap yet", "no Arena
+ * games", 404 and error screens.
  */
 function StatusScreen({ emblem, eyebrow, title, children, actions, busy }: Props) {
   return (
     <main
       aria-busy={busy || undefined}
-      className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-lol-navy-950 px-6 pt-20 pb-12 text-center"
+      className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-lol-navy-950 px-6 pt-20 pb-20 text-center"
     >
       <div
         aria-hidden
@@ -68,6 +70,9 @@ function StatusScreen({ emblem, eyebrow, title, children, actions, busy }: Props
           {actions}
         </div>
       ) : null}
+      <div className="absolute inset-x-0 bottom-0 pb-6">
+        <SiteFooter />
+      </div>
     </main>
   );
 }

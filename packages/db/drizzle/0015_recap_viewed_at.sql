@@ -1,0 +1,1 @@
+ALTER TABLE "summoners" ADD COLUMN "recap_viewed_at" timestamp with time zone;

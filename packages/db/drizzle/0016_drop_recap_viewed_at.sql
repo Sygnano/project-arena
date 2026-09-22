@@ -1,0 +1,1 @@
+ALTER TABLE "summoners" DROP COLUMN "recap_viewed_at";

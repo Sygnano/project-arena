@@ -1,10 +1,10 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Welcome } from "@/modules/Welcome";
 import { TimePlayed } from "@/modules/TimePlayed";
-import { getSummonerStatsByRiotId, summonerStatsQueryKey } from "@/lib/api";
+import { getSummonerStatsByRiotId, summonerStatsQueryKey, type SummonerStatus } from "@/lib/api";
 import { KDA } from "@/modules/KDA";
 import { Placement } from "@/modules/Placement";
 import { TeamSlot } from "@/modules/TeamSlot";
@@ -37,14 +37,18 @@ import { Pings } from "@/modules/Pings";
 import { Farewell } from "@/modules/Farewell";
 import { ChapterRail, type RailSlide } from "@/components/chapter-rail";
 import { ChampionNamesProvider } from "@/lib/champion-names";
+import { rememberRecap } from "@/lib/recent-recaps";
 import { SlideProvider } from "@/lib/slides";
 import { usePageUpkeep } from "@/hooks/use-page-upkeep";
 import { useWheelScrollsSideways } from "@/hooks/use-wheel-scrolls-sideways";
+import { RecapRefresh } from "./recap-refresh";
 
 type Props = {
   region: string;
   gameName: string;
   tagLine: string;
+  /** The server's refresh status read, for the Welcome slide's refresh control. */
+  status: SummonerStatus;
 };
 
 type Slide = RailSlide & { render: () => ReactNode };
@@ -63,11 +67,23 @@ function rate(count: number, total: number): number {
  * for section order, each section's DOM id (`#augments` deep links), the
  * short label on the previous section's "next" cue, and the chapter rail.
  */
-const SummonerStatsView = ({ region, gameName, tagLine }: Props) => {
+const SummonerStatsView = ({ region, gameName, tagLine, status }: Props) => {
   const { data: stats } = useQuery({
     queryKey: summonerStatsQueryKey(region, gameName, tagLine),
     queryFn: () => getSummonerStatsByRiotId(region, gameName, tagLine),
   });
+
+  // Adds this recap to the browser's own "recently viewed" list (splash page).
+  const viewedProfile = stats?.profile;
+  useEffect(() => {
+    if (!viewedProfile || viewedProfile.matchesPlayed === 0) return;
+    rememberRecap({
+      region: viewedProfile.region,
+      gameName: viewedProfile.riotIdGameName,
+      tagLine: viewedProfile.riotIdTagline,
+      profileIconId: viewedProfile.profileIconId,
+    });
+  }, [viewedProfile]);
 
   usePageUpkeep("summoner-scroll", stats !== undefined);
   useWheelScrollsSideways("summoner-scroll", stats !== undefined);
@@ -134,6 +150,14 @@ const SummonerStatsView = ({ region, gameName, tagLine }: Props) => {
           firstTrackedDate={firstTrackedDate}
           lastMatchAt={stats.lastMatchAt}
           timePlayedSeconds={timePlayed.timePlayedSeconds}
+          freshness={
+            <RecapRefresh
+              platform={region}
+              gameName={gameName}
+              tagLine={tagLine}
+              initialStatus={status}
+            />
+          }
         />
       ),
     },

@@ -19,11 +19,24 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   (decided with the user when the splash page was added; this replaced "adding a summoner is an
   admin action"). Flow: `POST /summoners/lookup` resolves the Riot ID through account-v1 (a 404
   goes back to the form as an error), inserts the summoner if it's new, and enqueues a refresh
-  when `summoners.lastRefreshedAt` is missing or over 15 min old. The browser then lands on the
-  summoner URL itself, which shows the queue screen (`refresh-view.tsx`: queue position, then
-  "match X of Y" with an ETA) until the refresh is done, then `router.refresh()`es into the recap,
-  so a link shared mid-fetch still works, and an unknown Riot ID opened from a link is looked up
-  the same way. Inside the API process all Riot ingestion runs through
+  when `summoners.lastRefreshedAt` is over 15 min old. A **never-fetched** summoner
+  (`lastRefreshedAt` null, including a Riot ID not in the database yet) is never fetched
+  automatically, by a search or a page visit: its URL shows "last updated: never" and a FETCH
+  MATCHES button, which sends the lookup with `fetch: true` (decided with the user, so a first
+  full-history fetch is always a deliberate click). The page then shows the queue screen
+  (`refresh-view.tsx`: queue position, then "match X of Y" with an ETA) until the refresh is done,
+  then `router.refresh()`es into the recap, so a link shared mid-fetch still works. A summoner who
+  already has a recap keeps showing it during a refresh. `lastRefreshedAt` is the one "last
+  updated" time shown everywhere (the Welcome slide, which adds a REFRESH button once it's over
+  15 min old, and the link preview's text and `opengraph-image.tsx` card); it's stamped only when a
+  match fetch finishes, never by a view. Below the search, the splash lists the recaps **this
+  browser** opened most recently (`lib/recent-recaps.ts`, localStorage, max 12): per visitor, not a
+  site-wide feed, since a shared list let anyone put any Riot ID on the homepage (decided with the
+  user; the server-side `recapViewedAt` column that fed the old shared list was dropped). Lookups
+  are rate-limited per visitor IP in the API (`apps/api/src/rateLimit.ts`: 30 lookups / 10 min, 5
+  first fetches / hour, and no new first fetch while 10 jobs wait). The web server forwards the
+  visitor's IP in `x-arena-client-ip`, which is only trustworthy while the API is not reachable from
+  the internet. Inside the API process all Riot ingestion runs through
   `apps/api/src/ingestion/refreshQueue.ts`, one summoner at a time: in memory (a restart drops the queue, the next visit re-enqueues) and with
   searches first. A first fetch pulls the full history at ~2.4s per match on a dev key (2 calls
   per match, 100 calls / 2 min), which is why there's a queue screen at all.
@@ -355,6 +368,16 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   such as Railway/Fly.io/a VPS, vs. something else) — not decided yet. Don't build in
   provider-specific assumptions (e.g. serverless-only patterns in the API) until this is settled,
   since the ingestion worker needs a long-lived process, not a request/response function.
+  The API is ready for a long-lived host as is: `pnpm --filter @arena/api start` runs it
+  through `tsx` (the workspace packages export TypeScript source, so plain `node` on compiled
+  output can't import them; `build` is only a typecheck), applies pending migrations at startup
+  (`runMigrations` in `packages/db/src/migrate.ts`, drizzle-orm's migrator, so drizzle-kit
+  stays dev-only), listens on `::` (Railway's private network can be IPv6-only), closes cleanly
+  on SIGTERM, and its `/health` fails (503) when the database doesn't answer. It has no CORS: only
+  the web app's server calls it, so give it no public domain (Railway: same project, web reaches it
+  at `${{api.RAILWAY_PRIVATE_DOMAIN}}`). Wherever the web app lands, it needs two env vars: `API_URL` (the API's address, server-side
+  only) and `SITE_URL` (its own public origin, the root layout's `metadataBase`: without it, link
+  previews point their image at `http://localhost:3000`).
 - **Auth** — deferred per §1, revisit if personalization is needed.
 - **CI** — the old prototype has GitHub Actions scaffolding for Copilot; a fresh CI setup
   (typecheck/lint/test on PR via Turborepo) should be added once the app has enough shape to be
@@ -382,64 +405,21 @@ packages/
                 enough surface area to warrant extracting components (don't create this
                 prematurely — start with everything in apps/web/components and extract only when
                 there's a second consumer).
-vendor/
-  nivo/       → Our fork (github.com/Sygnano/nivo) of the nivo chart library, checked out as its
-                own git repo — not a pnpm workspace member (see below). Exists only to carry a
-                patch to `packages/calendar`'s `TimeRange` chart; not a place to vendor other
-                nivo packages or make unrelated changes.
 ```
 
-**`vendor/nivo`'s `@nivo/calendar` fork**: upstream's `TimeRange` chart (used for the summoner
-page's activity calendar, `apps/web/src/modules/TimePlayed/Calendar.tsx`) silently ignored the
-`align` prop — unlike nivo's own `Calendar` chart, which honors it via `alignBox`, `TimeRange`
-never read `align` at all, always rendering its day grid flush top-left (plus the weekday-legend
-margin). That left visibly uncentered dead space whenever `square` cell sizing ended up bound by
-one axis rather than filling both — exactly this project's case, since the calendar's date range
-(and therefore its week/column count) varies per summoner. Fixed in
-`vendor/nivo/packages/calendar/src/compute/timeRange.ts` by adding a `computeOrigin` step
-(mirroring `Calendar`'s own `computeLayout`) that the day grid, weekday labels, and month legend
-now all consume consistently — the month-legend piece needed its own separate fix (a genuine
-off-by-one in `computeMonthLegends`'s width math left a full column between every pair of adjacent
-month labels, attributed to neither) since it surfaced from the same investigation.
-Do NOT `pnpm install` from inside `vendor/nivo` expecting it to join the root workspace — it keeps
-its own `pnpm-workspace.yaml` and lockfile deliberately (nivo is itself a ~30-package monorepo;
-folding it into the root's `pnpm-workspace.yaml` was tried and reverted, see below). Consuming the
-patched package instead goes through a **packed tarball**, not `workspace:*` or `link:`:
-`apps/web/package.json` depends on `"@nivo/calendar": "file:../../vendor/nivo/packages/calendar/nivo-calendar-<version>.tgz"`.
-This is load-bearing, not incidental — two simpler approaches were tried first and both failed:
-- `link:` (or `workspace:*`, which resolves to the same symlink) points `node_modules/@nivo/calendar`
-  straight at `vendor/nivo/packages/calendar`, whose own `node_modules/@nivo/{core,theming,...}`
-  are themselves symlinks back into `vendor/nivo`. Turbopack (Next 16's dev bundler) doesn't
-  traverse that second symlink hop for files living outside `apps/web`'s own tree, so it fails at
-  runtime with `Module not found: Can't resolve '@nivo/core'` even though the file exists on disk
-  and plain Node `require.resolve` finds it fine.
-- Adding `vendor/nivo/packages/{core,theming,...,calendar}` as entries in the ROOT
-  `pnpm-workspace.yaml` doesn't fix this either — `vendor/nivo` has its own nested
-  `pnpm-workspace.yaml`, and pnpm treats that as a separate, disconnected workspace root, so those
-  packages' `node_modules` never get folded into the root's unified `.pnpm` virtual store the way
-  `@arena/db` etc. do; the symlinks still point outside `apps/web`'s tree.
-
-`pnpm pack` (run inside `vendor/nivo/packages/calendar`) sidesteps both problems: it resolves the
-package's own `workspace:*` dependencies (on `@nivo/core`/`theming`/`legends`/`text`/`tooltip`) to
-real version numbers in the packed `package.json`, and pnpm installs a `file:*.tgz` reference by
-**extracting it into the root project's own `node_modules/.pnpm` store** — a real, physical
-directory inside `project-arena-2`, not a symlink to `vendor/nivo` — where its dependencies then
-resolve against the exact same `@nivo/core`/etc. copies the OTHER (unpatched, npm-registry) nivo
-chart packages already use. **After editing anything under `vendor/nivo/packages/calendar/src`**,
-rebuild before it takes effect in the web app:
-```
-cd vendor/nivo && pnpm install --filter "@nivo/calendar..."   # only needed if node_modules is missing/stale
-cd packages/calendar
-rm -rf dist/types dist/tsconfig.tsbuildinfo && pnpm tsc --build .
-rm -rf dist/nivo-calendar* && PACKAGE=calendar NODE_ENV=production BABEL_ENV=production pnpm exec rollup -c ../../conf/rollup.config.mjs
-```
-Then **bump the `version` field** in `packages/calendar/package.json` (e.g. `0.99.0-arena.N`) before
-`pnpm pack` again — pnpm caches a `file:` dependency by its resolved lockfile entry, not by
-re-hashing the tarball's current bytes, so repacking under the *same* filename silently keeps
-serving the old build to `apps/web` even after `pnpm install`. Update the `file:` version suffix in
-`apps/web/package.json` to match, delete the old `.tgz`, then `pnpm install --filter @arena/web`
-and restart the Next dev server (clear `apps/web/.next` too — Turbopack can cache the old
-resolution graph across a plain restart).
+**Patched nivo calendar, vendored as source** (`apps/web/src/vendor/nivo-calendar/`, see its
+README): upstream `@nivo/calendar`'s `TimeRange` chart (the activity calendar,
+`apps/web/src/modules/TimePlayed/Calendar.tsx`) ignores its `align` prop, so the day grid rendered
+flush top-left with uncentered dead space whenever `square` cells were bound by one axis (this
+project's case: the date range varies per summoner). The copy's `computeOrigin` step in
+`compute/timeRange.ts` fixes that, plus an off-by-one in `computeMonthLegends` that left a blank
+column between adjacent month labels. Only the files `TimeRange` needs are copied, as plain source
+imported from `@/vendor/nivo-calendar`; its `@nivo/core`/`theming`/`legends`/`text`/`tooltip`
+dependencies are direct dependencies of `apps/web`, pinned to the same version as the other
+`@nivo/*` charts (keep them in step). This replaced a fork (`vendor/nivo`, github.com/Sygnano/nivo)
+consumed as a packed `file:*.tgz`, which a fresh clone couldn't install since `vendor/nivo` isn't
+tracked; the old `vendor/nivo` checkout is no longer used by anything. The folder is excluded from
+eslint as third-party code. To change the chart, edit the copy directly; no build step.
 
 ## 5. Design system (carried over from `../project-arena`)
 
@@ -514,7 +494,7 @@ redesigning:
 - **The summoner pages' top bar (`components/top-bar.tsx`, mounted by `app/summoner/layout.tsx`)
   overlays the page rather than taking height**, because deck slides fill exactly one viewport. It
   hides while scrolling down and comes back on scroll up, near the top edge, or while it holds
-  focus. Don't reserve space for it in a slide; keep a slide's key content out of its top ~56px
+  focus. Don't reserve space for it in a slide; keep a slide's key content out of its top ~64px
   only if it must never be covered. Riot ID input rules live in `lib/riot-id.ts`
   (`gameNameError`/`tagLineError`, mirrored by the API's `lookupSchema`), and `parseRiotIdSlug`
   decodes the slug because Next passes dynamic params still percent-encoded.

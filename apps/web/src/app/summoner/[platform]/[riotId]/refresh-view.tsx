@@ -4,11 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { lookupSummoner } from "@/app/actions";
 import { HextechEmblem, NewSearchLink, StatusScreen, actionClass } from "@/components/status-screen";
-import type { LookupResult, SummonerStatus } from "@/lib/api";
-import { platformRegionName } from "@/lib/riot";
+import { formatRetryAfter, type LookupResult, type SummonerStatus } from "@/lib/api";
+import { platformRegionName, profileIconUrl } from "@/lib/riot";
 import { summonerPath } from "@/lib/riot-id";
 
 const POLL_MS = 2000;
+// Consecutive failed status polls (~30s) before showing "unavailable"
+// instead of a progress screen that silently stopped moving.
+const MAX_POLL_FAILURES = 15;
 
 type Props = {
   platform: string;
@@ -18,7 +21,18 @@ type Props = {
   initialStatus: SummonerStatus | null;
 };
 
-type Phase = "lookup" | "waiting" | "assembling" | "failed" | "not-found" | "unavailable";
+// "idle": never fetched, waiting for the "fetch matches" button.
+// "lookup": the button's lookup (which queues the fetch) is in flight.
+// "limited": the API refused the fetch for now (rate limit, or a full queue).
+type Phase =
+  | "idle"
+  | "lookup"
+  | "waiting"
+  | "assembling"
+  | "failed"
+  | "not-found"
+  | "unavailable"
+  | "limited";
 
 function isActive(status: SummonerStatus | null) {
   const state = status?.job?.state;
@@ -29,6 +43,21 @@ function formatEta(seconds: number) {
   if (seconds < 60) return "less than a minute left";
   const minutes = Math.round(seconds / 60);
   return `about ${minutes} min left`;
+}
+
+/** The emblem with the summoner's profile icon at its heart, when known. */
+function SummonerEmblem({ profileIconId }: { profileIconId: number | null }) {
+  if (profileIconId === null) return <HextechEmblem />;
+  return (
+    <HextechEmblem>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={profileIconUrl(profileIconId)}
+        alt=""
+        className="absolute inset-[46px] h-[68px] w-[68px] border border-[rgba(200,170,110,.5)]"
+      />
+    </HextechEmblem>
+  );
 }
 
 /** The emblem with a progress ring around it while matches are fetched. */
@@ -68,24 +97,38 @@ function ProgressEmblem({ fraction }: { fraction: number | null }) {
 }
 
 /**
- * The summoner page while its matches are being fetched: queue position,
- * then match-by-match progress, then a hand-off to the recap on the same
- * URL (a `router.refresh()`, after which page.tsx renders the recap). A
- * Riot ID that isn't tracked yet is looked up from here, so a shared link
- * to someone new works like a search. Polls the status through the web
- * app's own route (`/api/summoner/.../status`).
+ * The summoner page until its first recap exists. A never-fetched summoner
+ * (or a Riot ID not tracked yet) shows "last updated: never" and a "fetch
+ * matches" button; nothing is asked of Riot until it's pressed. Then: queue
+ * position, match-by-match progress, and a hand-off to the recap on the
+ * same URL (a `router.refresh()`, after which page.tsx renders the recap).
+ * Polls the status through the web app's own route (`/api/summoner/.../status`).
  */
 function RefreshView({ platform, gameName, tagLine, initialStatus }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const [status, setStatus] = useState(initialStatus);
-  const [phase, setPhase] = useState<Phase>(isActive(initialStatus) ? "waiting" : "lookup");
+  const [phase, setPhase] = useState<Phase>(
+    isActive(initialStatus) ? "waiting" : initialStatus?.job?.state === "failed" ? "failed" : "idle",
+  );
   const handedOff = useRef(false);
+  // Why "limited" refused, shown on that screen.
+  const [limitMessage, setLimitMessage] = useState("");
 
   const applyLookup = useCallback(
     (result: LookupResult) => {
       if (!result.ok) {
-        setPhase(result.error === "unavailable" ? "unavailable" : "not-found");
+        if (result.error === "rate_limited") {
+          setLimitMessage(
+            `Too many fetches from your connection. Try again ${formatRetryAfter(result.retryAfterSeconds)}.`,
+          );
+          setPhase("limited");
+        } else if (result.error === "busy") {
+          setLimitMessage("The fetch queue is full right now. Try again in a few minutes.");
+          setPhase("limited");
+        } else {
+          setPhase(result.error === "unavailable" ? "unavailable" : "not-found");
+        }
         return;
       }
       // Riot's canonical casing: keep the shared URL tidy.
@@ -96,63 +139,57 @@ function RefreshView({ platform, gameName, tagLine, initialStatus }: Props) {
     [pathname, router],
   );
 
-  const retry = () => {
+  // The "fetch matches" button, and "try again" after a failure.
+  const startFetch = () => {
     setPhase("lookup");
     handedOff.current = false;
-    void lookupSummoner(platform, gameName, tagLine).then(applyLookup);
+    void lookupSummoner(platform, gameName, tagLine, true).then(applyLookup);
   };
-
-  // Nothing queued yet (new Riot ID, or a queue lost to an API restart).
-  useEffect(() => {
-    if (isActive(initialStatus)) return;
-    let cancelled = false;
-    void lookupSummoner(platform, gameName, tagLine).then((result) => {
-      if (!cancelled) applyLookup(result);
-    });
-    return () => {
-      cancelled = true;
-    };
-    // Only on arrival; later changes come from polling.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     if (phase !== "waiting") return;
     let cancelled = false;
+    let failures = 0;
     let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
       try {
         const res = await fetch(`/api${summonerPath(platform, gameName, tagLine)}/status`, { cache: "no-store" });
         if (cancelled) return;
-        if (res.ok) {
-          const next = (await res.json()) as SummonerStatus;
-          setStatus(next);
-          const state = next.job?.state;
-          // The API's queue lives in memory: after a restart the job is
-          // gone while this page still waits on it. Queue it again.
-          if (!state && next.lastRefreshedAt === null) {
-            const result = await lookupSummoner(platform, gameName, tagLine);
-            if (cancelled) return;
-            if (!result.ok) {
-              applyLookup(result);
-              return;
-            }
-          }
-          if (state === "failed") {
-            setPhase("failed");
-            return;
-          }
-          if (state === "done" || (!state && next.lastRefreshedAt !== null)) {
-            if (!handedOff.current) {
-              handedOff.current = true;
-              setPhase("assembling");
-              router.refresh();
-            }
+        if (!res.ok) throw new Error(`status ${res.status}`);
+        failures = 0;
+        const next = (await res.json()) as SummonerStatus;
+        setStatus(next);
+        const state = next.job?.state;
+        // The API's queue lives in memory: after a restart the job is
+        // gone while this page still waits on it. Queue it again.
+        if (!state && next.lastRefreshedAt === null) {
+          const result = await lookupSummoner(platform, gameName, tagLine, true);
+          if (cancelled) return;
+          if (!result.ok) {
+            applyLookup(result);
             return;
           }
         }
+        if (state === "failed") {
+          setPhase("failed");
+          return;
+        }
+        if (state === "done" || (!state && next.lastRefreshedAt !== null)) {
+          if (!handedOff.current) {
+            handedOff.current = true;
+            setPhase("assembling");
+            router.refresh();
+          }
+          return;
+        }
       } catch {
-        // A missed poll is retried on the next tick.
+        // A missed poll is retried on the next tick, up to a point.
+        if (cancelled) return;
+        failures += 1;
+        if (failures >= MAX_POLL_FAILURES) {
+          setPhase("unavailable");
+          return;
+        }
       }
       if (!cancelled) timer = setTimeout(poll, POLL_MS);
     };
@@ -181,6 +218,25 @@ function RefreshView({ platform, gameName, tagLine, initialStatus }: Props) {
     );
   }
 
+  if (phase === "limited") {
+    return (
+      <StatusScreen
+        eyebrow="HOLD ON"
+        title={title}
+        actions={
+          <>
+            <button type="button" onClick={startFetch} className={actionClass}>
+              TRY AGAIN
+            </button>
+            <NewSearchLink className="border-[rgba(200,170,110,.3)] text-lol-text-secondary" />
+          </>
+        }
+      >
+        <p className="text-lol-text-secondary">{limitMessage}</p>
+      </StatusScreen>
+    );
+  }
+
   if (phase === "unavailable" || phase === "failed") {
     return (
       <StatusScreen
@@ -190,7 +246,7 @@ function RefreshView({ platform, gameName, tagLine, initialStatus }: Props) {
           <>
             <button
               type="button"
-              onClick={retry}
+              onClick={startFetch}
               className={actionClass}
             >
               TRY AGAIN
@@ -203,6 +259,30 @@ function RefreshView({ platform, gameName, tagLine, initialStatus }: Props) {
           {phase === "failed"
             ? "Fetching matches from Riot failed partway. Matches already fetched are kept, so trying again picks up where it stopped."
             : "The stats service didn't respond. It may be restarting — try again in a moment."}
+        </p>
+      </StatusScreen>
+    );
+  }
+
+  if (phase === "idle") {
+    return (
+      <StatusScreen
+        eyebrow="NO RECAP YET"
+        title={title}
+        emblem={<SummonerEmblem profileIconId={status?.profileIconId ?? null} />}
+        actions={
+          <>
+            <button type="button" onClick={startFetch} className={actionClass}>
+              FETCH MATCHES
+            </button>
+            <NewSearchLink className="border-[rgba(200,170,110,.3)] text-lol-text-secondary" />
+          </>
+        }
+      >
+        <p className="text-[12px] tracking-[.26em] text-lol-text-muted">LAST UPDATED · NEVER</p>
+        <p className="mt-4 text-lol-text-secondary">
+          This summoner&apos;s Arena matches haven&apos;t been fetched from {server} yet. Fetch them
+          to build their season recap.
         </p>
       </StatusScreen>
     );

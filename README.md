@@ -20,17 +20,11 @@ pnpm install
 cp apps/api/.env.example apps/api/.env
 # then edit apps/api/.env
 
-pnpm db:generate   # generate SQL migrations from packages/db/src/schema.ts
-pnpm db:migrate    # apply them to DATABASE_URL
-
 pnpm dev           # runs apps/web and apps/api together via Turborepo
 ```
 
-Add a tracked summoner (friend-group ingestion is an admin action, not public self-serve — see
-CLAUDE.md §1):
+The API applies pending database migrations itself when it starts. After changing
+`packages/db/src/schema.ts`, run `pnpm db:generate` to write the new migration.
 
-```bash
-curl -X POST http://localhost:3001/summoners \
-  -H "Content-Type: application/json" \
-  -d '{"gameName":"Sygnano","tagLine":"EUW","region":"euw1"}'
-```
+Search any Riot ID on the splash page (http://localhost:3000) to start tracking it. Bulk
+ingestion is the hand-run crawler: `pnpm --filter @arena/api crawl` (see CLAUDE.md §1).

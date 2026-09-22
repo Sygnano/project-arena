@@ -55,3 +55,32 @@ export function formatGold(value: number, unitFrom = value): string {
   if (unitFrom >= 1_000) return `${(value / 1_000).toFixed(0)}K`;
   return Math.round(value).toLocaleString("en-US");
 }
+
+const UTC_DATE_TIME = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+  timeZone: "UTC",
+});
+
+/** An absolute moment as "21 Sep 2026, 21:49 UTC". Pinned to UTC and one
+ * locale so the server render, the browser and link previews (which cache
+ * the text) all agree. */
+export function formatUtcDateTime(iso: string): string {
+  return `${UTC_DATE_TIME.format(new Date(iso))} UTC`;
+}
+
+/** How long ago something happened, from its age in ms: "just now",
+ * "27 min ago", "5 h ago", "3 days ago". */
+export function formatTimeAgo(ageMs: number): string {
+  const minutes = Math.floor(ageMs / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} ${days === 1 ? "day" : "days"} ago`;
+}

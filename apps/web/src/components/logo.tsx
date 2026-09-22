@@ -8,7 +8,7 @@ type Props = {
 
 /**
  * The site's mark: a nested hextech diamond (gold frame, blue core) beside
- * an "ARENA / STATS" wordmark. Purely visual — wrap it in a link where it
+ * an "ARENA / JOURNEY" wordmark. Purely visual — wrap it in a link where it
  * should navigate.
  */
 function Logo({ size = "sm", className }: Props) {
@@ -52,10 +52,10 @@ function Logo({ size = "sm", className }: Props) {
         <span
           className={cn(
             "text-lol-blue-200",
-            large ? "mt-1.5 text-[13px] tracking-[.62em]" : "mt-0.5 text-[9px] tracking-[.5em]",
+            large ? "mt-1.5 text-[13px] tracking-[.42em]" : "mt-1 text-[9px] tracking-[.34em]",
           )}
         >
-          STATS
+          JOURNEY
         </span>
       </span>
     </span>

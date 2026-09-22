@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { SummonerProfile } from "@arena/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AnimatedNumber } from "@/components/animated-number";
@@ -17,6 +18,8 @@ type Props = {
   lastMatchAt: string | null;
   /** Total time played across every tracked match — the one teaser total. */
   timePlayedSeconds: number;
+  /** How fresh the data is, with a refresh button once it's stale. */
+  freshness?: ReactNode;
 };
 
 const DAY_MONTH = new Intl.DateTimeFormat("en-GB", {
@@ -53,7 +56,7 @@ function seasonPeriod(firstDay: string, lastMatchAt: string) {
  * results (games, average place, winrate, 1st rate) are the payoff of the
  * `Farewell` finale, not something to give away in the first second.
  */
-const Welcome = ({ profile, firstTrackedDate, lastMatchAt, timePlayedSeconds }: Props) => {
+const Welcome = ({ profile, firstTrackedDate, lastMatchAt, timePlayedSeconds, freshness }: Props) => {
   const period =
     firstTrackedDate && lastMatchAt ? seasonPeriod(firstTrackedDate, lastMatchAt) : null;
   // Under an hour, hours would read as a bare "0"; count minutes instead.
@@ -127,6 +130,8 @@ const Welcome = ({ profile, firstTrackedDate, lastMatchAt, timePlayedSeconds }: 
           </>
         ) : null}
       </div>
+
+      {freshness ? <div className="mt-4 empty:hidden">{freshness}</div> : null}
 
       {profile.matchesPlayed > 0 ? (
         <p className="mt-8 flex items-baseline gap-3 border-y border-[rgba(200,170,110,.25)] px-6 py-3">

@@ -124,12 +124,12 @@ importers:
       '@arena/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@fastify/cors':
-        specifier: ^10.0.2
-        version: 10.1.0
       fastify:
         specifier: ^5.2.1
         version: 5.12.3
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.13
       zod:
         specifier: ^3.24.1
         version: 3.25.76
@@ -137,9 +137,6 @@ importers:
       '@types/node':
         specifier: ^22.10.5
         version: 22.20.1
-      tsx:
-        specifier: ^4.19.2
-        version: 4.23.13
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
@@ -149,16 +146,28 @@ importers:
       '@arena/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@nivo/calendar':
-        specifier: file:../../vendor/nivo/packages/calendar/nivo-calendar-0.99.0-arena.2.tgz
-        version: file:vendor/nivo/packages/calendar/nivo-calendar-0.99.0-arena.2.tgz(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@nivo/chord':
+        specifier: 0.99.0
+        version: 0.99.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@nivo/core':
+        specifier: 0.99.0
+        version: 0.99.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@nivo/legends':
         specifier: 0.99.0
         version: 0.99.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@nivo/pie':
         specifier: 0.99.0
         version: 0.99.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@nivo/polar-bar':
+        specifier: 0.99.0
+        version: 0.99.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@nivo/text':
+        specifier: 0.99.0
+        version: 0.99.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@nivo/theming':
+        specifier: 0.99.0
+        version: 0.99.0(react@19.2.8)
+      '@nivo/tooltip':
         specifier: 0.99.0
         version: 0.99.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@tanstack/react-query':
@@ -170,6 +179,15 @@ importers:
       cn:
         specifier: ^0.2.6
         version: 0.2.6
+      d3-scale:
+        specifier: ^4.0.2
+        version: 4.0.2
+      d3-time:
+        specifier: ^1.1.0
+        version: 1.1.0
+      d3-time-format:
+        specifier: ^3.0.0
+        version: 3.0.0
       embla-carousel-react:
         specifier: ^8.6.0
         version: 8.6.0(react@19.2.8)
@@ -201,6 +219,15 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.3.3
+      '@types/d3-scale':
+        specifier: ^4.0.9
+        version: 4.0.9
+      '@types/d3-time':
+        specifier: ^1.1.4
+        version: 1.1.4
+      '@types/d3-time-format':
+        specifier: ^3.0.4
+        version: 3.0.4
       '@types/node':
         specifier: ^20
         version: 20.19.43
@@ -910,9 +937,6 @@ packages:
   '@fastify/ajv-compiler@4.0.6':
     resolution: {integrity: sha512-NtuzM0SfaMJbGlnjr9LWQUN5LzgSrbB8tf/wRZNas+4E1O/Nmzl53e7ruT61HDZyRCJGC6FxIogmNZO1c5ETBA==}
 
-  '@fastify/cors@10.1.0':
-    resolution: {integrity: sha512-MZyBCBJtII60CU9Xme/iE4aEy8G7QpzGR8zkdXZkDFt7ElEMachbE61tfhAG/bvSaULlqlf0huMT12T7iqEmdQ==}
-
   '@fastify/error@4.2.0':
     resolution: {integrity: sha512-RSo3sVDXfHskiBZKBPRgnQTtIqpi/7zhJOEmAxCiBcM7d0uwdGdxLlsCaLzGs8v8NnxIRlfG0N51p5yFaOentQ==}
 
@@ -1224,12 +1248,6 @@ packages:
 
   '@nivo/arcs@0.99.0':
     resolution: {integrity: sha512-UcvWLQPl+A3APk2Gm74N5xDfT+ATnVs2XkP73WxhYPWJk+dBzF00cndA5g/dptOwdFBvvo62VgcCsNiwUsjKTw==}
-    peerDependencies:
-      react: ^16.14 || ^17.0 || ^18.0 || ^19.0
-
-  '@nivo/calendar@file:vendor/nivo/packages/calendar/nivo-calendar-0.99.0-arena.2.tgz':
-    resolution: {integrity: sha512-We3YhXr7apKbkF8rbT5JoSAUDo+rls8dR483bZP0TTNSpH0HlUKtDoavhkIKOXgm/Z5YuhmPcw232b4yi24WpA==, tarball: file:vendor/nivo/packages/calendar/nivo-calendar-0.99.0-arena.2.tgz}
-    version: 0.99.0-arena.2
     peerDependencies:
       react: ^16.14 || ^17.0 || ^18.0 || ^19.0
 
@@ -3272,9 +3290,6 @@ packages:
   fast-uri@4.1.4:
     resolution: {integrity: sha512-dODXrIxlS9JSdgAnhIUKOosKV1oMtU2VtVw87QRaHzyl5jxO290Ii5tEZfCfzfWNHi3jKWwBSdQj0qIyshdZdQ==}
 
-  fastify-plugin@5.1.0:
-    resolution: {integrity: sha512-FAIDA8eovSt5qcDgcBvDuX/v0Cjz0ohGhENZ/wpc3y+oZCY2afZ9Baqql3g/lC+OHRnciQol4ww7tuthOb9idw==}
-
   fastify@5.12.3:
     resolution: {integrity: sha512-reZ8wce5VNCcufIt9AVtzZa3L4u1j8esikn7OEgHWLVpRpL5R7Y2+Xzj70OUkv5zDfzUAxXZT6cu4Rt0zr3EKA==}
 
@@ -3972,9 +3987,6 @@ packages:
   minimist@1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
 
-  mnemonist@0.40.0:
-    resolution: {integrity: sha512-kdd8AFNig2AD5Rkih7EPCXhu/iMvwevQFX/uEiGhZyPZi7fHqOoF4V4kHLpCfysxXMgQ4B52kdPMCwARshKvEg==}
-
   motion-dom@13.2.0:
     resolution: {integrity: sha512-N6gdSoWRDk0Rh/fVtlqUtLs+fEN3ELFZI3cn3IQE9Mnf3E+Mh8wjO6MstzCOPFh4Yf0L1as5m2eUyYWj8ylVSQ==}
 
@@ -4084,9 +4096,6 @@ packages:
   object.values@1.2.1:
     resolution: {integrity: sha512-gXah6aZrcUxjWg2zR2MwouP2eHlCBzdV4pygudehaKXSGW4v2AsRQUK+lwwXhii6KFZcunEnmSUoYp5CXibxtA==}
     engines: {node: '>= 0.4'}
-
-  obliterator@2.0.5:
-    resolution: {integrity: sha512-42CPE9AhahZRsMNslczq0ctAEtqk8Eka26QofnqC346BZdHDySk3LWka23LI7ULIw11NmltpiLagIq8gBozxTw==}
 
   on-exit-leak-free@2.1.2:
     resolution: {integrity: sha512-0eJJY6hXLGf1udHwfNftBqH+g73EU4B504nZeKpz1sYRKafAghwxEJunB2O7rDZkL4PGfsMVnTXZ2EjibbqcsA==}
@@ -5407,11 +5416,6 @@ snapshots:
       ajv-formats: 3.0.1(ajv@8.20.0)
       fast-uri: 4.1.4
 
-  '@fastify/cors@10.1.0':
-    dependencies:
-      fastify-plugin: 5.1.0
-      mnemonist: 0.40.0
-
   '@fastify/error@4.2.0': {}
 
   '@fastify/fast-json-stringify-compiler@5.1.0':
@@ -5664,24 +5668,6 @@ snapshots:
       '@react-spring/web': 10.1.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@types/d3-shape': 3.2.0
       d3-shape: 3.2.0
-      react: 19.2.8
-    transitivePeerDependencies:
-      - react-dom
-
-  '@nivo/calendar@file:vendor/nivo/packages/calendar/nivo-calendar-0.99.0-arena.2.tgz(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
-    dependencies:
-      '@nivo/core': 0.99.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@nivo/legends': 0.99.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@nivo/text': 0.99.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@nivo/theming': 0.99.0(react@19.2.8)
-      '@nivo/tooltip': 0.99.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@types/d3-scale': 4.0.9
-      '@types/d3-time': 1.1.4
-      '@types/d3-time-format': 3.0.4
-      d3-scale: 4.0.2
-      d3-time: 1.1.0
-      d3-time-format: 3.0.0
-      lodash: 4.18.1
       react: 19.2.8
     transitivePeerDependencies:
       - react-dom
@@ -7985,8 +7971,6 @@ snapshots:
 
   fast-uri@4.1.4: {}
 
-  fastify-plugin@5.1.0: {}
-
   fastify@5.12.3:
     dependencies:
       '@fastify/ajv-compiler': 4.0.6
@@ -8610,10 +8594,6 @@ snapshots:
 
   minimist@1.2.8: {}
 
-  mnemonist@0.40.0:
-    dependencies:
-      obliterator: 2.0.5
-
   motion-dom@13.2.0:
     dependencies:
       motion-utils: 13.0.0
@@ -8726,8 +8706,6 @@ snapshots:
       call-bound: 1.0.4
       define-properties: 1.2.1
       es-object-atoms: 1.1.2
-
-  obliterator@2.0.5: {}
 
   on-exit-leak-free@2.1.2: {}
 

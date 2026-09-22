@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Third-party source copied in as-is (see src/vendor/*/README.md).
+    "src/vendor/**",
   ]),
 ]);
 

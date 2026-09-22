@@ -40,7 +40,7 @@ const FINISHED_JOB_TTL_MS = 10 * 60_000;
 
 /**
  * The one place the API process runs Riot ingestion from: every refresh (a
- * search from the web app, the manual ingest route) goes through this
+ * search, refresh or "fetch matches" press from the web app) goes through this
  * queue, one summoner at a time, because they all share one rate limiter
  * anyway. Searches (`user`) always run before `background` refreshes, so a
  * visitor never waits behind bulk work; nothing enqueues `background` since
@@ -83,6 +83,11 @@ export class RefreshQueue {
     this.pending.push(summoner.puuid);
     this.sortPending();
     void this.drain();
+  }
+
+  /** Jobs waiting behind the one running. */
+  waitingCount() {
+    return this.pending.length;
   }
 
   isActive(puuid: string) {

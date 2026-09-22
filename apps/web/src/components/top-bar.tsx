@@ -6,15 +6,16 @@ import { Search, X } from "lucide-react";
 import { cn } from "cn";
 import { Logo } from "@/components/logo";
 import { RiotIdSearch } from "@/components/riot-id-search";
+import { ShareButton } from "@/components/share-button";
 
 // Scrolled past this, scrolling down hides the bar.
 const HIDE_AFTER_PX = 64;
 // Pointer this close to the top edge brings a hidden bar back (desktop).
-const REVEAL_ZONE_PX = 56;
+const REVEAL_ZONE_PX = 64;
 
 /**
- * The summoner pages' persistent bar: the logo (home) and a compact Riot ID
- * search. It overlays the page instead of taking height from it, because
+ * The summoner pages' persistent bar: the logo (home), a compact Riot ID
+ * search, a share button and the about link. It overlays the page instead of taking height from it, because
  * deck-layout slides fill exactly one viewport — so it slides away while
  * scrolling down through the recap and comes back on scroll up, near the
  * top edge, or while it holds focus. Listens in the capture phase to catch
@@ -59,10 +60,10 @@ function TopBar() {
         collapsed && "-translate-y-full",
       )}
     >
-      <div className="relative flex h-14 items-center gap-4 bg-[linear-gradient(180deg,rgba(1,5,10,.92),rgba(5,14,22,.72))] px-4 backdrop-blur-md sm:px-6">
+      <div className="relative flex h-16 items-center gap-4 bg-[linear-gradient(180deg,rgba(1,5,10,.92),rgba(5,14,22,.72))] px-4 backdrop-blur-md sm:px-6">
         <Link
           href="/"
-          aria-label="Arena Stats — search"
+          aria-label="Arena Journey — search"
           className="flex-none opacity-90 transition-opacity hover:opacity-100"
         >
           <Logo size="sm" />
@@ -80,6 +81,15 @@ function TopBar() {
         >
           {searchOpen ? <X aria-hidden className="h-4 w-4" /> : <Search aria-hidden className="h-4 w-4" />}
         </button>
+        <ShareButton className="flex-none" />
+        {/* Keeps the about page (Riot's legal notice) one click away from
+            every summoner page, which have no footer. */}
+        <Link
+          href="/about"
+          className="flex-none text-[11px] tracking-[.24em] text-lol-text-muted transition-colors hover:text-lol-gold-100"
+        >
+          ABOUT
+        </Link>
         <div
           aria-hidden
           className="absolute inset-x-0 bottom-0 h-px bg-[linear-gradient(90deg,transparent,rgba(200,170,110,.45)_20%,rgba(200,170,110,.45)_80%,transparent)]"

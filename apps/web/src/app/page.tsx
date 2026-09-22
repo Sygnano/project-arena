@@ -1,21 +1,37 @@
-import Link from "next/link";
-import { Logo } from "@/components/logo";
+import { AnimatedNumber } from "@/components/animated-number";
+import { RecentRecaps } from "@/components/recent-recaps";
 import { RiotIdSearch } from "@/components/riot-id-search";
-import { getRecentSummoners } from "@/lib/api";
-import { platformRegionName, profileIconUrl } from "@/lib/riot";
-import { summonerPath } from "@/lib/riot-id";
+import { SiteFooter } from "@/components/site-footer";
+import { SplashTitle } from "@/components/splash-title";
+import { getOverview } from "@/lib/api";
 
-const SPLASH_BACKGROUND = "/images/backgrounds/optimized/how-to-rank-fast-arena-lol-12237a09a0c7.webp";
-/** How many recently refreshed summoners the splash lists as shortcuts. */
-const RECENT_COUNT = 8;
+const SPLASH_BACKGROUND =
+  "/images/backgrounds/optimized/how-to-rank-fast-arena-lol-12237a09a0c7.webp";
+
+/** One splash total: a count-up number over its caption. */
+function SplashCount({ value, label }: { value: number; label: string }) {
+  return (
+    <p className="flex flex-col items-center gap-1.5">
+      <AnimatedNumber
+        value={value}
+        className="font-display text-[26px] leading-none text-lol-gold-50 tabular-nums sm:text-[30px]"
+      />
+      <span className="text-center text-[10px] tracking-[.32em] text-lol-text-muted sm:text-[11px]">
+        {label}
+      </span>
+    </p>
+  );
+}
 
 /**
- * Splash: the Riot ID search, plus shortcuts to the summoners refreshed
- * most recently. Searching leads to the summoner page, which queues the
- * fetch and turns into the recap once it's done.
+ * Splash: the Riot ID search, plus how much the site has tracked so far
+ * (stored matches, summoners with a recap) and the recaps this browser
+ * opened most recently. Searching leads to the summoner
+ * page, which queues the fetch and turns into the recap once it's done.
  */
 export default async function Home() {
-  const recent = await getRecentSummoners(RECENT_COUNT).catch(() => []);
+  // The totals are a garnish: without the API the search still renders.
+  const overview = await getOverview().catch(() => null);
 
   return (
     <main className="relative flex min-h-dvh flex-1 flex-col items-center overflow-hidden bg-lol-navy-950 px-4 sm:px-10">
@@ -38,22 +54,31 @@ export default async function Home() {
         }}
       />
       {/* Hextech rings turning slowly behind the logo. */}
-      <div aria-hidden className="pointer-events-none absolute top-[38%] left-1/2 -translate-x-1/2 -translate-y-1/2">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute top-[33%] left-1/2 -translate-x-1/2 -translate-y-1/2"
+      >
         <div className="welcome-spin-slow h-[min(92vw,640px)] w-[min(92vw,640px)] rounded-full border border-dashed border-[rgba(200,170,110,.14)]" />
         <div className="welcome-spin-reverse absolute inset-[14%] rounded-full border border-[rgba(10,200,185,.1)]" />
         <div className="absolute inset-[30%] rounded-full bg-[radial-gradient(circle,rgba(10,200,185,.10),transparent_70%)]" />
       </div>
-      <div aria-hidden className="pointer-events-none absolute inset-4 sm:inset-10">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-4 sm:inset-10"
+      >
         <div className="absolute top-0 left-0 h-5 w-5 border-t border-l border-[rgba(200,170,110,.5)]" />
         <div className="absolute top-0 right-0 h-5 w-5 border-t border-r border-[rgba(200,170,110,.5)]" />
         <div className="absolute bottom-0 left-0 h-5 w-5 border-b border-l border-[rgba(200,170,110,.5)]" />
         <div className="absolute right-0 bottom-0 h-5 w-5 border-r border-b border-[rgba(200,170,110,.5)]" />
       </div>
 
-      <div className="relative flex w-full max-w-2xl flex-1 flex-col items-center justify-center pt-20 pb-10 text-center">
+      <div className="relative flex w-full max-w-2xl flex-1 flex-col items-center justify-center pt-10 pb-24 text-center">
         <h1 className="splash-rise">
-          <Logo size="lg" />
-          <span className="sr-only"> — League of Legends Arena season recaps</span>
+          <SplashTitle />
+          <span className="sr-only">
+            {" "}
+            — League of Legends Arena season recaps
+          </span>
         </h1>
         <p
           className="splash-rise mt-10 text-[12px] tracking-[.42em] text-lol-gold-300"
@@ -65,61 +90,49 @@ export default async function Home() {
           className="splash-rise mt-3 max-w-md text-lol-text-secondary"
           style={{ animationDelay: "180ms" }}
         >
-          Enter a Riot ID to relive every round, augment and win from their Arena matches.
+          Retrace the steps you took in the Rings of Wrath. Start by entering a
+          summoner&apos;s name and tag.
         </p>
-        <div className="splash-rise mt-9 w-full" style={{ animationDelay: "260ms" }}>
+        <div
+          className="splash-rise mt-9 w-full"
+          style={{ animationDelay: "260ms" }}
+        >
           <RiotIdSearch variant="hero" autoFocus />
-          <p className="mt-1 text-xs text-lol-text-muted">
-            Paste a full Riot ID like <span className="text-lol-gold-200">Sygnano#EUW</span> — it fills both fields.
-          </p>
         </div>
+        {/* This browser's own history, so it appears after hydration. */}
+        <RecentRecaps className="splash-rise w-full" />
+        {overview && overview.recapCount > 0 ? (
+          <section
+            aria-label="Tracked so far"
+            className="splash-rise relative mt-24 w-full"
+            style={{ animationDelay: "380ms" }}
+          >
+            <div className="flex items-center gap-4 sm:gap-8">
+              <div
+                aria-hidden
+                className="h-px flex-1 bg-[linear-gradient(270deg,rgba(200,170,110,.35),transparent)]"
+              />
+              <SplashCount
+                value={overview.matchCount}
+                label="MATCHES TRACKED"
+              />
+              <span aria-hidden className="text-[10px] text-lol-gold-300">
+                ◆
+              </span>
+              <SplashCount
+                value={overview.recapCount}
+                label="SUMMONER RECAPS"
+              />
+              <div
+                aria-hidden
+                className="h-px flex-1 bg-[linear-gradient(90deg,rgba(200,170,110,.35),transparent)]"
+              />
+            </div>
+          </section>
+        ) : null}
       </div>
 
-      {recent.length > 0 ? (
-        <section
-          aria-labelledby="recent-heading"
-          className="splash-rise relative w-full max-w-4xl pb-14"
-          style={{ animationDelay: "380ms" }}
-        >
-          <div className="flex items-center gap-4">
-            <div aria-hidden className="h-px flex-1 bg-[linear-gradient(270deg,rgba(200,170,110,.35),transparent)]" />
-            <h2 id="recent-heading" className="text-[11px] tracking-[.38em] text-lol-gold-300">
-              RECENT RECAPS
-            </h2>
-            <div aria-hidden className="h-px flex-1 bg-[linear-gradient(90deg,rgba(200,170,110,.35),transparent)]" />
-          </div>
-          <ul className="mt-5 flex flex-wrap justify-center gap-2.5">
-            {recent.map((summoner) => (
-              <li key={summoner.puuid}>
-                <Link
-                  href={summonerPath(summoner.region, summoner.riotIdGameName, summoner.riotIdTagline)}
-                  title={platformRegionName(summoner.region)}
-                  className="group flex items-center gap-2.5 border border-[rgba(200,170,110,.25)] bg-[rgba(9,20,40,.55)] py-1.5 pr-3.5 pl-1.5 transition-colors hover:border-lol-gold-300 hover:bg-[rgba(10,50,60,.5)]"
-                >
-                  {summoner.profileIconId != null ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={profileIconUrl(summoner.profileIconId)}
-                      alt=""
-                      width={28}
-                      height={28}
-                      className="h-7 w-7 border border-[rgba(200,170,110,.45)]"
-                    />
-                  ) : (
-                    <span className="flex h-7 w-7 items-center justify-center border border-[rgba(200,170,110,.45)] font-display text-sm text-lol-gold-300">
-                      {summoner.riotIdGameName.charAt(0)}
-                    </span>
-                  )}
-                  <span className="font-display text-[15px] text-lol-gold-50 group-hover:text-lol-gold-100">
-                    {summoner.riotIdGameName}
-                    <span className="ml-1 text-[13px] text-lol-text-muted">#{summoner.riotIdTagline}</span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      <SiteFooter className="pb-6" />
     </main>
   );
 }

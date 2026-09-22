@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { useReducedMotion } from "motion/react";
-import { ResponsiveTimeRange, type ColorScale } from "@nivo/calendar";
+import { ResponsiveTimeRange, type ColorScale } from "@/vendor/nivo-calendar";
 import type { CalendarStats } from "@arena/types";
 import {
   tierForDayBestPlacement,
@@ -33,24 +33,21 @@ type Props = {
  * at the week of the summoner's earliest tracked match instead of padding
  * back to January.
  *
- * Uses our fork of `@nivo/calendar` (vendor/nivo, packed into
- * apps/web/package.json's `file:*.tgz` dependency) rather than the published
- * npm package — upstream's TimeRange chart silently ignored the `align`
- * prop entirely (unlike its own Calendar chart, which honors it via
- * alignBox), always rendering the day grid flush top-left plus the weekday
- * label offset. That left visibly uncentered dead space whenever `square`
- * cell sizing ended up bound by one axis instead of filling both. The fork
- * adds a computeOrigin step (vendor/nivo/packages/calendar/src/compute/
- * timeRange.ts) mirroring Calendar's own alignBox usage, so `align`
- * (default "center") now actually centers the grid the way the upstream
- * Calendar chart already did.
+ * Uses our vendored copy of nivo's TimeRange (`src/vendor/nivo-calendar`,
+ * see its README) rather than the published `@nivo/calendar`: upstream's
+ * TimeRange silently ignores the `align` prop (unlike its own Calendar
+ * chart, which honors it via alignBox), always rendering the day grid
+ * flush top-left, which left visibly uncentered dead space whenever
+ * `square` cell sizing ended up bound by one axis. The copy's
+ * `computeOrigin` step (compute/timeRange.ts) makes `align` (default
+ * "center") actually center the grid.
  *
  * Each day is one flat rarity tier (silver/gold/prismatic), no gradient
  * between them. Nivo sets a cell's color as an inline `style.fill`, so the
  * color scale returns `url(#…)` for each tier, pointing at the SVG gradients
  * rendered beside the chart (`TierFillDefs`); globals.css matches that fill to
  * add the glow. `value` is the tier's index in `TIER_ORDER`, and the scale
- * is a plain `(value) => color` function (the fork's `ColorScale` escape
+ * is a plain `(value) => color` function (the vendored `ColorScale` escape
  * hatch); `.ticks` is stubbed since no legend is rendered here.
  *
  * Nivo's color scale only maps a single numeric `value` per day, so `value`
