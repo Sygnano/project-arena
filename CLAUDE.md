@@ -57,8 +57,9 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   with the oldest `lastRefreshedAt` (never-refreshed first; due = older than
   `CRAWL_REFRESH_AFTER_HOURS`, default 24). By hand: `pnpm --filter @arena/api crawl
   [--summoners N]`, which ends when nobody is due. Hosted: `pnpm --filter @arena/api
-  crawl:forever`, the Railway `crawler` service (the whole repo, configured by
-  `apps/api/railway.crawler.json`), which never exits: it sleeps when idle and waits out errors.
+  crawl:forever`, the Railway `crawler` service (the whole repo, with that as its custom start
+  command in the dashboard; Railway's config-as-code files are deprecated), which never exits: it
+  sleeps when idle and waits out errors.
   It replaced a single-file Railway Function that hand-copied the ingestion code. A platform
   with no summoner at all is seeded from `scripts/crawl-seeds.ts` (arenasweats.lol's top Arena
   players per region, several per platform in case of renames) and that seed is crawled first

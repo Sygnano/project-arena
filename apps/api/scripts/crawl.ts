@@ -22,7 +22,7 @@
  *     By hand. Ends when nobody is due (or after about N summoners). A fatal
  *     Riot error (key) or five failures in a row (an outage) end it.
  *   pnpm --filter @arena/api crawl:forever
- *     Hosted (the Railway `crawler` service, see railway.crawler.json). Never
+ *     Hosted: the Railway `crawler` service's start command. Never
  *     ends on its own: when nobody is due it sleeps and looks again, and
  *     errors are waited out and retried instead of exiting.
  * In both, Ctrl-C / SIGTERM finishes each worker's current match and exits
