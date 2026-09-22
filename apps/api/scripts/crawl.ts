@@ -12,9 +12,9 @@
  * finishes the current match and exits (the interrupted summoner resumes
  * next run); a second Ctrl-C exits immediately.
  *
- * Runs in its own process with its own rate limiter, so running it next to
- * the API server can exceed the dev key's limits — the Riot client retries
- * 429s, but everything will be slower.
+ * Runs in its own process with its own rate limiter. Running it next to
+ * the API server shares the key's per-region budget: each process's limiter
+ * adopts the counts Riot reports, so they slow down rather than hit 429s.
  *
  * Usage: pnpm --filter @arena/api crawl [--summoners N]
  */
@@ -22,7 +22,7 @@ import { parseArgs } from "node:util";
 import { asc, decompressJson, desc, eq, inArray, matches, sql, summoners } from "@arena/db";
 import type { RiotArenaMatchDto } from "@arena/types";
 import { db } from "../src/db.js";
-import { riot, RiotApiError } from "../src/riot/index.js";
+import { riot, RiotApiError } from "../src/riotApi/index.js";
 import { ingestSummoner, type IngestProgress } from "../src/ingestion/ingestSummoner.js";
 
 const { values: args } = parseArgs({
@@ -114,8 +114,8 @@ async function nextSummoner(skip: ReadonlySet<string>) {
  */
 async function refreshProfile(summoner: { puuid: string; region: string; name: string }) {
   try {
-    const account = await riot.getAccountByPuuid(summoner.puuid, summoner.region);
-    const profile = await riot.getSummonerByPuuid(summoner.puuid, summoner.region);
+    const account = await riot.account.getAccountByPuuid(summoner.puuid, summoner.region);
+    const profile = await riot.summoner.getSummonerByPuuid(summoner.puuid, summoner.region);
     const next = {
       riotIdGameName: account.gameName,
       riotIdTagline: account.tagLine,
@@ -138,10 +138,9 @@ async function refreshProfile(summoner: { puuid: string; region: string; name: s
 
 /** Errors that will fail every summoner the same way — no point going on. */
 function isFatal(err: unknown) {
-  if (!(err instanceof RiotApiError)) return false;
   // 401/403: missing or expired key. 400 "decrypting": PUUIDs from another
   // Riot app (see CLAUDE.md §2, remap-puuids).
-  return err.status === 401 || err.status === 403 || err.message.includes("remap-puuids");
+  return err instanceof RiotApiError && err.fatal;
 }
 
 async function counts() {

@@ -1,48 +1,37 @@
 import { cache } from "react";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import { NewSearchLink, StatusScreen } from "@/components/status-screen";
-import {
-  getSummonerStatsByRiotId,
-  getSummonerStatus,
-  needsRefreshScreen,
-  summonerStatsQueryKey,
-  type SummonerStatus,
-} from "@/lib/api";
+import type { SummonerView } from "@arena/types";
+import { getSummonerPage, getSummonerStatsByRiotId, hasRecap, summonerStatsQueryKey } from "@/lib/api";
 import { formatUtcDateTime } from "@/lib/format";
 import { isKnownPlatform, platformRegionName } from "@/lib/riot";
-import { parseRiotIdSlug } from "@/lib/riot-id";
+import { parseRiotIdSlug, summonerPath } from "@/lib/riot-id";
 import { getQueryClient } from "@/lib/query-client";
-import { RecapRefresh } from "./recap-refresh";
+import { SummonerRecap } from "./recap";
 import { RefreshView } from "./refresh-view";
-import { SummonerStatsView } from "./stats-view";
 
-// One status read per request, shared by generateMetadata and the page.
-const loadStatus = cache(getSummonerStatus);
+// One read per request, shared by generateMetadata and the page.
+const loadSummonerPage = cache(getSummonerPage);
 
 /** The link preview's text: always says when the matches were last fetched. */
-function describeRecap(status: SummonerStatus | null, platform: string): string {
+function describeRecap(summoner: SummonerView | null, platform: string): string {
   const server = platformRegionName(platform);
-  if (!status?.lastRefreshedAt) {
+  if (!summoner?.lastRefreshedAt) {
     return `Arena season recap on ${server}. Last updated: never. Open the link to fetch their matches.`;
   }
-  const games = `${status.matchCount.toLocaleString("en-US")} Arena ${status.matchCount === 1 ? "game" : "games"}`;
-  return `${games} on ${server}. Last updated ${formatUtcDateTime(status.lastRefreshedAt)}.`;
+  const games = `${summoner.matchCount.toLocaleString("en-US")} Arena ${summoner.matchCount === 1 ? "game" : "games"}`;
+  return `${games} on ${server}. Last updated ${formatUtcDateTime(summoner.lastRefreshedAt)}.`;
 }
 
-export async function generateMetadata(
-  props: PageProps<"/summoner/[platform]/[riotId]">,
-): Promise<Metadata> {
+export async function generateMetadata(props: PageProps<"/summoner/[platform]/[riotId]">): Promise<Metadata> {
   const { platform, riotId } = await props.params;
   const parsed = parseRiotIdSlug(riotId);
   if (!parsed || !isKnownPlatform(platform)) return { title: "Arena Journey" };
-  // A preview without the status beats no page: the page reports the error.
-  const status = await loadStatus(platform, parsed.gameName, parsed.tagLine).catch(() => null);
-  const name = status
-    ? `${status.gameName}#${status.tagLine}`
-    : `${parsed.gameName}#${parsed.tagLine}`;
-  const description = describeRecap(status, platform);
+  // A preview without the summoner beats no page: the page reports the error.
+  const summoner = (await loadSummonerPage(platform, parsed.gameName, parsed.tagLine).catch(() => null))?.summoner ?? null;
+  const name = summoner ? `${summoner.gameName}#${summoner.tagLine}` : `${parsed.gameName}#${parsed.tagLine}`;
+  const description = describeRecap(summoner, platform);
   return {
     title: `${name} · Arena Journey`,
     description,
@@ -52,77 +41,46 @@ export async function generateMetadata(
 }
 
 /**
- * One URL per summoner for every stage: "last updated: never" with a fetch
- * button (also for a Riot ID not tracked yet), the queue screen while their
- * matches are fetched, then the recap. The queue screen hands off with `router.refresh()`, which re-runs
- * this and lands on the recap.
+ * One URL per summoner, read from our database only (never Riot):
+ * - not stored, or stored but never fetched: the "fetch matches" screen,
+ *   whose button opens the refresh stream (the one path to Riot);
+ * - fetched: the recap, with a refresh button once it's 15 minutes old.
  */
-export default async function SummonerPage(
-  props: PageProps<"/summoner/[platform]/[riotId]">,
-) {
+export default async function SummonerPage(props: PageProps<"/summoner/[platform]/[riotId]">) {
   const { platform, riotId } = await props.params;
   const parsed = parseRiotIdSlug(riotId);
   if (!parsed || !isKnownPlatform(platform)) notFound();
 
-  const status = await loadStatus(platform, parsed.gameName, parsed.tagLine);
-  if (needsRefreshScreen(status)) {
-    return (
-      <RefreshView
-        platform={platform}
-        gameName={parsed.gameName}
-        tagLine={parsed.tagLine}
-        initialStatus={status}
-      />
-    );
+  const page = await loadSummonerPage(platform, parsed.gameName, parsed.tagLine);
+  if (page) {
+    // Riot's casing, for tidy shared links.
+    const canonical = summonerPath(page.summoner.region, page.summoner.gameName, page.summoner.tagLine);
+    if (canonical !== summonerPath(platform, parsed.gameName, parsed.tagLine)) redirect(canonical);
   }
 
-  if (status!.matchCount === 0) {
-    return (
-      <StatusScreen
-        eyebrow="NO ARENA GAMES"
-        title={
-          <>
-            {status!.gameName}
-            <span className="ml-2 text-[.7em] text-lol-text-muted">#{status!.tagLine}</span>
-          </>
-        }
-        actions={<NewSearchLink />}
-      >
-        <p className="text-lol-text-secondary">
-          Riot has no Arena matches on record for this summoner on {platformRegionName(platform)}.
-          Play a few and refresh.
-        </p>
-        <div className="mt-5 flex justify-center">
-          <RecapRefresh
-            platform={platform}
-            gameName={parsed.gameName}
-            tagLine={parsed.tagLine}
-            initialStatus={status!}
-          />
-        </div>
-      </StatusScreen>
-    );
+  if (!hasRecap(page?.summoner)) {
+    return <RefreshView platform={platform} gameName={parsed.gameName} tagLine={parsed.tagLine} initial={page} />;
   }
+
+  const recap = (
+    <SummonerRecap
+      platform={platform}
+      gameName={parsed.gameName}
+      tagLine={parsed.tagLine}
+      summoner={page!.summoner}
+      refresh={page!.refresh}
+    />
+  );
+  if (page!.summoner.matchCount === 0) return recap;
 
   const queryClient = getQueryClient();
-  const queryKey = summonerStatsQueryKey(platform, parsed.gameName, parsed.tagLine);
-  // query() (not the deprecated fetchQuery/prefetchQuery pair) both runs the
-  // fetch and returns its result, so it's available here to decide
-  // notFound() while also populating the cache for dehydrate() below.
+  // query() (not the deprecated fetchQuery/prefetchQuery pair) runs the
+  // fetch and returns it, filling the cache that dehydrate() ships.
   const stats = await queryClient.query({
-    queryKey,
+    queryKey: summonerStatsQueryKey(platform, parsed.gameName, parsed.tagLine),
     queryFn: () => getSummonerStatsByRiotId(platform, parsed.gameName, parsed.tagLine),
   });
   if (!stats) notFound();
 
-  return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <SummonerStatsView
-        region={platform}
-        gameName={parsed.gameName}
-        tagLine={parsed.tagLine}
-        status={status!}
-      />
-    </HydrationBoundary>
-  );
+  return <HydrationBoundary state={dehydrate(queryClient)}>{recap}</HydrationBoundary>;
 }

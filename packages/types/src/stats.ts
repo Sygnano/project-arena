@@ -1,5 +1,4 @@
 export interface SummonerProfile {
-  puuid: string;
   riotIdGameName: string;
   riotIdTagline: string;
   region: string;
@@ -71,9 +70,8 @@ export interface KdaStats {
   assists: number;
   /** (kills + assists) / deaths, or kills + assists when deaths is 0. */
   kda: number;
-  /** Highest kills/deaths/assists in any single tracked match (not a sum). */
+  /** Highest kills/assists in any single tracked match (not a sum). */
   mostKills: number;
-  mostDeaths: number;
   mostAssists: number;
   /** Highest single-match KDA — (kills + assists) / deaths for one match,
    * or kills + assists when that match's deaths is 0. Distinct from `kda`,
@@ -239,7 +237,6 @@ export interface SummonerSpellsStats {
 export type DamageCurveSeries = Record<keyof DamageBreakdown, number[]>;
 
 export interface DamageCurveBestGame {
-  matchId: string;
   championName: string;
   placement: number;
   /** When this player's team was knocked out (or the match ended). */
@@ -322,10 +319,6 @@ export interface TimePlayedStats {
   /** Longest run of consecutive UTC calendar days with at least one tracked
    * match, derived from the same per-day grouping as CalendarStats. */
   longestStreakDays: number;
-  /** Length of the streak ending on the most recently tracked match day —
-   * 0 if that day isn't today or yesterday (UTC), so a streak from weeks ago
-   * doesn't still read as "current". */
-  currentStreakDays: number;
   /** Most matches played in any single UTC calendar day. */
   mostGamesInADay: number;
   /** UTC weekday with the most tracked matches summed across all days
@@ -351,8 +344,6 @@ export interface PlacementDetail {
 export interface PlacementStats {
   /** Mean placement across every tracked match (1 = best), 0 with no matches. */
   avgPlacement: number;
-  /** The most recent tracked placements, newest first (up to 10). */
-  recentPlacements: number[];
   /** Placement 1st-3rd — this is a UI-defined "win" for Arena, distinct
    * from Riot's own per-participant `win` flag stored on match_participants. */
   top3Finishes: number;
@@ -706,8 +697,6 @@ export interface BannedChampionsStats {
   totalBans: number;
   noBanCount: number;
   duplicateBanCount: number;
-  /** Tracked matches the ban figures cover. */
-  matchesTracked: number;
 }
 
 /**
@@ -776,7 +765,7 @@ export interface AugmentPicksStats {
  * `AugmentPickBreakdown`, but for the champion-exclusive "GoH"-prefixed
  * augments a few champions (Tahm Kench, Vayne, Kindred, Yone) grant a
  * teammate instead of a normal draft pick (see
- * `apps/api/src/augmentData.ts`'s `GUEST_OF_HONOR_CHAMPIONS`). These are
+ * `apps/api/src/leagueData/augments/augmentGroups.ts`'s `GUEST_OF_HONOR_CHAMPIONS`). These are
  * excluded from `AugmentsStats`/`AugmentPicksStats` (they're not part of the
  * normal offer pool) but still get picked up in real match data whenever the
  * mechanic actually fires, so `timesPicked`/`top1`/`top3ExclTop1`/`remaining`
@@ -820,8 +809,8 @@ export interface GuestOfHonorStats {
  * mechanic, which lets a draft pick be spent on something other than a
  * normal augment offer (gaining a stat anvil, an extra augment slot,
  * upgrading/"leveling" an existing augment, or rerolling one) instead of a
- * champion-exclusive line (see `apps/api/src/augmentData.ts`'s
- * `getMetaAugments`). Same shape as `GuestOfHonorAugmentStats` — these are
+ * champion-exclusive line (see `apps/api/src/leagueData/augments/augmentGroups.ts`'s
+ * `META_AUGMENT_API_NAMES`). Same shape as `GuestOfHonorAugmentStats` — these are
  * excluded from `AugmentsStats`/`AugmentPicksStats` (not part of the normal
  * offer pool) but genuinely picked in real match data, so the counts here are
  * real, not placeholders.
@@ -941,18 +930,16 @@ export interface PrismaticItemPicksStats {
 }
 
 /**
- * One entry in the full champion catalog (currently ~171 champions, sourced
- * from Data Dragon — same source as `apps/api/src/championData.ts`'s
- * champion-name lookup), enriched with how many tracked matches the
- * summoner has played that champion in. Same "full catalog, not just ones
- * actually played" shape as `AugmentStats`/`PrismaticItemStats` — icon URLs
- * aren't included here since the frontend already builds them client-side
- * via `championIconUrl()`, the same way KDA/Damage/BannedChampions do.
+ * One entry in the full champion catalog (currently 173 champions, sourced
+ * from CommunityDragon via `apps/api/src/leagueData/champions.ts`'s
+ * champion-name lookup). Same "full catalog, not just ones actually played"
+ * shape as `AugmentStats`/`PrismaticItemStats` — icon URLs aren't included
+ * here since the frontend already builds them client-side via
+ * `championIconUrl()`, the same way KDA/Damage/BannedChampions do.
  */
 export interface ChampionCatalogEntry {
   championId: number;
   championName: string;
-  timesPlayed: number;
 }
 
 export interface ChampionCatalogStats {
@@ -1120,14 +1107,12 @@ export interface TeamSynergyChampionNode {
  * `remaining` are tallied from the CONTAINING match's team placement (shared
  * by the whole team, not per-participant — see CLAUDE.md §2), so
  * `top3Rate` reflects how that pairing's matches actually finished, not an
- * individual's placement. `championAId` is always the smaller of the two
- * champion IDs — an arbitrary but stable tie-break so the same pair is never
+ * individual's placement. Champion A is always the one with the smaller
+ * champion ID — an arbitrary but stable tie-break so the same pair is never
  * counted as two different directions.
  */
 export interface TeamSynergyPairStats {
-  championAId: number;
   championAName: string;
-  championBId: number;
   championBName: string;
   gamesTogether: number;
   top1: number;

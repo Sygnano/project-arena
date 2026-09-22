@@ -5,7 +5,7 @@ import type { matches, matchParticipants } from "./schema.js";
 type NewMatch = typeof matches.$inferInsert;
 type NewParticipant = typeof matchParticipants.$inferInsert;
 
-// The 8 Arena anvil/consumable item IDs, confirmed via Data Dragon's item
+// The 8 Arena anvil item IDs (also used by apps/api/src/leagueData), confirmed via the items' own
 // descriptions (each is "Active - Consume: ... a permanent stat
 // bonus/item") — see schema.ts's comment on the anvil columns.
 const STAT_ANVIL_ITEM_ID = 220000; // "Stat Bonus"
@@ -203,7 +203,7 @@ function buildFrameSeries(
   });
 }
 
-export { ARENA_BOOT_ITEM_IDS };
+export { ARENA_BOOT_ITEM_IDS, STAT_ANVIL_ITEM_ID, LEGENDARY_ANVIL_ITEM_IDS, PRISMATIC_ANVIL_ITEM_ID };
 
 export function parseMatch(
   matchId: string,

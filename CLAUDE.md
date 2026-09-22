@@ -15,31 +15,42 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
 ### Users & access
 
 - **Audience: friend group, open search.** Built for the crew, but the splash page (`app/page.tsx`)
-  searches any Riot ID on any supported platform, and a successful search starts tracking it
-  (decided with the user when the splash page was added; this replaced "adding a summoner is an
-  admin action"). Flow: `POST /summoners/lookup` resolves the Riot ID through account-v1 (a 404
-  goes back to the form as an error), inserts the summoner if it's new, and enqueues a refresh
-  when `summoners.lastRefreshedAt` is over 15 min old. A **never-fetched** summoner
-  (`lastRefreshedAt` null, including a Riot ID not in the database yet) is never fetched
-  automatically, by a search or a page visit: its URL shows "last updated: never" and a FETCH
-  MATCHES button, which sends the lookup with `fetch: true` (decided with the user, so a first
-  full-history fetch is always a deliberate click). The page then shows the queue screen
-  (`refresh-view.tsx`: queue position, then "match X of Y" with an ETA) until the refresh is done,
-  then `router.refresh()`es into the recap, so a link shared mid-fetch still works. A summoner who
-  already has a recap keeps showing it during a refresh. `lastRefreshedAt` is the one "last
+  searches any Riot ID on any supported platform (decided with the user when the splash page was
+  added; this replaced "adding a summoner is an admin action"). **Everything that calls Riot goes
+  through one server-sent event stream** (decided with the user): `POST
+  /summoners/by-riot-id/:region/:gameName/:tagLine/refresh` (`apps/api/src/routes/summoners/
+  refreshRoutes.ts`, proxied by the web app's `app/api/summoner/[platform]/[riotId]/refresh`),
+  which resolves an unknown Riot ID (account-v1 + summoner-v4), sends the summoner, queues and
+  follows the match fetch, then sends the new recap itself (`RefreshEvent` in `@arena/types`). The
+  page's own reads never call Riot: a search just navigates to the summoner's URL, and the page
+  reads `GET /summoners/by-riot-id/...` (summoner + fetch in progress) and `.../stats` from our
+  database. Page flow: not stored → FETCH MATCHES button; stored but never fetched
+  (`lastRefreshedAt` null) → the same button with their icon; fetched → the recap. A first
+  full-history fetch is never automatic (decided with the user, so it's always a deliberate click).
+  During a fetch the page shows the queue screen (`refresh-view.tsx`: queue position, then "match X
+  of Y" with an ETA), then swaps the recap in place from the stream's `stats` event (put in the
+  TanStack cache by `hooks/use-summoner-refresh.ts`). A visitor arriving mid-fetch joins it (the
+  stream attaches to a running job without starting one), so a link shared mid-fetch works. A
+  summoner who already has a recap keeps showing it during a refresh. `lastRefreshedAt` is the one "last
   updated" time shown everywhere (the Welcome slide, which adds a REFRESH button once it's over
   15 min old, and the link preview's text and `opengraph-image.tsx` card); it's stamped only when a
-  match fetch finishes, never by a view. Below the search, the splash lists the recaps **this
+  match fetch finishes, never by a view. A refresh requested under 15 min after the last one just
+  returns the recap. Below the search, the splash lists the recaps **this
   browser** opened most recently (`lib/recent-recaps.ts`, localStorage, max 12): per visitor, not a
   site-wide feed, since a shared list let anyone put any Riot ID on the homepage (decided with the
-  user; the server-side `recapViewedAt` column that fed the old shared list was dropped). Lookups
-  are rate-limited per visitor IP in the API (`apps/api/src/rateLimit.ts`: 30 lookups / 10 min, 5
-  first fetches / hour, and no new first fetch while 10 jobs wait). The web server forwards the
+  user; the server-side `recapViewedAt` column that fed the old shared list was dropped). Riot
+  requests are rate-limited per visitor IP in the refresh route (`apps/api/src/rateLimit.ts`: 30
+  Riot lookups or fetches / 10 min, 5 first fetches / hour, and no new first fetch while 10 jobs
+  wait); following a fetch that's already running costs nothing. The web server forwards the
   visitor's IP in `x-arena-client-ip`, which is only trustworthy while the API is not reachable from
-  the internet. Inside the API process all Riot ingestion runs through
-  `apps/api/src/ingestion/refreshQueue.ts`, one summoner at a time: in memory (a restart drops the queue, the next visit re-enqueues) and with
-  searches first. A first fetch pulls the full history at ~2.4s per match on a dev key (2 calls
-  per match, 100 calls / 2 min), which is why there's a queue screen at all.
+  the internet. Inside the API process all match fetching runs through
+  `apps/api/src/ingestion/refreshQueue.ts`, with one lane per Riot regional cluster (europe,
+  americas, asia, sea; decided with the user): one summoner at a time per lane, lanes side by side,
+  since Riot's rate limits are per cluster. EUW and EUNE share the `europe` lane (and budget); an NA
+  fetch never waits behind EUW. Queue positions and the "queue full" limit are per lane. In memory
+  (a restart drops the queue; pressing again re-queues), with `subscribe()` feeding the streams. A first fetch pulls the
+  full history at ~2.4s per match on a dev key (2 calls per match, 100 calls / 2 min), which is why
+  there's a queue screen at all.
 - **Bulk ingestion is a crawler, run by hand.** There is no background poll loop in the API
   (removed at the user's request; an automatic crawler is planned later).
   `pnpm --filter @arena/api crawl [--summoners N]` (`apps/api/scripts/crawl.ts`) repeatedly
@@ -50,7 +61,8 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   refreshes only ask Riot for games since the previous one (minus a 2h overlap). Discovered rows
   take their Riot ID/icon/level from the match they were met in, and ingestion never overwrites
   an existing row from match data: a match can predate a rename, and account-v1 is the only source of current
-  names. Two places call it: `POST /summoners/lookup`, and the crawler, which refreshes each
+  names. Two places call it: the refresh stream (resolving an unknown Riot ID,
+  `ingestion/resolveSummoner.ts`), and the crawler, which refreshes each
   summoner's Riot ID/icon/level (account-v1 + summoner-v4, 2 calls) just before fetching their
   matches. A failed profile refresh is logged and the crawl moves on to the matches. `summoners`
   therefore holds far
@@ -97,32 +109,36 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   `placement` field also exists and currently mirrors it, but `subteamPlacement` is the one to
   read). Augments live in `playerAugment1`..`playerAugment6` — only the first 4 are populated on
   the current patch (5/6 come back as `0`), so parse all 6 and drop zeros rather than hardcoding 4.
-  Static reference data (champion/item/augment names & icons) comes from Data Dragon / Riot's
-  Arena augment data — cache it locally, don't re-fetch per request.
-  - **Item data (official Data Dragon)**: version list at
-    `https://ddragon.leagueoflegends.com/api/versions.json` (first entry = latest), item data at
-    `https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/item.json`. This is what
-    `apps/web/src/lib/riot.ts`'s `profileIconUrl` and the anvil-ID research this session used.
-  - **Champion ID -> name, server-side**: `apps/api/src/championData.ts`'s `getChampionNamesById()`
-    fetches `https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/champion.json` once and
-    caches the `key` (numeric ID) -> `id` (Riot-style PascalCase name, e.g. `62` -> `"MonkeyKing"`
-    — the same field `championIconUrl()` in `apps/web` expects, not the display `name` like
-    "Wukong") map in memory for the process's lifetime. Added because bans
+  Static reference data (champion/item/summoner spell/augment names, prices, tags & icons) comes
+  from **CommunityDragon only**, through `apps/api/src/leagueData/` (see its README): fetched
+  once per process from `latest` (the live patch, no version to bump), never per request.
+  - **Why CommunityDragon, not Data Dragon**: Riot's Data Dragon has no Arena augments at all,
+    and CommunityDragon covers everything else Data Dragon gave us. Verified 2026-09 (patch
+    16.18) before switching: on all 199 item ids ever held or bought in tracked matches, names,
+    total gold, `Trinket`/`Consumable` tags and the Legendary classification are identical
+    (`items.json`'s `priceTotal`/`categories` = Data Dragon's `gold.total`/`tags`); all 48
+    Prismatics are 2750g; every champion and summoner spell matches; every icon resolves. Its
+    `champion-summary.json` `alias` even matches Match-V5's `championName` where Data Dragon
+    differs (`FiddleSticks`), but it also lists `-1` "None" and `Jade_*` mode variants (60000+),
+    which `champions.ts` filters out. Unnamed items come back as `"Item_<id>_Name"` (Data Dragon:
+    `""`), treated as nameless. apps/web still builds champion/profile icon URLs from Data Dragon
+    (`apps/web/src/lib/riot.ts`, pinned version).
+  - **Champion ID -> key**: `getChampionCatalog().keysById` (`62` -> `"MonkeyKing"`, the form
+    `championIconUrl()` in apps/web expects, not the display name "Wukong"). Needed because bans
     (`matches.bannedChampionIds`) only give champion IDs, and the obvious shortcut — looking names
     up from `match_participants`, which already has `(championId, championName)` for everyone's
     picks — systematically fails for the *most* interesting rows: a champion banned in 100% of
     tracked matches can, by definition, never appear in `match_participants` (nobody ever got the
     chance to pick it). Use `match_participants` first since it needs no network call, and fall
     back to this only for IDs it doesn't cover.
-  - **Augment data is NOT in Data Dragon at all** — Riot doesn't publish it there. Use Community
-    Dragon instead: `https://raw.communitydragon.org/latest/cdragon/arena/en_us.json` (225
+  - **Augments**: `https://raw.communitydragon.org/latest/cdragon/arena/en_us.json` (225
     augments, each with a numeric `id`, `apiName`, `name`, `rarity`, description, icon path).
     Verified the numeric `id` matches exactly what `playerAugment1`-`playerAugment6` return (e.g.
-    `id: 19` → `"Dashing"`, confirmed against a real match). `latest` tracks the current patch
-    automatically; pin to a specific patch number the same way Data Dragon supports. Icon URLs are
-    built as `https://raw.communitydragon.org/latest/game/{iconLarge or iconSmall, lowercased}` —
-    verified a real one resolves with a 200. Cached server-side the same way as champion names, in
-    `apps/api/src/augmentData.ts`'s `getAugments()`.
+    `id: 19` → `"Dashing"`, confirmed against a real match). Icon URLs are
+    `https://raw.communitydragon.org/latest/game/{iconLarge, lowercased}`; game-data icons
+    (items, spells) map `/lol-game-data/assets/<path>` to
+    `.../plugins/rcp-be-lol-game-data/global/default/<path, lowercased>`. Loaded by
+    `getAugmentCatalog()` (`apps/api/src/leagueData/augments/`).
     `rarity` is mostly the expected three in-game tiers (`0` = Silver, 68 augments; `1` = Gold, 75;
     `2` = Prismatic, 57) but there's a 4th value, `4` (25 augments, no `3` at all) covering entries
     like "Gain an Augment slot", "Replace Augment", and "Gain a Prismatic Stat Anvil" — these read
@@ -161,7 +177,7 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
     by a Prismatic nobody had ever held across 342 matches: `443080` Twin Mask (not in Arena),
     `446693` (a stale Prowler's Claw — Arena's is `226693`, held 160 times), `447111` Overlord's
     Bloodmail (a 2500g Legendary, bought 370 of 450 times held), and missing Goredrinker `226630`.
-    The list is hardcoded as `PRISMATIC_ITEM_IDS` in `apps/api/src/itemData.ts`; after a patch,
+    The list is hardcoded as `PRISMATIC_ITEM_IDS` in `apps/api/src/leagueData/items/itemIds.ts`; after a patch,
     recheck it with that price+map rule and against held counts, not by id range.
 - **PUUIDs are encrypted per Riot application.** A PUUID obtained with one app's API key returns
   `400 Bad Request - Exception decrypting ...` under another app's key (a regenerated dev key on
@@ -237,8 +253,8 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
     `22xxxx` ids) ARE bought, so they come from `match_participants.purchased_item_ids` — every
     item id bought in the match, undos removed, sales not subtracted (parsed in `parseMatch.ts`,
     backfilled for all matches) — unioned with `items` to catch the few granted by a Legendary
-    anvil or an upgrade (Seraph's, Muramana). `apps/api/src/itemData.ts`'s
-    `getLegendaryItemFilter()` classifies Legendary as Data Dragon `gold.total >= 2000` minus
+    anvil or an upgrade (Seraph's, Muramana). `ItemCatalog.isLegendary()`
+    (`apps/api/src/leagueData/items/itemCatalog.ts`) classifies Legendary as total gold `>= 2000` minus
     Prismatics, anvils/vouchers/Shardblade (`220000`-`220012`), the special items, boots,
     consumables and trinkets. Win rate on these item stats = top-3 finish, like everywhere else.
   - **Every Arena player carries the same trinket, so it dominates any naive
@@ -247,16 +263,17 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
     never bought and never leaves the inventory. Measured on real data: it was the
     single most-held item for all 60 champions the tracked summoner has played,
     present in 100% of their games, burying the actual build. Filter it out via
-    Data Dragon's own `tags` containing `"Trinket"` (20 items carry it) rather than
-    hardcoding `3348`, so a patch swapping Arena's trinket doesn't silently
-    reintroduce the problem — `apps/api/src/itemData.ts`'s `getBuildItemFilter()`
-    does this, alongside excluding the `220000`-`220011` anvils/vouchers. That
-    file's Data Dragon `item.json` fetch is now memoized once as a full catalog
-    (`{namesById, trinketIds}`); `getItemNamesById()`, `getPrismaticItems()` and
-    `getBuildItemFilter()` are all projections of it, not separate requests.
+    the item's own `"Trinket"` tag (CommunityDragon `categories`, `Item.isTrinket`)
+    rather than hardcoding `3348`, so a patch swapping Arena's trinket doesn't
+    silently reintroduce the problem. No stat lists held items any more (the
+    per-champion lists are Legendary/Prismatic/special/boots only), so nothing
+    applies this filter today; any future "most-held items" stat needs it again.
+    One `items.json` download backs every item lookup (`getItemCatalog()`; names,
+    prices, icons, the Prismatic/boot lists and the Legendary filter are
+    synchronous methods on it).
     Note that Arena serves its own `22xxxx`-prefixed variants of ordinary items
     (e.g. `222510` "Dusk and Dawn", `223006` "Berserker's Greaves") — these are
-    real Data Dragon entries with working names and icons, not corrupt ids.
+    real catalog entries with working names and icons, not corrupt ids.
   - **Boots** (`match_participants.bootsBought`/`.bootsSold`): Arena does not sell the normal
     game's boot tree — no tier-1 `1001` "Boots", no `3006`/`3020`/etc. It serves its own 8 flat
     500g variants (`223005` Ghostcrawlers, `223006` Berserker's Greaves, `223008` Gluttonous
@@ -265,8 +282,8 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
     re-skinning noted above for ordinary items. Verified across every ingested match: these 8 are
     the only ids Data Dragon tags `Boots` that appear in any timeline event. The list lives in
     `packages/db/src/parseMatch.ts` as `ARENA_BOOT_ITEM_IDS` (it must be available synchronously,
-    with no network call, to both the parser and the backfill script); `apps/api/src/itemData.ts`'s
-    `getArenaBoots()` decorates it with Data Dragon names and prices.
+    with no network call, to both the parser and the backfill script); `ItemCatalog.arenaBoots()`
+    decorates it with names, prices and icons. The anvil ids are exported from there too.
     **`match_participants.items` cannot answer "did they buy boots"** — Arena players routinely sell
     their boots later in the match for stats, so a pair that was bought and sold leaves no trace in
     the end-of-match inventory (measured on the tracked summoner: 165 of 336 pairs sold, 163 of 333
@@ -323,7 +340,7 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
     `CHERRY`). Verified on all 6,192 participant rows: everyone has both, but the **slot order
     varies** (2,817 Flee-in-slot-1 vs 3,375 Flash-in-slot-1), so `summonerSpell1Casts` means
     nothing without `summonerSpell1Id` — always pair a slot's casts with that slot's id
-    (`apps/api/src/stats/summonerSpells.ts`). Names/icons: `apps/api/src/summonerSpellData.ts`.
+    (`apps/api/src/stats/summonerSpells.ts`). Names/icons: `apps/api/src/leagueData/summonerSpells.ts`.
   - **Damage curve** (`match_participants.frames`, one `[t, physical, magical, true]` tuple of
     cumulative damage to champions per timeline frame — the only fields kept, see
     `packages/db/TRIMMED_DATA.md`): the three splits can sum 0-2 below Riot's own total — its
@@ -406,6 +423,13 @@ packages/
                 prematurely — start with everything in apps/web/components and extract only when
                 there's a second consumer).
 ```
+
+**Riot API client** (`apps/api/src/riotApi/`, see its README): every Riot call goes through it,
+as `riot.account` / `riot.summoner` / `riot.match`. It rate-limits **per routing value** (each of
+`europe`, `euw1`, ... has its own app budget and per-endpoint method budgets, as Riot enforces
+them), takes limits and counts from Riot's response headers (so a production key or a second
+process on the same key is handled), and logs one line per request (`RIOT_LOG_LEVEL`). Queue ids
+are a parameter (`Queue.ARENA`, ...), never a constant in a call. OC1 Match-V5 routes to `sea`.
 
 **Patched nivo calendar, vendored as source** (`apps/web/src/vendor/nivo-calendar/`, see its
 README): upstream `@nivo/calendar`'s `TimeRange` chart (the activity calendar,
@@ -496,7 +520,7 @@ redesigning:
   hides while scrolling down and comes back on scroll up, near the top edge, or while it holds
   focus. Don't reserve space for it in a slide; keep a slide's key content out of its top ~64px
   only if it must never be covered. Riot ID input rules live in `lib/riot-id.ts`
-  (`gameNameError`/`tagLineError`, mirrored by the API's `lookupSchema`), and `parseRiotIdSlug`
+  (`gameNameError`/`tagLineError`, mirrored by the API's `routes/summoners/riotIdParams.ts`), and `parseRiotIdSlug`
   decodes the slug because Next passes dynamic params still percent-encoded.
 - **Summoner page structure lives in one slide registry** — the ordered `slides` array in
   `app/summoner/[platform]/[riotId]/stats-view.tsx` (id, short label, chapter, render). Each section's
@@ -512,7 +536,7 @@ redesigning:
   so narrow screens scroll the panel content horizontally as one unit.
 - **Never render `championName` as text.** It is Riot's internal key (`MonkeyKing`, `KSante`), right
   for asset URLs only. Render `useChampionName()(championName)` (`lib/champion-names.tsx`), backed by
-  the stats response's `championDisplayNames` map (Data Dragon `name`, keyed by lowercased key).
+  the stats response's `championDisplayNames` map (CommunityDragon `name`, keyed by lowercased key).
 - **Every rate follows `lib/sample.ts`**: rate sorts go through `sortByRate` (rows under `MIN_SAMPLE`
   games rank after the rest, ordered by the same rate, and render dimmed). Every list that demotes them shows `components/low-sample-switch.tsx` while a rate sort is active (Team Synergy's Teammate Picks, at the user's request, doesn't dim at all on its MOST GAMES count sort), which passes `lowSample: "mixed"` to rank everyone together (still dimmed) — except the Collection dossier and Bans (Bans keeps low-sample rows ranked last and dimmed, with no switch), and rate scales/maxima are computed from rows that
   meet the sample unless the switch mixes them in (then every row scales, or all mixed-in outliers
@@ -566,13 +590,31 @@ redesigning:
   the photos are displayed heavily blurred). After adding art, rerun the script and point
   `lib/section-backgrounds.ts` at the optimized file. Backgrounds attach lazily near the viewport
   (`hooks/use-near-viewport.ts`).
-- **The stats endpoint is memoized per summoner** (`getSummonerStats` in `apps/api/src/routes/
-  summoners.ts`), keyed by that summoner's match count + latest game time, so it rebuilds only
-  after ingestion writes a new match (cold build ~3.75s, cached ~0.6s). Anything that changes the
-  response for reasons other than new matches (a code deploy restarts the process, which clears it)
-  must keep that in mind. Queries that depend only on the summoner are started together at the top
-  of `buildSummonerStats` (each still awaited where used; ~110 ms of latency per round trip to the
-  hosted database made the old one-after-another chain take ~9.5s). A new query should join that
-  block unless it genuinely needs an earlier result; prefer a subquery over waiting for one.
+- **The recap is built in memory from three queries** (`apps/api/src/summoners/stats/`):
+  `loadStatsData.ts` loads the summoner's games, everyone in them, and their duels; each section of
+  the response is a function over those rows in `sections/` (placements, activity, team synergy,
+  people, bans, augments, items, champions, ...), assembled by `buildSummonerStats.ts`. This
+  replaced ~41 aggregate queries, one of them a `DISTINCT` over all of `match_participants`
+  (measured: 910 games 392 → ~140 ms, 1 game 197 → ~1 ms). A new stat should be a function over
+  the loaded rows, not a new query; `aggregate.ts` has SQL-equivalent helpers (`sum` counts null as
+  0, `avg`/`max` skip nulls). Ties are broken by id so the output is stable. Placement-0 games
+  (broken lobbies, all players on one team) are left out of the recap.
+- **The stats cache** (`apps/api/src/summoners/statsCache.ts`, decided with the user) keeps a
+  recap, as its JSON string, only until 15 minutes after that summoner's `lastRefreshedAt`: the
+  window in which it's likely to be reopened, after which a refresh would replace it. Older recaps
+  are rebuilt per visit. Entries are invalidated by the summoner's game count + latest game time
+  (a teammate's refresh can add one of their games), swept every minute, and capped at
+  `STATS_CACHE_MAX_MB` (default 1024). A code deploy restarts the process, which clears it.
+- **Recaps carry ids; names and icons come from a catalog** (decided with the user). The API
+  sends `SummonerStatsPayload` (`@arena/types` `catalog.ts`): items and augments as ids only, no
+  champion list or display names. `GET /catalog` (`apps/api/src/leagueData/gameCatalog.ts`) serves
+  the `GameCatalog` once: every champion (key + display name), every augment (name, icon, rarity)
+  and the items a recap can show. The web server caches it for an hour (`getGameCatalog` in
+  `lib/api.ts`), the summoner layout provides it (`lib/game-catalog.tsx`), and `stats-view.tsx`
+  resolves the payload into `SummonerStatsResponse` once (`lib/resolve-stats.ts`), so modules
+  still read `itemName`/`iconUrl`/`augmentName`/`rarity`. A new item or augment field goes in the
+  catalog and the resolver, not in the payload. This cut the 910-game recap from 2,035 KB to
+  1,364 KB (the catalog is 14 KB gzipped). Per-row `championName` keys stay in the payload
+  (52 KB on that recap; replacing them means rewiring ~20 modules).
 - This file should be updated whenever a decision in §3's "explicitly deferred" list gets made, or
   when scope (§1) changes (e.g. friend-group → public tool would flip several decisions above).

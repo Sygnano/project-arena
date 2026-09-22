@@ -15,11 +15,11 @@
  */
 import { eq, isNull, matches, compressJson } from "@arena/db";
 import { db } from "../src/db.js";
-import { riot } from "../src/riot/index.js";
+import { riot } from "../src/riotApi/index.js";
 
 async function main() {
   const missing = await db
-    .select({ matchId: matches.matchId, region: matches.region })
+    .select({ matchId: matches.matchId })
     .from(matches)
     .where(isNull(matches.timeline));
 
@@ -27,7 +27,7 @@ async function main() {
 
   let done = 0;
   for (const m of missing) {
-    const timelineDto = await riot.getMatchTimeline(m.matchId, m.region);
+    const timelineDto = await riot.match.getMatchTimeline(m.matchId);
     await db
       .update(matches)
       .set({ timeline: compressJson(timelineDto) })

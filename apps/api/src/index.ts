@@ -2,13 +2,15 @@ import Fastify from "fastify";
 import { runMigrations } from "@arena/db";
 import { db } from "./db.js";
 import { env } from "./env.js";
+import { logger } from "./logger.js";
 import { healthRoutes } from "./routes/health.js";
+import { catalogRoutes } from "./routes/catalog.js";
 import { overviewRoutes } from "./routes/overview.js";
-import { summonerRoutes } from "./routes/summoners.js";
+import { summonerRoutes } from "./routes/summoners/index.js";
 
 // No CORS: browsers never call this API directly. The web app's server
 // does, over the host's private network (see CLAUDE.md §3).
-const app = Fastify({ logger: true });
+const app = Fastify({ loggerInstance: logger });
 
 // Brings the database schema up to date before serving anything: this is
 // how a deploy applies new migrations.
@@ -16,6 +18,7 @@ await runMigrations(db);
 app.log.info("Database migrations applied");
 
 await app.register(healthRoutes);
+await app.register(catalogRoutes);
 await app.register(overviewRoutes);
 await app.register(summonerRoutes);
 

@@ -1,7 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
-import { getSummonerStatus, type SummonerStatus } from "@/lib/api";
+import type { SummonerView } from "@arena/types";
+import { getSummonerPage } from "@/lib/api";
 import { formatUtcDateTime } from "@/lib/format";
 import { isKnownPlatform, platformRegionName, profileIconUrl } from "@/lib/riot";
 import { parseRiotIdSlug } from "@/lib/riot-id";
@@ -42,21 +43,21 @@ export default async function Image({
   const { platform, riotId } = await params;
   const parsed = parseRiotIdSlug(riotId);
   const known = parsed !== null && isKnownPlatform(platform);
-  const status: SummonerStatus | null = known
-    ? await getSummonerStatus(platform, parsed.gameName, parsed.tagLine).catch(() => null)
+  const summoner: SummonerView | null = known
+    ? ((await getSummonerPage(platform, parsed.gameName, parsed.tagLine).catch(() => null))?.summoner ?? null)
     : null;
 
   const fontDir = join(process.cwd(), "src/fonts");
   const [beaufort, spiegel, icon] = await Promise.all([
     readFile(join(fontDir, "beaufort/beaufortforlol-bold.otf")),
     readFile(join(fontDir, "spiegel/spiegel-semibold.otf")),
-    loadIcon(status?.profileIconId ?? null),
+    loadIcon(summoner?.profileIconId ?? null),
   ]);
 
-  const gameName = status?.gameName ?? parsed?.gameName ?? "Unknown summoner";
-  const tagLine = status?.tagLine ?? parsed?.tagLine ?? "";
-  const updated = status?.lastRefreshedAt
-    ? `LAST UPDATED ${formatUtcDateTime(status.lastRefreshedAt).toUpperCase()}`
+  const gameName = summoner?.gameName ?? parsed?.gameName ?? "Unknown summoner";
+  const tagLine = summoner?.tagLine ?? parsed?.tagLine ?? "";
+  const updated = summoner?.lastRefreshedAt
+    ? `LAST UPDATED ${formatUtcDateTime(summoner.lastRefreshedAt).toUpperCase()}`
     : "LAST UPDATED · NEVER";
 
   return new ImageResponse(
@@ -116,13 +117,13 @@ export default async function Image({
 
         <div style={{ display: "flex", alignItems: "center", marginTop: 56 }}>
           <div style={{ width: 120, height: 1, background: `linear-gradient(270deg, ${GOLD}, transparent)` }} />
-          {status && status.lastRefreshedAt && status.matchCount > 0 ? (
+          {summoner && summoner.lastRefreshedAt && summoner.matchCount > 0 ? (
             <div style={{ display: "flex", alignItems: "baseline", margin: "0 28px" }}>
               <span style={{ fontFamily: "Beaufort", fontSize: 56, color: GOLD_LIGHT }}>
-                {status.matchCount.toLocaleString("en-US")}
+                {summoner.matchCount.toLocaleString("en-US")}
               </span>
               <span style={{ fontSize: 22, letterSpacing: 6, color: MUTED, marginLeft: 14 }}>
-                {status.matchCount === 1 ? "ARENA GAME" : "ARENA GAMES"}
+                {summoner.matchCount === 1 ? "ARENA GAME" : "ARENA GAMES"}
               </span>
             </div>
           ) : (

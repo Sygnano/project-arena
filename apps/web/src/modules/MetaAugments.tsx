@@ -70,7 +70,7 @@ type Props = {
  * Excluded from the normal catalog/picks panels (`AugmentHallOfFame`/
  * `AugmentPicks`) for the same reason as Guest of Honor — not part of the
  * normal 3-augment offer pool — but genuinely picked in real match data
- * (see `apps/api/src/augmentData.ts`'s `getMetaAugments`), so it gets the
+ * (see `apps/api/src/leagueData/augments/augmentGroups.ts`'s `META_AUGMENT_API_NAMES`), so it gets the
  * same "full panel, no sidebar" real treatment right after Guest of Honor:
  * one card per augment, no filter/sort (there are only 5), each bordered by
  * the same Silver/Gold/Prismatic performance tier as every other augment

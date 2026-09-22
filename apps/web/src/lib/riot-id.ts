@@ -26,7 +26,7 @@ export function summonerPath(region: string, gameName: string, tagLine: string):
   return `/summoner/${encodeURIComponent(region.toLowerCase())}/${encodeURIComponent(`${gameName}-${tagLine}`)}`;
 }
 
-// Riot ID rules (mirrored by the API's POST /summoners/lookup): the game
+// Riot ID rules (mirrored by the API's routes/summoners/riotIdParams.ts): the game
 // name is 3-16 characters of any script's letters, digits or spaces; the
 // tag line is 3-5 letters or digits. Neither is case-sensitive. Lengths
 // count code points, so a Korean or Cyrillic name isn't measured in UTF-16

@@ -202,7 +202,7 @@ function ChampionAugments({
 /**
  * A handful of champions (Tahm Kench, Vayne, Kindred, Yone) grant a teammate
  * a champion-exclusive augment line instead of a normal draft pick — Riot's
- * own "Guest of Honor" mechanic (see `apps/api/src/augmentData.ts`'s
+ * own "Guest of Honor" mechanic (see `apps/api/src/leagueData/augments/augmentGroups.ts`'s
  * `GUEST_OF_HONOR_CHAMPIONS`). These augments are excluded from the normal
  * catalog/picks panels (`AugmentHallOfFame`/`AugmentPicks`) since they're not
  * part of the normal offer pool, so they get their own full-size panel right

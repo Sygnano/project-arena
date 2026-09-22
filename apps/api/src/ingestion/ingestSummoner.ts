@@ -1,6 +1,7 @@
 import { eq, inArray, matches, matchParticipants, matchRounds, parseMatch, parseRounds, summoners, type Db } from "@arena/db";
 import type { RiotArenaMatchDto } from "@arena/types";
-import type { RiotClient } from "../riot/client.js";
+import type { RiotClient } from "../riotApi/client.js";
+import { Queue } from "../riotApi/queues.js";
 
 export type IngestProgress =
   | { phase: "matchIds" }
@@ -67,7 +68,10 @@ export async function ingestSummoner(
 
   onProgress?.({ phase: "matchIds" });
   // Newest first.
-  const recentMatchIds = await riot.getArenaMatchIdsByPuuid(summoner.puuid, summoner.region, since);
+  const recentMatchIds = await riot.match.getAllMatchIdsByPuuid(summoner.puuid, summoner.region, {
+    queue: Queue.ARENA,
+    startTime: since,
+  });
 
   const existing =
     recentMatchIds.length === 0
@@ -86,8 +90,8 @@ export async function ingestSummoner(
   for (const matchId of newMatchIds) {
     if (options.shouldStop?.()) return { ingested, discovered, stopped: true };
 
-    const dto = await riot.getMatch(matchId, summoner.region);
-    const timelineDto = await riot.getMatchTimeline(matchId, summoner.region);
+    const dto = await riot.match.getMatch(matchId);
+    const timelineDto = await riot.match.getMatchTimeline(matchId);
     const { match, participants } = parseMatch(matchId, summoner.region, dto, timelineDto);
     const rounds = timelineDto ? parseRounds(matchId, dto, timelineDto) : [];
     const players = participantSummoners(dto, summoner.region);

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Welcome } from "@/modules/Welcome";
 import { TimePlayed } from "@/modules/TimePlayed";
-import { getSummonerStatsByRiotId, summonerStatsQueryKey, type SummonerStatus } from "@/lib/api";
+import type { RefreshProgress, SummonerView } from "@arena/types";
+import { getSummonerStatsByRiotId, summonerStatsQueryKey } from "@/lib/api";
 import { KDA } from "@/modules/KDA";
 import { Placement } from "@/modules/Placement";
 import { TeamSlot } from "@/modules/TeamSlot";
@@ -37,6 +38,8 @@ import { Pings } from "@/modules/Pings";
 import { Farewell } from "@/modules/Farewell";
 import { ChapterRail, type RailSlide } from "@/components/chapter-rail";
 import { ChampionNamesProvider } from "@/lib/champion-names";
+import { useGameCatalog } from "@/lib/game-catalog";
+import { resolveStats } from "@/lib/resolve-stats";
 import { rememberRecap } from "@/lib/recent-recaps";
 import { SlideProvider } from "@/lib/slides";
 import { usePageUpkeep } from "@/hooks/use-page-upkeep";
@@ -47,8 +50,10 @@ type Props = {
   region: string;
   gameName: string;
   tagLine: string;
-  /** The server's refresh status read, for the Welcome slide's refresh control. */
-  status: SummonerStatus;
+  /** The stored summoner, for the Welcome slide's refresh control. */
+  summoner: SummonerView;
+  /** A fetch in progress when the page loaded, joined on mount. */
+  refresh: RefreshProgress | null;
 };
 
 type Slide = RailSlide & { render: () => ReactNode };
@@ -60,18 +65,22 @@ function rate(count: number, total: number): number {
 /**
  * Client-side counterpart to the summoner page's server-side prefetch (see
  * page.tsx). `useQuery` reads the data straight out of the hydrated cache
- * seeded by that prefetch — same query key, so no extra fetch happens on
- * first render — rather than fetching independently.
+ * seeded by that prefetch (or by the refresh stream) — same query key, so no
+ * extra fetch happens on first render — rather than fetching independently.
+ * The recap arrives with items and augments as ids and is resolved once
+ * against the game catalog, so every module below reads names and icons.
  *
  * The page is one ordered `slides` list. It is the single source of truth
  * for section order, each section's DOM id (`#augments` deep links), the
  * short label on the previous section's "next" cue, and the chapter rail.
  */
-const SummonerStatsView = ({ region, gameName, tagLine, status }: Props) => {
-  const { data: stats } = useQuery({
+const SummonerStatsView = ({ region, gameName, tagLine, summoner, refresh }: Props) => {
+  const { data: payload } = useQuery({
     queryKey: summonerStatsQueryKey(region, gameName, tagLine),
     queryFn: () => getSummonerStatsByRiotId(region, gameName, tagLine),
   });
+  const catalog = useGameCatalog();
+  const stats = useMemo(() => (payload ? resolveStats(payload, catalog) : undefined), [payload, catalog]);
 
   // Adds this recap to the browser's own "recently viewed" list (splash page).
   const viewedProfile = stats?.profile;
@@ -155,7 +164,8 @@ const SummonerStatsView = ({ region, gameName, tagLine, status }: Props) => {
               platform={region}
               gameName={gameName}
               tagLine={tagLine}
-              initialStatus={status}
+              summoner={summoner}
+              refresh={refresh}
             />
           }
         />

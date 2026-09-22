@@ -4,8 +4,6 @@ import { useId, useRef, useState, useSyncExternalStore, useTransition, type Form
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { cn } from "cn";
-import { lookupSummoner } from "@/app/actions";
-import { formatRetryAfter } from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DEFAULT_SEARCH_PLATFORM, platformRegionName, SEARCH_PLATFORMS } from "@/lib/riot";
 import { gameNameError, sanitizeTagLine, summonerPath, tagLineError } from "@/lib/riot-id";
@@ -70,16 +68,14 @@ function RiotIdSearch({ variant, autoFocus, onNavigate, className }: Props) {
   const [gameName, setGameName] = useState("");
   const [tagLine, setTagLine] = useState("");
   const [attempted, setAttempted] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const nameError = attempted ? gameNameError(gameName) : null;
   const tagError = attempted ? tagLineError(tagLine) : null;
-  const error = nameError ?? tagError ?? serverError;
+  const error = nameError ?? tagError;
 
   const changePlatform = (value: string) => {
     setChosenPlatform(value);
-    setServerError(null);
     try {
       localStorage.setItem(PLATFORM_STORAGE_KEY, value);
     } catch {
@@ -88,7 +84,6 @@ function RiotIdSearch({ variant, autoFocus, onNavigate, className }: Props) {
   };
 
   const changeName = (value: string) => {
-    setServerError(null);
     const hashIndex = value.indexOf("#");
     if (hashIndex === -1) {
       setGameName(value);
@@ -106,21 +101,10 @@ function RiotIdSearch({ variant, autoFocus, onNavigate, className }: Props) {
     if (gameNameError(gameName)) return nameRef.current?.focus();
     if (tagLineError(tagLine)) return tagRef.current?.focus();
 
-    startTransition(async () => {
-      const result = await lookupSummoner(platform, gameName, tagLine);
-      if (!result.ok) {
-        setServerError(
-          result.error === "not_found"
-            ? `No summoner ${gameName.trim()}#${tagLine.trim()} on ${platformLabel(platform)}. Check the spelling and the server.`
-            : result.error === "invalid"
-              ? "That isn't a valid Riot ID."
-              : result.error === "rate_limited"
-                ? `Too many searches from your connection. Try again ${formatRetryAfter(result.retryAfterSeconds)}.`
-                : "The stats service isn't answering. Try again in a moment.",
-        );
-        return;
-      }
-      router.push(summonerPath(result.region, result.gameName, result.tagLine));
+    // Straight to the summoner's page: it reads our database, and only its
+    // "fetch matches" button reaches Riot (see the page's refresh stream).
+    startTransition(() => {
+      router.push(summonerPath(platform, gameName.trim(), tagLine.trim()));
       onNavigate?.();
     });
   };
@@ -187,7 +171,6 @@ function RiotIdSearch({ variant, autoFocus, onNavigate, className }: Props) {
             ref={tagRef}
             value={tagLine}
             onChange={(event) => {
-              setServerError(null);
               setTagLine(sanitizeTagLine(event.target.value));
             }}
             onKeyDown={(event) => {

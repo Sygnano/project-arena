@@ -74,9 +74,9 @@ const PLATFORM_REGION_NAME: Record<string, string> = {
 };
 
 /** Platforms the search offers, in picker order, with the short labels
- * players know them by. The API routes the same set (`REGIONAL_CLUSTER` in
- * apps/api/src/riot/client.ts); SEA servers would also need Riot's `sea`
- * match cluster there. */
+ * players know them by. The API routes every Riot platform, SEA ones
+ * included (`PLATFORMS` in apps/api/src/riotApi/routing.ts); a new entry here
+ * only needs a label above. */
 export const SEARCH_PLATFORMS = [
   { id: "euw1", label: "EUW" },
   { id: "eun1", label: "EUNE" },
