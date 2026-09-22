@@ -56,7 +56,8 @@ These columns looked like trim candidates but are used:
 - `matches.raw`, `matches.timeline`: the app never reads them, but `backfill-reparse-participants`,
   `backfill-rounds` and `remap-puuids` rebuild everything else from them. They were kept by
   decision. Together they are about 80 KB of each match's stored size.
-- `matches.region`: `apps/api/scripts/backfill-missing-timelines.ts` needs it to fetch from the right Riot cluster.
+- `matches.region`: `backfill-reparse-participants` passes it back to `parseMatch`. It is the match's own
+  platform (from its id prefix), which can differ from the platform of the player whose history listed it.
 - `match_participants.riot_id_game_name` / `riot_id_tagline`: used for teammate and opponent names. The crawler also uses them to discover new summoners.
 - `consumables_purchased`, `items_purchased`, `first_blood_kill`, `first_blood_assist`,
   `flawless_aces`, `largest_critical_strike`, `cc_total_time_dealt`, `skillshots_hit`,

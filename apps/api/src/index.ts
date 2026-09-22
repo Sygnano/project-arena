@@ -6,6 +6,7 @@ import { logger } from "./logger.js";
 import { healthRoutes } from "./routes/health.js";
 import { catalogRoutes } from "./routes/catalog.js";
 import { overviewRoutes } from "./routes/overview.js";
+import { endAllEventStreams } from "./routes/summoners/eventStream.js";
 import { summonerRoutes } from "./routes/summoners/index.js";
 
 // No CORS: browsers never call this API directly. The web app's server
@@ -21,6 +22,12 @@ await app.register(healthRoutes);
 await app.register(catalogRoutes);
 await app.register(overviewRoutes);
 await app.register(summonerRoutes);
+
+// Refresh streams can stay open for as long as a fetch runs: end them first,
+// or closing would wait on them until the host kills the process.
+app.addHook("preClose", async () => {
+  endAllEventStreams();
+});
 
 // The connection pool closes with the server, after in-flight requests end.
 app.addHook("onClose", async () => {

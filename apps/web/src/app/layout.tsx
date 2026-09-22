@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { beaufort, spiegel } from "@/fonts";
+import { AssetPrefetch } from "@/components/asset-prefetch";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>
+        <AssetPrefetch />
       </body>
     </html>
   );

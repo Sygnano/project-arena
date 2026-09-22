@@ -1,25 +1,28 @@
-import { and, eq, ilike, matches, matchParticipants, sql, summoners, type Summoner } from "@arena/db";
+import { and, eq, matches, matchParticipants, sql, summoners, type Summoner } from "@arena/db";
 import type { RiotAccountDto, RiotSummonerDto, SummonerView } from "@arena/types";
 import { db } from "../db.js";
 
-/** `ilike` is case-insensitive, but `%` and `_` in a hand-typed URL would act
- * as wildcards and could match someone else (Riot IDs may contain `_`). */
-function escapeLike(value: string) {
-  return value.replace(/[\\%_]/g, (char) => `\\${char}`);
-}
-
-/** Case-insensitive: Riot IDs get typed and shared by hand. */
+/**
+ * Case-insensitive (Riot IDs get typed and shared by hand), through
+ * `summoners_riot_id_idx`: the `lower(...)` expressions must stay the
+ * index's. Two rows can hold one Riot ID, since a player discovered in a
+ * match keeps that match's name until refreshed and someone else may have
+ * taken it since: the most recently refreshed row, whose name account-v1
+ * confirmed, wins.
+ */
 export async function findSummonerByRiotId(region: string, gameName: string, tagLine: string) {
   const [summoner] = await db
     .select()
     .from(summoners)
     .where(
       and(
-        ilike(summoners.region, escapeLike(region)),
-        ilike(summoners.riotIdGameName, escapeLike(gameName)),
-        ilike(summoners.riotIdTagline, escapeLike(tagLine)),
+        eq(summoners.region, region.toLowerCase()),
+        sql`lower(${summoners.riotIdGameName}) = lower(${gameName})`,
+        sql`lower(${summoners.riotIdTagline}) = lower(${tagLine})`,
       ),
-    );
+    )
+    .orderBy(sql`${summoners.lastRefreshedAt} desc nulls last`)
+    .limit(1);
   return summoner as Summoner | undefined;
 }
 
@@ -61,8 +64,10 @@ export function toSummonerView(summoner: Summoner, matchCount: number): Summoner
 
 /**
  * Stores what Riot says about a player (their current Riot ID, icon and
- * level), adding them if they're new. Account-V1 is the only source of a
- * current Riot ID: match data can predate a rename.
+ * level), adding them if they're new. The only writer of these fields from
+ * Riot's profile APIs (callers: `ingestion/resolveSummoner.ts`); ingestion
+ * only inserts players it hasn't seen, never overwrites. Account-V1 is the
+ * only source of a current Riot ID: match data can predate a rename.
  */
 export async function saveSummonerFromRiot(region: string, account: RiotAccountDto, profile: RiotSummonerDto) {
   const fields = {

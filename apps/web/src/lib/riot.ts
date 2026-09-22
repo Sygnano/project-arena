@@ -55,10 +55,10 @@ export function championSplashUrl(championName: string): string {
 }
 
 // Riot platform codes -> display name, for `SummonerProfile.region` (e.g.
-// "euw1", matching the `[platform]` route param — see summoners.ts). Only
-// the platform actually tracked today (EUW1, per CLAUDE.md §1) is verified
-// against a real summoner; the rest follow Riot's own published platform
-// list and op.gg-style naming, add/correct as new regions are tracked.
+// "euw1", matching the `[platform]` route param — see summoners.ts). Names
+// follow Riot's own server names; SG2 is the merged Southeast Asia server
+// (Singapore, Malaysia, Indonesia, Philippines, Thailand), TW2 also serves
+// Hong Kong and Macao.
 const PLATFORM_REGION_NAME: Record<string, string> = {
   euw1: "Europe West",
   eun1: "Europe Nordic & East",
@@ -69,8 +69,12 @@ const PLATFORM_REGION_NAME: Record<string, string> = {
   la1: "Latin America North",
   la2: "Latin America South",
   oc1: "Oceania",
+  sg2: "Southeast Asia",
+  tw2: "Taiwan",
+  vn2: "Vietnam",
   tr1: "Turkey",
   ru: "Russia",
+  me1: "Middle East",
 };
 
 /** Platforms the search offers, in picker order, with the short labels
@@ -87,8 +91,12 @@ export const SEARCH_PLATFORMS = [
   { id: "la1", label: "LAN" },
   { id: "la2", label: "LAS" },
   { id: "oc1", label: "OCE" },
+  { id: "sg2", label: "SG" },
+  { id: "tw2", label: "TW" },
+  { id: "vn2", label: "VN" },
   { id: "tr1", label: "TR" },
   { id: "ru", label: "RU" },
+  { id: "me1", label: "ME" },
 ] as const;
 
 export const DEFAULT_SEARCH_PLATFORM = "euw1";

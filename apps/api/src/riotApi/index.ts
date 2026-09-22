@@ -7,5 +7,5 @@ export const riot = new RiotClient({ apiKey: env.RIOT_API_KEY, logLevel: env.RIO
 export { RiotClient, DEV_KEY_APP_LIMITS, type RiotClientOptions } from "./client.js";
 export { RiotApiError } from "./errors.js";
 export { Queue, type QueueId } from "./queues.js";
-export { PLATFORMS, isPlatform, type Platform, type Region } from "./routing.js";
+export { PLATFORMS, isPlatform, platformOfMatch, type Platform, type Region } from "./routing.js";
 export type { MatchIdFilters } from "./endpoints/matchV5.js";

@@ -109,7 +109,7 @@ async function streamRefresh(stream: EventStream, { region, gameName, tagLine }:
     }
     if (!chargedRiotRequest && !allowed(riotRequestLimiter)) return;
     log.info({ summoner: label }, firstFetch ? "first fetch requested" : "refresh requested");
-    refreshQueue.enqueue({ puuid, region: summoner.region, label }, "user");
+    refreshQueue.enqueue({ puuid, region: summoner.region, label });
   }
 
   const outcome = await followFetch(stream, puuid);

@@ -1,7 +1,7 @@
 import type { RiotArenaMatchDto, RiotMatchTimelineDto } from "@arena/types";
 import type { RiotHttpClient } from "../http.js";
 import type { QueueId } from "../queues.js";
-import { matchRegion, toPlatform } from "../routing.js";
+import { matchRegion, platformOfMatch, toPlatform } from "../routing.js";
 
 /** Riot caps `count` at 100, so a full history takes several pages. */
 const MATCH_ID_PAGE_SIZE = 100;
@@ -29,16 +29,6 @@ const epochSeconds = (date: Date | undefined) => (date ? Math.floor(date.getTime
 
 /** "2026-09-20 14:05" (UTC), for log lines. */
 const shortDate = (date: Date) => date.toISOString().slice(0, 16).replace("T", " ");
-
-/**
- * Match ids start with their platform ("EUW1_7851809865"), which is how
- * match calls know their routing without being told.
- */
-function platformOfMatch(matchId: string) {
-  const prefix = matchId.split("_")[0];
-  if (!prefix || prefix === matchId) throw new Error(`Match id "${matchId}" has no platform prefix`);
-  return toPlatform(prefix);
-}
 
 /** Match-V5: match lists, match details and timelines. Regional (europe, americas, asia, sea). */
 export class MatchV5 {

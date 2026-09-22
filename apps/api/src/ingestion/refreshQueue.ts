@@ -5,8 +5,6 @@ import type { RiotClient } from "../riotApi/client.js";
 import { REGION_LABEL, matchRegion, toPlatform, type Region } from "../riotApi/routing.js";
 import { ingestSummoner } from "./ingestSummoner.js";
 
-type Priority = "user" | "background";
-
 /** A summoner whose matches to fetch. `label` ("Name#TAG") is for logs. */
 export interface RefreshTarget {
   puuid: string;
@@ -17,7 +15,6 @@ export interface RefreshTarget {
 
 type Job = RefreshTarget & {
   lane: Region;
-  priority: Priority;
   state: RefreshProgress["state"];
   phase: RefreshProgress["phase"];
   done: number;
@@ -56,9 +53,9 @@ export function laneOf(platform: string): Region {
  * Riot regional cluster (europe, americas, asia, sea). Riot's rate limits are
  * per cluster, so a fetch on NA never waits behind one on EUW, while EUW and
  * EUNE share a lane because they share the `europe` budget (two lanes there
- * would only compete for it). Within a lane, one summoner at a time, and
- * `user` jobs (a refresh someone is watching) before `background` ones (none
- * today: bulk ingestion is `scripts/crawl.ts`, its own process).
+ * would only compete for it). Within a lane, one summoner at a time, first
+ * come first served. Bulk ingestion isn't queued here: it's
+ * `scripts/crawl.ts`, its own process.
  *
  * In memory: a restart drops the queue and the next refresh press queues
  * again (ingestion skips matches already stored). Anyone can follow a job
@@ -82,21 +79,13 @@ export class RefreshQueue {
   }
 
   /** Queues a fetch, unless one is already queued or running for this summoner. */
-  enqueue(target: RefreshTarget, priority: Priority) {
+  enqueue(target: RefreshTarget) {
     const existing = this.jobs.get(target.puuid);
-    if (existing && this.isActiveJob(existing)) {
-      if (existing.state === "queued" && priority === "user" && existing.priority === "background") {
-        existing.priority = "user";
-        this.sortPending(existing.lane);
-        this.notifyQueued(existing.lane);
-      }
-      return;
-    }
+    if (existing && this.isActiveJob(existing)) return;
     const laneName = laneOf(target.region);
     this.jobs.set(target.puuid, {
       ...target,
       lane: laneName,
-      priority,
       state: "queued",
       phase: null,
       done: 0,
@@ -106,7 +95,6 @@ export class RefreshQueue {
       finishedAt: null,
     });
     this.lane(laneName).pending.push(target.puuid);
-    this.sortPending(laneName);
     log.info(
       { summoner: target.label, lane: REGION_LABEL[laneName], position: this.progress(target.puuid)?.position },
       "fetch queued",
@@ -172,12 +160,6 @@ export class RefreshQueue {
     for (const puuid of this.lane(laneName).pending) this.notify(puuid);
   }
 
-  private sortPending(laneName: Region) {
-    // Stable: keeps arrival order within each priority.
-    const rank = (puuid: string) => (this.jobs.get(puuid)?.priority === "user" ? 0 : 1);
-    this.lane(laneName).pending.sort((a, b) => rank(a) - rank(b));
-  }
-
   private prune() {
     const now = Date.now();
     for (const [puuid, job] of this.jobs) {
@@ -209,17 +191,23 @@ export class RefreshQueue {
     this.notify(job.puuid);
     this.notifyQueued(job.lane);
     try {
-      const { ingested } = await ingestSummoner(this.db, this.riot, job, (progress) => {
-        job.phase = progress.phase;
-        if (progress.phase === "matches") {
-          job.done = progress.done;
-          job.total = progress.total;
-        }
-        this.notify(job.puuid);
-      });
+      const { ingested, skipped } = await ingestSummoner(
+        this.db,
+        this.riot,
+        job,
+        (progress) => {
+          job.phase = progress.phase;
+          if (progress.phase === "matches") {
+            job.done = progress.done;
+            job.total = progress.total;
+          }
+          this.notify(job.puuid);
+        },
+        { onSkip: (skip) => log.warn({ summoner: job.label, lane, ...skip }, "bad match skipped, see skipped_matches") },
+      );
       job.state = "done";
       log.info(
-        { summoner: job.label, lane, newMatches: ingested, seconds: Math.round((Date.now() - job.startedAt) / 1000) },
+        { summoner: job.label, lane, newMatches: ingested, skipped, seconds: Math.round((Date.now() - job.startedAt) / 1000) },
         "fetch finished",
       );
     } catch (err) {

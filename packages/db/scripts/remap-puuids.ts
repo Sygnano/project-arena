@@ -39,10 +39,12 @@ const MAP_FILE = fileURLToPath(new URL("../.puuid-remap.json", import.meta.url))
 const REQUEST_INTERVAL_MS = 1300;
 
 // Platform (match id prefix / summoners.region) -> account-v1 routing cluster.
+// Account-V1 has no SEA cluster (and answers the same from every cluster),
+// so SEA platforms use asia, as in apps/api/src/riotApi/routing.ts.
 const REGIONAL_CLUSTER: Record<string, string> = {
-  euw1: "europe", eun1: "europe", tr1: "europe", ru: "europe",
-  na1: "americas", br1: "americas", la1: "americas", la2: "americas", oc1: "americas",
-  kr: "asia", jp1: "asia",
+  euw1: "europe", eun1: "europe", tr1: "europe", ru: "europe", me1: "europe",
+  na1: "americas", br1: "americas", la1: "americas", la2: "americas",
+  kr: "asia", jp1: "asia", oc1: "asia", sg2: "asia", tw2: "asia", vn2: "asia",
 };
 
 /** old puuid -> new puuid, or null when the Riot ID no longer resolves. */

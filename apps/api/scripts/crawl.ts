@@ -4,143 +4,207 @@
  * Each step takes the summoner with the oldest `lastRefreshedAt` (never
  * refreshed first), refreshes their Riot ID/icon/level from account-v1 and
  * summoner-v4, ingests their new Arena matches, and adds every player
- * met in those matches to `summoners` — who then queue up for their own
+ * met in those matches to `summoners`, who then queue up for their own
  * turn. Matches shared between players are stored once (see
- * `ingestSummoner`), so a match is never fetched twice.
+ * `ingestSummoner`), so a match is never fetched twice. Only summoners who
+ * are due are picked: never refreshed, or last refreshed over
+ * CRAWL_REFRESH_AFTER_HOURS (default 24) ago.
  *
- * Run by hand; it never stops on its own unless given --summoners. Ctrl-C
- * finishes the current match and exits (the interrupted summoner resumes
- * next run); a second Ctrl-C exits immediately.
+ * One worker per Riot regional cluster (europe, americas, asia, sea), side by
+ * side, like the API's refresh queue: Riot's rate limits are per cluster, so
+ * an NA crawl never waits behind an EUW one.
+ *
+ * Seeding: a platform with no summoner at all (see `CRAWL_SEEDS`) is started
+ * from a top arenasweats.lol player, looked up at Riot and crawled first.
+ *
+ * Two modes:
+ *   pnpm --filter @arena/api crawl [--summoners N]
+ *     By hand. Ends when nobody is due (or after about N summoners). A fatal
+ *     Riot error (key) or five failures in a row (an outage) end it.
+ *   pnpm --filter @arena/api crawl:forever
+ *     Hosted (the Railway `crawler` service, see railway.crawler.json). Never
+ *     ends on its own: when nobody is due it sleeps and looks again, and
+ *     errors are waited out and retried instead of exiting.
+ * In both, Ctrl-C / SIGTERM finishes each worker's current match and exits
+ * (an interrupted summoner resumes next run); a second one exits at once.
  *
  * Runs in its own process with its own rate limiter. Running it next to
  * the API server shares the key's per-region budget: each process's limiter
  * adopts the counts Riot reports, so they slow down rather than hit 429s.
- *
- * Usage: pnpm --filter @arena/api crawl [--summoners N]
  */
 import { parseArgs } from "node:util";
-import { asc, decompressJson, desc, eq, inArray, matches, sql, summoners } from "@arena/db";
-import type { RiotArenaMatchDto } from "@arena/types";
+import { asc, eq, inArray, sql, summoners, type Summoner } from "@arena/db";
 import { db } from "../src/db.js";
-import { riot, RiotApiError } from "../src/riotApi/index.js";
-import { ingestSummoner, type IngestProgress } from "../src/ingestion/ingestSummoner.js";
+import { riotIdLabel } from "../src/logger.js";
+import { PLATFORMS, riot, RiotApiError, type Platform, type Region } from "../src/riotApi/index.js";
+import { matchRegion } from "../src/riotApi/routing.js";
+import { ingestSummoner, type IngestProgress, type SkippedMatch } from "../src/ingestion/ingestSummoner.js";
+import { refreshSummonerProfile, resolveSummonerByRiotId } from "../src/ingestion/resolveSummoner.js";
+import { CRAWL_SEEDS } from "./crawl-seeds.js";
 
 const { values: args } = parseArgs({
-  options: { summoners: { type: "string" } },
+  options: { summoners: { type: "string" }, forever: { type: "boolean", default: false } },
 });
+const forever = args.forever;
 const maxSummoners = args.summoners ? Number(args.summoners) : Infinity;
 if (!(maxSummoners > 0)) throw new Error("--summoners must be a positive number");
+const refreshAfterHours = Number(process.env.CRAWL_REFRESH_AFTER_HOURS ?? "24");
+if (!(refreshAfterHours > 0)) throw new Error("CRAWL_REFRESH_AFTER_HOURS must be a positive number if set");
+const refreshAfterMs = refreshAfterHours * 60 * 60_000;
+
+const LANES: Region[] = ["europe", "americas", "asia", "sea"];
 
 const MAX_CONSECUTIVE_FAILURES = 5;
+// --forever only. A summoner whose refresh failed is skipped this long.
+const FAILED_RETRY_MS = 60 * 60_000;
+// Nothing due: wait this long, then look again.
+const IDLE_SLEEP_MS = 10 * 60_000;
+// Several summoners failing in a row (network, database or Riot down): wait,
+// doubling each time it happens again, up to OUTAGE_SLEEP_MAX_MS.
+const OUTAGE_SLEEP_MS = 60_000;
+const OUTAGE_SLEEP_MAX_MS = 30 * 60_000;
+// A fatal Riot error (expired key, PUUIDs from another app) fails every
+// summoner the same way; retrying sooner would only spend calls. Changing
+// RIOT_API_KEY in Railway redeploys the service anyway.
+const FATAL_SLEEP_MS = 30 * 60_000;
 
 let stopRequested = false;
-process.on("SIGINT", () => {
-  if (stopRequested) process.exit(130);
-  stopRequested = true;
-  console.log("\n[crawl] stopping after the current match (Ctrl-C again to quit now)");
-});
-
-/**
- * Adds players from matches stored before discovery existed (or by an older
- * ingest) to `summoners`. Only matches with a participant missing from
- * `summoners` are decompressed, so after the first run this is one query.
- */
-async function discoverFromStoredMatches() {
-  const rows = await db.execute<{ match_id: string }>(sql`
-    select distinct mp.match_id
-    from match_participants mp
-    where not exists (select 1 from summoners s where s.puuid = mp.puuid)
-  `);
-  const matchIds = rows.map((row) => row.match_id);
-  if (matchIds.length === 0) return 0;
-  console.log(`[crawl] seeding: ${matchIds.length} stored match(es) have players not in summoners yet`);
-
-  let discovered = 0;
-  for (let i = 0; i < matchIds.length; i += 50) {
-    const batch = await db
-      .select({ region: matches.region, raw: matches.raw })
-      .from(matches)
-      .where(inArray(matches.matchId, matchIds.slice(i, i + 50)))
-      // Newest first, so a player met in several matches gets the Riot ID
-      // and icon they had most recently.
-      .orderBy(desc(matches.gameCreation));
-    for (const match of batch) {
-      const dto = decompressJson<RiotArenaMatchDto>(match.raw);
-      const players = dto.info.participants
-        .filter((p) => p.riotIdGameName && p.riotIdTagline)
-        .map((p) => ({
-          puuid: p.puuid,
-          riotIdGameName: p.riotIdGameName,
-          riotIdTagline: p.riotIdTagline,
-          region: match.region,
-          profileIconId: p.profileIcon ?? null,
-          summonerLevel: p.summonerLevel ?? null,
-        }));
-      if (players.length === 0) continue;
-      const inserted = await db
-        .insert(summoners)
-        .values(players)
-        .onConflictDoNothing({ target: summoners.puuid })
-        .returning({ puuid: summoners.puuid });
-      discovered += inserted.length;
-    }
-    const scanned = Math.min(i + 50, matchIds.length);
-    console.log(`[crawl] seeding: ${scanned}/${matchIds.length} matches scanned, ${discovered} player(s) added`);
-  }
-  return discovered;
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.on(signal, () => {
+    if (stopRequested) process.exit(130);
+    stopRequested = true;
+    console.log(`\n[crawl] ${signal}: stopping after the current match (again to quit now)`);
+  });
+}
+if (forever) {
+  // A stray rejected promise must not take the hosted process down.
+  process.on("unhandledRejection", (err) => {
+    console.error("[crawl] unhandled rejection:", err instanceof Error ? err.message : err);
+  });
 }
 
-/** The next summoner to crawl, skipping ones that already failed this run. */
-async function nextSummoner(skip: ReadonlySet<string>) {
+/** Waits `ms`, but wakes up within a second of a stop request. */
+async function sleep(ms: number) {
+  const until = Date.now() + ms;
+  while (!stopRequested && Date.now() < until) {
+    await new Promise((resolve) => setTimeout(resolve, Math.min(1000, until - Date.now())));
+  }
+}
+
+function errorMessage(err: unknown) {
+  return err instanceof Error ? err.message : String(err);
+}
+
+/** Errors that will fail every summoner the same way. */
+function isFatal(err: unknown) {
+  // 401/403: missing or expired key. 400 "decrypting": PUUIDs from another
+  // Riot app (see CLAUDE.md §2, remap-puuids).
+  return err instanceof RiotApiError && err.fatal;
+}
+
+type CrawlTarget = Pick<Summoner, "puuid" | "region" | "riotIdGameName" | "riotIdTagline" | "lastRefreshedAt">;
+
+/** This lane's platforms that have a seed list but no summoner yet. */
+async function unseededPlatforms(platforms: Platform[]) {
+  const unseeded: Platform[] = [];
+  for (const platform of platforms) {
+    if (!CRAWL_SEEDS[platform]) continue;
+    const [row] = await db.select({ puuid: summoners.puuid }).from(summoners).where(eq(summoners.region, platform)).limit(1);
+    if (!row) unseeded.push(platform);
+  }
+  return unseeded;
+}
+
+/**
+ * Looks up the platform's seed players at Riot until one exists, and stores
+ * them. "gone" when none does (the list needs refilling), "retry" when Riot
+ * or the network failed before an answer.
+ */
+async function seedPlatform(platform: Platform, log: (message: string) => void): Promise<CrawlTarget | "gone" | "retry"> {
+  for (const { gameName, tagLine } of CRAWL_SEEDS[platform] ?? []) {
+    try {
+      const summoner = await resolveSummonerByRiotId(platform, gameName, tagLine);
+      if (!summoner) {
+        log(`${platform}: seed ${gameName}#${tagLine} not found at Riot, trying the next`);
+        continue;
+      }
+      log(`${platform}: no summoners yet, seeded with ${riotIdLabel(summoner)}`);
+      return summoner;
+    } catch (err) {
+      if (isFatal(err)) throw err;
+      log(`${platform}: seed lookup failed (${errorMessage(err)}), retrying later`);
+      return "retry";
+    }
+  }
+  log(`${platform}: none of its seeds exist at Riot any more, skipping it. Refill it in scripts/crawl-seeds.ts`);
+  return "gone";
+}
+
+/** The lane's next due summoner, oldest refresh first, minus ones backing off. */
+async function nextSummoner(platforms: Platform[], skip: ReadonlySet<string>): Promise<CrawlTarget | undefined> {
+  const cutoff = new Date(Date.now() - refreshAfterMs);
   const candidates = await db
     .select({
       puuid: summoners.puuid,
       region: summoners.region,
-      name: sql<string>`${summoners.riotIdGameName} || '#' || ${summoners.riotIdTagline}`,
+      riotIdGameName: summoners.riotIdGameName,
+      riotIdTagline: summoners.riotIdTagline,
       lastRefreshedAt: summoners.lastRefreshedAt,
     })
     .from(summoners)
+    .where(
+      sql`${inArray(summoners.region, platforms)} and (${summoners.lastRefreshedAt} is null or ${summoners.lastRefreshedAt} < ${cutoff})`,
+    )
     .orderBy(sql`${summoners.lastRefreshedAt} asc nulls first`, asc(summoners.puuid))
     .limit(skip.size + 1);
   return candidates.find((candidate) => !skip.has(candidate.puuid));
 }
 
 /**
- * Updates a summoner's Riot ID, icon and level from account-v1 and
- * summoner-v4 (2 calls). Discovered rows hold whatever the match they were
- * met in said, which can predate a rename. Returns the current "name#tag".
+ * Brings the summoner's Riot ID, icon and level up to date before their
+ * matches (`refreshSummonerProfile`), and returns their current "name#tag".
  * A failure here is logged, not thrown: the matches are still worth
  * fetching with a stale name. Fatal errors (key, PUUID app) still throw.
  */
-async function refreshProfile(summoner: { puuid: string; region: string; name: string }) {
+async function refreshProfile(summoner: CrawlTarget, log: (message: string) => void) {
+  const stored = riotIdLabel(summoner);
   try {
-    const account = await riot.account.getAccountByPuuid(summoner.puuid, summoner.region);
-    const profile = await riot.summoner.getSummonerByPuuid(summoner.puuid, summoner.region);
-    const next = {
-      riotIdGameName: account.gameName,
-      riotIdTagline: account.tagLine,
-      profileIconId: profile.profileIconId,
-      summonerLevel: profile.summonerLevel,
-    };
-    await db.update(summoners).set(next).where(eq(summoners.puuid, summoner.puuid));
-    const name = `${account.gameName}#${account.tagLine}`;
-    if (name !== summoner.name) console.log(`[crawl]   ${summoner.name} is now ${name}`);
+    const name = riotIdLabel(await refreshSummonerProfile(summoner));
+    if (name !== stored) log(`  ${stored} is now ${name}`);
     return name;
   } catch (err) {
     if (isFatal(err)) throw err;
-    console.warn(
-      `[crawl]   ${summoner.name}: profile refresh failed, keeping the stored one:`,
-      err instanceof Error ? err.message : err,
-    );
-    return summoner.name;
+    log(`  ${stored}: profile refresh failed, keeping the stored one: ${errorMessage(err)}`);
+    return stored;
   }
 }
 
-/** Errors that will fail every summoner the same way — no point going on. */
-function isFatal(err: unknown) {
-  // 401/403: missing or expired key. 400 "decrypting": PUUIDs from another
-  // Riot app (see CLAUDE.md §2, remap-puuids).
-  return err instanceof RiotApiError && err.fatal;
+/** A bad match left out of the database (see `ingestSummoner`): logged here and in `skipped_matches`. */
+function skipLogger(name: string, lane: Region) {
+  return (skip: SkippedMatch) => {
+    totals.skipped += 1;
+    const status = skip.riotStatus ? ` ${skip.riotStatus}` : "";
+    console.warn(`[crawl:${lane}]   ${name}: bad match ${skip.matchId} skipped (${skip.stage}${status}): ${skip.error}`);
+  };
+}
+
+/** Logs a refresh's progress: the match count once ids are in, then every match. */
+function progressLogger(name: string, log: (message: string) => void) {
+  let startedAt = 0;
+  return (progress: IngestProgress) => {
+    if (progress.phase === "matchIds") {
+      log(`  ${name}: fetching match ids`);
+      return;
+    }
+    if (progress.done === 0) {
+      startedAt = Date.now();
+      log(`  ${name}: ${progress.total} new match(es) to fetch`);
+      return;
+    }
+    const perMatchMs = (Date.now() - startedAt) / progress.done;
+    const etaMin = ((progress.total - progress.done) * perMatchMs) / 60_000;
+    log(`  ${name}: match ${progress.done}/${progress.total} done (~${etaMin.toFixed(1)} min left)`);
+  };
 }
 
 async function counts() {
@@ -153,98 +217,144 @@ async function counts() {
   return row!;
 }
 
-/** Logs a refresh's progress: the match count once ids are in, then every match. */
-function progressLogger(name: string) {
-  let startedAt = 0;
-  return (progress: IngestProgress) => {
-    if (progress.phase === "matchIds") {
-      console.log(`[crawl]   ${name}: fetching match ids`);
-      return;
+// Totals across every lane.
+const totals = { crawled: 0, ingested: 0, skipped: 0, discovered: 0, failed: 0 };
+const startedAt = Date.now();
+
+/**
+ * Crawls one regional cluster's platforms until nobody is due (by hand) or
+ * forever (--forever). Throws only by hand, on a fatal Riot error or an
+ * outage; --forever waits both out.
+ */
+async function crawlLane(lane: Region) {
+  const platforms = PLATFORMS.filter((platform) => matchRegion(platform) === lane);
+  const log = (message: string) => console.log(`[crawl:${lane}] ${message}`);
+
+  // Seeded summoners go first: behind the lane's never-refreshed backlog a
+  // new platform could wait days for its first crawl.
+  const priority: CrawlTarget[] = [];
+  let unseeded = await unseededPlatforms(platforms);
+  // puuid -> when it may be tried again (never, by hand).
+  const failedUntil = new Map<string, number>();
+  let consecutiveFailures = 0;
+  let outageSleepMs = OUTAGE_SLEEP_MS;
+
+  while (!stopRequested && totals.crawled < maxSummoners) {
+    try {
+      if (unseeded.length > 0) {
+        const retry: Platform[] = [];
+        for (const platform of unseeded) {
+          const seeded = await seedPlatform(platform, log);
+          if (seeded === "retry") retry.push(platform);
+          else if (seeded !== "gone") priority.push(seeded);
+        }
+        unseeded = retry;
+      }
+
+      const now = Date.now();
+      for (const [puuid, until] of failedUntil) if (until <= now) failedUntil.delete(puuid);
+      const summoner = priority.shift() ?? (await nextSummoner(platforms, new Set(failedUntil.keys())));
+      if (!summoner) {
+        if (!forever) {
+          if (unseeded.length > 0) log(`seeds for ${unseeded.join(", ")} could not be looked up, rerun to retry`);
+          log("nobody due, lane done");
+          return;
+        }
+        log(`nobody due, checking again in ${IDLE_SLEEP_MS / 60_000} min`);
+        await sleep(IDLE_SLEEP_MS);
+        continue;
+      }
+
+      const last = summoner.lastRefreshedAt ? summoner.lastRefreshedAt.toISOString() : "never";
+      let name = riotIdLabel(summoner);
+      log(`${name} (${summoner.region}, last refreshed ${last})`);
+      try {
+        name = await refreshProfile(summoner, log);
+        const result = await ingestSummoner(db, riot, summoner, progressLogger(name, log), {
+          shouldStop: () => stopRequested,
+          onSkip: skipLogger(name, lane),
+        });
+        totals.ingested += result.ingested;
+        totals.discovered += result.discovered;
+        if (result.stopped) {
+          log(`  ${name}: stopped early, resumes on the next run`);
+          return;
+        }
+        totals.crawled += 1;
+        consecutiveFailures = 0;
+        outageSleepMs = OUTAGE_SLEEP_MS;
+        const skipped = result.skipped > 0 ? `, ${result.skipped} bad match(es) skipped` : "";
+        log(`  ${name}: done, ${result.ingested} match(es) stored${skipped}, ${result.discovered} new player(s)`);
+      } catch (err) {
+        if (isFatal(err)) {
+          if (!forever) throw err;
+          console.error(
+            `[crawl:${lane}] fatal Riot error, every summoner would fail the same way (check RIOT_API_KEY): ${errorMessage(err)}. Retrying in ${FATAL_SLEEP_MS / 60_000} min`,
+          );
+          priority.unshift(summoner);
+          await sleep(FATAL_SLEEP_MS);
+          continue;
+        }
+        failedUntil.set(summoner.puuid, forever ? Date.now() + FAILED_RETRY_MS : Infinity);
+        totals.failed += 1;
+        consecutiveFailures += 1;
+        console.error(
+          `[crawl:${lane}] ${name} failed, ${forever ? `retrying them in ${FAILED_RETRY_MS / 60_000} min` : "skipping for this run"}: ${errorMessage(err)}`,
+        );
+        if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+          const outage = `${consecutiveFailures} summoners failed in a row, looks like an outage (network, database or Riot); nothing was half-written`;
+          if (!forever) throw new Error(`${outage}. Rerun when it's back.`);
+          console.error(`[crawl:${lane}] ${outage}. Waiting ${Math.round(outageSleepMs / 60_000)} min`);
+          await sleep(outageSleepMs);
+          outageSleepMs = Math.min(outageSleepMs * 2, OUTAGE_SLEEP_MAX_MS);
+          consecutiveFailures = 0;
+          // The failures were the outage, not those players: retry them all.
+          failedUntil.clear();
+        }
+        continue;
+      }
+
+      const stored = await counts();
+      const minutes = (Date.now() - startedAt) / 60_000;
+      log(
+        `  run: ${totals.crawled} summoner(s), ${totals.ingested} new match(es), ${totals.discovered} new player(s) in ${minutes.toFixed(1)} min` +
+          ` · db: ${stored.matches} matches, ${stored.summoners} summoners (${stored.pending} never refreshed)`,
+      );
+    } catch (err) {
+      if (!forever) throw err;
+      // The database itself failed (picking the next summoner, the counts):
+      // wait for it to come back. postgres.js reconnects on the next query.
+      console.error(`[crawl:${lane}] database error, retrying in ${OUTAGE_SLEEP_MS / 60_000} min: ${errorMessage(err)}`);
+      await sleep(OUTAGE_SLEEP_MS);
     }
-    if (progress.done === 0) {
-      startedAt = Date.now();
-      console.log(`[crawl]   ${name}: ${progress.total} new match(es) to fetch`);
-      return;
-    }
-    const perMatchMs = (Date.now() - startedAt) / progress.done;
-    const etaMin = ((progress.total - progress.done) * perMatchMs) / 60_000;
-    console.log(
-      `[crawl]   ${name}: match ${progress.done}/${progress.total} stored (~${etaMin.toFixed(1)} min left)`,
-    );
-  };
+  }
 }
 
 async function main() {
   console.log(
-    `[crawl] starting${Number.isFinite(maxSummoners) ? ` (stops after ${maxSummoners} summoner(s))` : ""} — Ctrl-C to stop`,
+    `[crawl] starting${forever ? " (forever)" : ""}: refreshing anyone not refreshed in ${refreshAfterHours}h` +
+      `${Number.isFinite(maxSummoners) ? `, stops after ~${maxSummoners} summoner(s)` : ""}, lanes: ${LANES.join(", ")}`,
   );
-  const seeded = await discoverFromStoredMatches();
-  if (seeded > 0) console.log(`[crawl] added ${seeded} player(s) from already-stored matches`);
-
-  const failed = new Set<string>();
-  // Several summoners failing in a row means the network, the database or
-  // Riot is down, not that those players are broken: stop instead of
-  // marking the whole queue as failed. Nothing is lost — see ingestSummoner.
-  let consecutiveFailures = 0;
-  let crawled = 0;
-  let totalIngested = 0;
-  let totalDiscovered = 0;
-  const startedAt = Date.now();
-
-  while (!stopRequested && crawled < maxSummoners) {
-    const summoner = await nextSummoner(failed);
-    if (!summoner) {
-      console.log("[crawl] no summoners left to crawl");
-      break;
-    }
-
-    const last = summoner.lastRefreshedAt ? summoner.lastRefreshedAt.toISOString() : "never";
-    console.log(`[crawl] ${summoner.name} (${summoner.region}, last refreshed ${last})`);
-    try {
-      summoner.name = await refreshProfile(summoner);
-      const result = await ingestSummoner(db, riot, summoner, progressLogger(summoner.name), {
-        shouldStop: () => stopRequested,
-      });
-      totalIngested += result.ingested;
-      totalDiscovered += result.discovered;
-      if (result.stopped) {
-        console.log(`[crawl]   ${summoner.name}: stopped early, resumes on the next run`);
-        break;
-      }
-      crawled += 1;
-      consecutiveFailures = 0;
-      console.log(
-        `[crawl]   ${summoner.name}: done, ${result.ingested} match(es) stored, ${result.discovered} new player(s)`,
-      );
-    } catch (err) {
-      if (isFatal(err)) throw err;
-      failed.add(summoner.puuid);
-      consecutiveFailures += 1;
-      console.error(`[crawl] ${summoner.name} failed, skipping for this run:`, err instanceof Error ? err.message : err);
-      if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-        throw new Error(
-          `${consecutiveFailures} summoners failed in a row — looks like an outage (network, database or Riot). Rerun when it's back; nothing was half-written.`,
-        );
-      }
-      continue;
-    }
-
-    const totals = await counts();
-    const minutes = (Date.now() - startedAt) / 60_000;
-    console.log(
-      `[crawl]   run: ${crawled} summoner(s), ${totalIngested} new match(es), ${totalDiscovered} new player(s) in ${minutes.toFixed(1)} min` +
-        ` · db: ${totals.matches} matches, ${totals.summoners} summoners (${totals.pending} never refreshed)`,
-    );
-  }
+  const results = await Promise.allSettled(
+    LANES.map((lane) =>
+      crawlLane(lane).catch((err) => {
+        // One lane hitting a fatal error or an outage stops the others too.
+        stopRequested = true;
+        throw new Error(`${lane}: ${errorMessage(err)}`);
+      }),
+    ),
+  );
 
   console.log(
-    `[crawl] done: ${crawled} summoner(s) refreshed, ${totalIngested} match(es) stored, ${totalDiscovered} player(s) discovered, ${failed.size} failed`,
+    `[crawl] done: ${totals.crawled} summoner(s) refreshed, ${totals.ingested} match(es) stored, ${totals.skipped} bad match(es) skipped, ${totals.discovered} player(s) discovered, ${totals.failed} failed`,
   );
+  const failures = results.flatMap((result) => (result.status === "rejected" ? [errorMessage(result.reason)] : []));
+  if (failures.length > 0) throw new Error(failures.join("; "));
   await db.$client.end();
 }
 
 main().catch(async (err) => {
-  console.error("[crawl] aborted:", err instanceof Error ? err.message : err);
+  console.error("[crawl] aborted:", errorMessage(err));
   await db.$client.end().catch(() => {});
   process.exit(1);
 });

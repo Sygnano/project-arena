@@ -76,6 +76,19 @@ export function toPlatform(value: string): Platform {
   return platform;
 }
 
+/**
+ * The platform a match was played on: match ids start with it
+ * ("EUW1_7851809865"), which is how match calls know their routing without
+ * being told. Not necessarily the platform of the player whose history
+ * listed it: Match-V5 lists a player's games on every platform of the
+ * cluster (an ME1 player's EUW1 games too).
+ */
+export function platformOfMatch(matchId: string): Platform {
+  const prefix = matchId.split("_")[0];
+  if (!prefix || prefix === matchId) throw new Error(`Match id "${matchId}" has no platform prefix`);
+  return toPlatform(prefix);
+}
+
 /** Cluster for Match-V5 calls about a player or match on this platform. */
 export function matchRegion(platform: Platform): Region {
   return MATCH_REGION[platform];

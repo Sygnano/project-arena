@@ -10,7 +10,7 @@ import {
   customType,
   index,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // Drizzle's pg-core has no built-in `bytea` helper — postgres.js already
 // marshals bytea <-> Buffer natively, so this just tells Drizzle the SQL
@@ -42,6 +42,13 @@ export const summoners = pgTable("summoners", {
 }, (table) => [
   // The crawler's "who's next" lookup: oldest refresh first, nulls first.
   index("summoners_last_refreshed_at_idx").on(table.lastRefreshedAt.asc().nullsFirst()),
+  // Every summoner page's lookup, case-insensitive (Riot IDs get typed by
+  // hand): `findSummonerByRiotId` compares these exact expressions.
+  index("summoners_riot_id_idx").on(
+    table.region,
+    sql`lower(${table.riotIdGameName})`,
+    sql`lower(${table.riotIdTagline})`,
+  ),
 ]);
 
 /**
@@ -261,6 +268,30 @@ export const matchRounds = pgTable(
   },
   (table) => [primaryKey({ columns: [table.matchId, table.roundNumber, table.winnerTeamId] })],
 );
+
+/**
+ * Matches ingestion left out because the match itself is bad: Riot refused it
+ * or its timeline for good (a 4xx), the parser threw on it, or Postgres
+ * rejected the parsed rows. Such a match is stored nowhere else, so the
+ * refresh that met it still completes. An operations log to look into, not
+ * data any page reads: one row per match, bumped each time another refresh
+ * meets it again, and deleted once it's stored after all. Outages (network,
+ * 5xx, 429) never land here: they fail the refresh instead.
+ */
+export const skippedMatches = pgTable("skipped_matches", {
+  matchId: text("match_id").primaryKey(),
+  platform: text("platform").notNull(),
+  /** What failed: `match` / `timeline` (the Riot fetch), `parse`, `store`. */
+  stage: text("stage").notNull(),
+  /** Riot's HTTP status, for the fetch stages. */
+  riotStatus: integer("riot_status"),
+  error: text("error").notNull(),
+  /** The summoner whose match history listed it, to reproduce the refresh. */
+  seenInPuuid: text("seen_in_puuid").notNull(),
+  firstSkippedAt: timestamp("first_skipped_at", { withTimezone: true }).notNull().defaultNow(),
+  lastSkippedAt: timestamp("last_skipped_at", { withTimezone: true }).notNull().defaultNow(),
+  timesSkipped: integer("times_skipped").notNull().default(1),
+});
 
 export type Summoner = typeof summoners.$inferSelect;
 export type Match = typeof matches.$inferSelect;

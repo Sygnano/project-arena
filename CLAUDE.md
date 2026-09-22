@@ -46,27 +46,45 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   the internet. Inside the API process all match fetching runs through
   `apps/api/src/ingestion/refreshQueue.ts`, with one lane per Riot regional cluster (europe,
   americas, asia, sea; decided with the user): one summoner at a time per lane, lanes side by side,
-  since Riot's rate limits are per cluster. EUW and EUNE share the `europe` lane (and budget); an NA
-  fetch never waits behind EUW. Queue positions and the "queue full" limit are per lane. In memory
+  since Riot's rate limits are per cluster. EUW, EUNE, TR, RU and ME share the `europe` lane (and budget), OCE, SG, TW and VN
+  share `sea`; an NA fetch never waits behind EUW. Queue positions and the "queue full" limit are per lane. In memory
   (a restart drops the queue; pressing again re-queues), with `subscribe()` feeding the streams. A first fetch pulls the
   full history at ~2.4s per match on a dev key (2 calls per match, 100 calls / 2 min), which is why
   there's a queue screen at all.
-- **Bulk ingestion is a crawler, run by hand.** There is no background poll loop in the API
-  (removed at the user's request; an automatic crawler is planned later).
-  `pnpm --filter @arena/api crawl [--summoners N]` (`apps/api/scripts/crawl.ts`) repeatedly
-  refreshes the summoner with the oldest `lastRefreshedAt` (never-refreshed first). Every
+- **Bulk ingestion is a crawler, a process separate from the API.** There is no background poll
+  loop in the API (removed at the user's request). `apps/api/scripts/crawl.ts` runs one worker
+  per regional cluster (the refresh queue's lanes), each repeatedly refreshing its due summoner
+  with the oldest `lastRefreshedAt` (never-refreshed first; due = older than
+  `CRAWL_REFRESH_AFTER_HOURS`, default 24). By hand: `pnpm --filter @arena/api crawl
+  [--summoners N]`, which ends when nobody is due. Hosted: `pnpm --filter @arena/api
+  crawl:forever`, the Railway `crawler` service (the whole repo, configured by
+  `apps/api/railway.crawler.json`), which never exits: it sleeps when idle and waits out errors.
+  It replaced a single-file Railway Function that hand-copied the ingestion code. A platform
+  with no summoner at all is seeded from `scripts/crawl-seeds.ts` (arenasweats.lol's top Arena
+  players per region, several per platform in case of renames) and that seed is crawled first
+  (decided with the user, so every region gets data, not just the ones someone searched). Every
   refresh, from the crawler or a web search, adds each participant of a newly stored match to
   `summoners` with `lastRefreshedAt` null, so the crawl snowballs outward from whoever is in the
   database. A match is stored once however many of its players get refreshed, and later
   refreshes only ask Riot for games since the previous one (minus a 2h overlap). Discovered rows
-  take their Riot ID/icon/level from the match they were met in, and ingestion never overwrites
+  take their Riot ID/icon/level from the match they were met in, and their platform from the
+  match id's prefix, as does the match itself: Match-V5 lists a player's games on every platform of
+  the cluster (an ME1 player's EUW1 games too), so the refreshed summoner's platform would file
+  everyone in an EUW1 game under ME1. Ingestion never overwrites
   an existing row from match data: a match can predate a rename, and account-v1 is the only source of current
-  names. Two places call it: the refresh stream (resolving an unknown Riot ID,
-  `ingestion/resolveSummoner.ts`), and the crawler, which refreshes each
-  summoner's Riot ID/icon/level (account-v1 + summoner-v4, 2 calls) just before fetching their
-  matches. A failed profile refresh is logged and the crawl moves on to the matches. `summoners`
-  therefore holds far
+  names. Both account-v1 paths live in `ingestion/resolveSummoner.ts` and write through
+  `saveSummonerFromRiot` (the one writer of Riot profile fields): the refresh stream resolving an
+  unknown Riot ID (`resolveSummonerByRiotId`), and the crawler refreshing each summoner's Riot
+  ID/icon/level (account-v1 + summoner-v4, 2 calls) just before fetching their matches
+  (`refreshSummonerProfile`). A failed profile refresh is logged and the crawl moves on to the
+  matches. `summoners` therefore holds far
   more than the friend group, so anything listing it must limit/filter.
+  A **bad match** (Riot answers a 4xx other than 429 for it or its timeline, the parser throws, or
+  Postgres rejects its rows) is stored nowhere: `ingestSummoner` logs it in `skipped_matches` (one
+  row per match with the failing stage, Riot status and error, counting repeats, deleted if it
+  stores fine later) and in the process log, and the refresh goes on (decided with the user, so one
+  broken match can't block a summoner forever). Outages (network, 5xx, 429) still fail the refresh.
+  Look there when matches seem to be missing.
 - **No auth in v1.** All pages are public read-only within whatever the app's own deployment
   visibility is (i.e. no login, no accounts, no sessions). Do not add auth infrastructure
   speculatively — revisit only if we need personalization (favorites, alerts) later.
@@ -429,7 +447,9 @@ as `riot.account` / `riot.summoner` / `riot.match`. It rate-limits **per routing
 `europe`, `euw1`, ... has its own app budget and per-endpoint method budgets, as Riot enforces
 them), takes limits and counts from Riot's response headers (so a production key or a second
 process on the same key is handled), and logs one line per request (`RIOT_LOG_LEVEL`). Queue ids
-are a parameter (`Queue.ARENA`, ...), never a constant in a call. OC1 Match-V5 routes to `sea`.
+are a parameter (`Queue.ARENA`, ...), never a constant in a call. OC1, SG2, TW2 and VN2 Match-V5 route to `sea`, ME1 to `europe`;
+Account-V1 has no `sea` cluster, so SEA platforms use `asia` there (verified on all four with
+our key, 2026-09).
 
 **Patched nivo calendar, vendored as source** (`apps/web/src/vendor/nivo-calendar/`, see its
 README): upstream `@nivo/calendar`'s `TimeRange` chart (the activity calendar,
@@ -613,7 +633,10 @@ redesigning:
   `lib/api.ts`), the summoner layout provides it (`lib/game-catalog.tsx`), and `stats-view.tsx`
   resolves the payload into `SummonerStatsResponse` once (`lib/resolve-stats.ts`), so modules
   still read `itemName`/`iconUrl`/`augmentName`/`rarity`. A new item or augment field goes in the
-  catalog and the resolver, not in the payload. This cut the 910-game recap from 2,035 KB to
+  catalog and the resolver, not in the payload. Every page (the splash too) prefetches every icon
+  in the catalog once the page has loaded (`components/asset-prefetch.tsx`, lowest-priority
+  `<link rel="prefetch">` from the URL list at `app/api/catalog-icons`), so recap slides never wait on
+  them; splash/loading art is deliberately not prefetched (hundreds of KB each). This cut the 910-game recap from 2,035 KB to
   1,364 KB (the catalog is 14 KB gzipped). Per-row `championName` keys stay in the payload
   (52 KB on that recap; replacing them means rewiring ~20 modules).
 - This file should be updated whenever a decision in §3's "explicitly deferred" list gets made, or

@@ -17,6 +17,22 @@ export interface EventStream {
   end(): void;
 }
 
+/** Every stream still open, so a shutdown can end them (`endAllEventStreams`). */
+const openStreams = new Set<EventStream>();
+
+/**
+ * Ends every open stream with an `unavailable` error. For shutdown: the
+ * server only closes once its connections have, and a stream following a
+ * long fetch would otherwise hold it open. The fetch itself isn't stopped
+ * here; whatever it stored is kept.
+ */
+export function endAllEventStreams() {
+  for (const stream of openStreams) {
+    stream.send("error", { code: "unavailable" });
+    stream.end();
+  }
+}
+
 /**
  * Turns the reply into a server-sent event stream (`text/event-stream`).
  * Takes the response over from Fastify (`hijack`), so the route writes the
@@ -39,6 +55,7 @@ export function openEventStream(reply: FastifyReply): EventStream {
   res.on("close", () => {
     open = false;
     clearInterval(heartbeat);
+    openStreams.delete(stream);
     for (const handler of closeHandlers) handler();
   });
 
@@ -47,7 +64,7 @@ export function openEventStream(reply: FastifyReply): EventStream {
     if (open) res.write(`event: ${event}\ndata: ${json}\n\n`);
   };
 
-  return {
+  const stream: EventStream = {
     get open() {
       return open;
     },
@@ -56,7 +73,10 @@ export function openEventStream(reply: FastifyReply): EventStream {
     onClose: (handler) => closeHandlers.push(handler),
     end: () => {
       clearInterval(heartbeat);
+      openStreams.delete(stream);
       if (open) res.end();
     },
   };
+  openStreams.add(stream);
+  return stream;
 }

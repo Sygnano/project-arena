@@ -1,14 +1,22 @@
 import type { Summoner } from "@arena/db";
-import { logger } from "../logger.js";
+import { logger, riotIdLabel } from "../logger.js";
 import { riot, RiotApiError } from "../riotApi/index.js";
 import { saveSummonerFromRiot } from "../summoners/summonerRepository.js";
 
 const log = logger.child({ module: "resolve" });
 
 /**
- * Looks a Riot ID up at Riot (Account-V1, then Summoner-V4 for the icon and
- * level: 2 calls) and stores the player. Null when Riot doesn't know them:
- * no such Riot ID, or one that never played League on this platform.
+ * A player's profile as Riot has it now. Both functions here make the Riot
+ * calls (Account-V1 for the Riot ID, Summoner-V4 for the icon and level: 2
+ * calls) and store the result through `saveSummonerFromRiot`, the one writer
+ * of Riot-sourced profile fields. Match data never overwrites them (see
+ * `ingestSummoner`): account-v1 is the only source of a current Riot ID.
+ */
+
+/**
+ * Looks a Riot ID up at Riot and stores the player. Null when Riot doesn't
+ * know them: no such Riot ID, or one that never played League on this
+ * platform.
  */
 export async function resolveSummonerByRiotId(region: string, gameName: string, tagLine: string): Promise<Summoner | null> {
   try {
@@ -20,7 +28,7 @@ export async function resolveSummonerByRiotId(region: string, gameName: string, 
       { ...account, gameName: account.gameName ?? gameName, tagLine: account.tagLine ?? tagLine },
       profile,
     );
-    log.info({ summoner: `${summoner.riotIdGameName}#${summoner.riotIdTagline}`, region }, "summoner found at Riot");
+    log.info({ summoner: riotIdLabel(summoner), region }, "summoner found at Riot");
     return summoner;
   } catch (err) {
     if (err instanceof RiotApiError && err.status === 404) {
@@ -29,4 +37,23 @@ export async function resolveSummonerByRiotId(region: string, gameName: string, 
     }
     throw err;
   }
+}
+
+/**
+ * Brings a stored summoner's Riot ID, icon and level up to date (the
+ * crawler, before each summoner: a discovered row holds whatever the match
+ * it was met in said, which can predate a rename). Returns the stored row.
+ * Throws on any Riot error, 404 included.
+ */
+export async function refreshSummonerProfile(
+  summoner: Pick<Summoner, "puuid" | "region" | "riotIdGameName" | "riotIdTagline">,
+): Promise<Summoner> {
+  const account = await riot.account.getAccountByPuuid(summoner.puuid, summoner.region);
+  const profile = await riot.summoner.getSummonerByPuuid(summoner.puuid, summoner.region);
+  return saveSummonerFromRiot(
+    summoner.region,
+    // An account without a Riot ID keeps the one we have.
+    { ...account, gameName: account.gameName ?? summoner.riotIdGameName, tagLine: account.tagLine ?? summoner.riotIdTagline },
+    profile,
+  );
 }
