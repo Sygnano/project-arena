@@ -41,6 +41,11 @@ export interface IngestOptions {
   shouldStop?: () => boolean;
   /** Called for each bad match, after it's recorded in `skipped_matches`. */
   onSkip?: (skip: SkippedMatch) => void;
+  /** Ask Riot for the summoner's whole Arena history instead of only games
+   * since their last refresh, so a gap left further back (a match skipped
+   * or not yet published back then) is found too. Costs one extra call per
+   * 100 games. Used by `scripts/check-recaps.ts`. */
+  fullHistory?: boolean;
 }
 
 // A refresh only asks Riot for games that started after the previous
@@ -200,9 +205,10 @@ export async function ingestSummoner(
     .select({ lastRefreshedAt: summoners.lastRefreshedAt })
     .from(summoners)
     .where(eq(summoners.puuid, summoner.puuid));
-  const since = previous?.lastRefreshedAt
-    ? new Date(previous.lastRefreshedAt.getTime() - REFRESH_OVERLAP_MS)
-    : undefined;
+  const since =
+    previous?.lastRefreshedAt && !options.fullHistory
+      ? new Date(previous.lastRefreshedAt.getTime() - REFRESH_OVERLAP_MS)
+      : undefined;
 
   onProgress?.({ phase: "matchIds" });
   // Newest first.

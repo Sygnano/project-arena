@@ -86,9 +86,17 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   stores fine later) and in the process log, and the refresh goes on (decided with the user, so one
   broken match can't block a summoner forever). Outages (network, 5xx, 429) still fail the refresh.
   Look there when matches seem to be missing.
+  Since refreshes only look back to the previous one, a gap further back stays until
+  `pnpm --filter @arena/api check-recaps` (`scripts/check-recaps.ts`), a one-off run now and then
+  in the stack like the crawler: it asks Riot for the whole history of every summoner with a
+  `lastRefreshedAt` (one worker per cluster), fetches whatever isn't stored, stamps each one, and
+  exits.
 - **No auth in v1.** All pages are public read-only within whatever the app's own deployment
   visibility is (i.e. no login, no accounts, no sessions). Do not add auth infrastructure
-  speculatively — revisit only if we need personalization (favorites, alerts) later.
+  speculatively — revisit only if we need personalization (favorites, alerts) later. That
+  includes `/dev` (`app/dev/page.tsx`, `GET /dev/summoners`), an unlinked debug table of every
+  summoner with a recap, latest refresh first (capped at 500 rows): public on purpose, decided
+  with the user.
 - SSR (Next.js) is still the right call for the web app — shareable profile/match links, good
   defaults, streaming, and a real component framework — but note the driver has shifted: this is
   **not** primarily an SEO play (that was true for a public tool, less true for a friend-group

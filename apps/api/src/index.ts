@@ -6,6 +6,7 @@ import { logger } from "./logger.js";
 import { healthRoutes } from "./routes/health.js";
 import { catalogRoutes } from "./routes/catalog.js";
 import { overviewRoutes } from "./routes/overview.js";
+import { devRoutes } from "./routes/dev.js";
 import { endAllEventStreams } from "./routes/summoners/eventStream.js";
 import { summonerRoutes } from "./routes/summoners/index.js";
 
@@ -21,6 +22,7 @@ app.log.info("Database migrations applied");
 await app.register(healthRoutes);
 await app.register(catalogRoutes);
 await app.register(overviewRoutes);
+await app.register(devRoutes);
 await app.register(summonerRoutes);
 
 // Refresh streams can stay open for as long as a fetch runs: end them first,

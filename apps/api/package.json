@@ -9,7 +9,8 @@
     "start": "tsx --env-file-if-exists=.env src/index.ts",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.scripts.json",
     "crawl": "tsx --env-file-if-exists=.env scripts/crawl.ts",
-    "crawl:forever": "tsx --env-file-if-exists=.env scripts/crawl.ts --forever"
+    "crawl:forever": "tsx --env-file-if-exists=.env scripts/crawl.ts --forever",
+    "check-recaps": "tsx --env-file-if-exists=.env scripts/check-recaps.ts"
   },
   "dependencies": {
     "@arena/db": "workspace:*",

@@ -1,4 +1,4 @@
-import type { GameCatalog, SummonerPageData, SummonerStatsPayload, SummonerView } from "@arena/types";
+import type { DevSummonerList, GameCatalog, SummonerPageData, SummonerStatsPayload, SummonerView } from "@arena/types";
 
 // Server-only (no NEXT_PUBLIC_ prefix): the browser reaches the API through
 // this app's own routes (`app/api/...`), never directly.
@@ -49,6 +49,14 @@ export async function getSummonerPage(
 /** Whether the summoner has a recap to show (matches fetched at least once). */
 export function hasRecap(summoner: SummonerView | null | undefined): summoner is SummonerView {
   return summoner?.lastRefreshedAt != null;
+}
+
+/** Summoners with a recap, latest refresh first, for the /dev page, and
+ * when the list was read (what its "ago" times count from). */
+export async function getDevSummoners(): Promise<DevSummonerList & { readAt: number }> {
+  const res = await fetch(`${API_URL}/dev/summoners`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to load the summoner list (${res.status})`);
+  return { ...((await res.json()) as DevSummonerList), readAt: Date.now() };
 }
 
 const CATALOG_TTL_MS = 60 * 60_000;

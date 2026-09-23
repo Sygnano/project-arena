@@ -8,9 +8,9 @@ import type { RiotCall } from "./types.js";
  * One line per Riot request event, in fixed columns so a scrolling log
  * reads at a glance:
  *
- *   200  - [Europe]   [EUW1] [Match-V5]    getMatch: EUW1_7851809865 · 412ms · app 45/100 2m
+ *   200  - [Europe]   [EUW1] [Match-V5]    getMatch: EUW1_7851809865 · 412ms · europe 45/100 2m
  *   404  - [Europe]   [EUW1] [Account-V1]  getAccountByRiotId: Nobody#EUW · 98ms
- *   WAIT - [Europe]   [EUW1] [Match-V5]    getMatch: EUW1_7851809866 · 34.2s · app limit 100/2m full
+ *   WAIT - [Europe]   [EUW1] [Match-V5]    getMatch: EUW1_7851809866 · 34.2s · europe limit 100/2m full
  *   429  - [Americas] [NA1]  [Match-V5]    getMatchIdsByPuuid: 3fA9x…Qe1 · method limit, retry 1/4 in 10s
  *   ERR  - [Europe]   [EUW1] [Summoner-V4] getSummonerByPuuid: 3fA9x…Qe1 · timeout, retry 2/4 in 2s
  *

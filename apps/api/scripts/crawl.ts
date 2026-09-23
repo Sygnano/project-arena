@@ -33,14 +33,15 @@
  * adopts the counts Riot reports, so they slow down rather than hit 429s.
  */
 import { parseArgs } from "node:util";
-import { asc, eq, inArray, sql, summoners, type Summoner } from "@arena/db";
+import { and, asc, eq, inArray, isNull, lt, or, sql, summoners, type Summoner } from "@arena/db";
 import { db } from "../src/db.js";
 import { riotIdLabel } from "../src/logger.js";
-import { PLATFORMS, riot, RiotApiError, type Platform, type Region } from "../src/riotApi/index.js";
+import { PLATFORMS, riot, type Platform, type Region } from "../src/riotApi/index.js";
 import { matchRegion } from "../src/riotApi/routing.js";
-import { ingestSummoner, type IngestProgress, type SkippedMatch } from "../src/ingestion/ingestSummoner.js";
+import { ingestSummoner, type SkippedMatch } from "../src/ingestion/ingestSummoner.js";
 import { refreshSummonerProfile, resolveSummonerByRiotId } from "../src/ingestion/resolveSummoner.js";
 import { CRAWL_SEEDS } from "./crawl-seeds.js";
+import { errorMessage, isFatal, progressLogger } from "./script-helpers.js";
 
 const { values: args } = parseArgs({
   options: { summoners: { type: "string" }, forever: { type: "boolean", default: false } },
@@ -89,17 +90,6 @@ async function sleep(ms: number) {
   while (!stopRequested && Date.now() < until) {
     await new Promise((resolve) => setTimeout(resolve, Math.min(1000, until - Date.now())));
   }
-}
-
-function errorMessage(err: unknown) {
-  return err instanceof Error ? err.message : String(err);
-}
-
-/** Errors that will fail every summoner the same way. */
-function isFatal(err: unknown) {
-  // 401/403: missing or expired key. 400 "decrypting": PUUIDs from another
-  // Riot app (see CLAUDE.md §2, remap-puuids).
-  return err instanceof RiotApiError && err.fatal;
 }
 
 type CrawlTarget = Pick<Summoner, "puuid" | "region" | "riotIdGameName" | "riotIdTagline" | "lastRefreshedAt">;
@@ -152,8 +142,13 @@ async function nextSummoner(platforms: Platform[], skip: ReadonlySet<string>): P
       lastRefreshedAt: summoners.lastRefreshedAt,
     })
     .from(summoners)
+    // Column operators, not raw `sql`: they convert the Date for the driver,
+    // which a raw fragment passes through as is (postgres.js then rejects it).
     .where(
-      sql`${inArray(summoners.region, platforms)} and (${summoners.lastRefreshedAt} is null or ${summoners.lastRefreshedAt} < ${cutoff})`,
+      and(
+        inArray(summoners.region, platforms),
+        or(isNull(summoners.lastRefreshedAt), lt(summoners.lastRefreshedAt, cutoff)),
+      ),
     )
     .orderBy(sql`${summoners.lastRefreshedAt} asc nulls first`, asc(summoners.puuid))
     .limit(skip.size + 1);
@@ -185,25 +180,6 @@ function skipLogger(name: string, lane: Region) {
     totals.skipped += 1;
     const status = skip.riotStatus ? ` ${skip.riotStatus}` : "";
     console.warn(`[crawl:${lane}]   ${name}: bad match ${skip.matchId} skipped (${skip.stage}${status}): ${skip.error}`);
-  };
-}
-
-/** Logs a refresh's progress: the match count once ids are in, then every match. */
-function progressLogger(name: string, log: (message: string) => void) {
-  let startedAt = 0;
-  return (progress: IngestProgress) => {
-    if (progress.phase === "matchIds") {
-      log(`  ${name}: fetching match ids`);
-      return;
-    }
-    if (progress.done === 0) {
-      startedAt = Date.now();
-      log(`  ${name}: ${progress.total} new match(es) to fetch`);
-      return;
-    }
-    const perMatchMs = (Date.now() - startedAt) / progress.done;
-    const etaMin = ((progress.total - progress.done) * perMatchMs) / 60_000;
-    log(`  ${name}: match ${progress.done}/${progress.total} done (~${etaMin.toFixed(1)} min left)`);
   };
 }
 

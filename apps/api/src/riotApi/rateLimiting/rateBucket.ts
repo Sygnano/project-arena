@@ -23,7 +23,7 @@ export class RateBucket {
   private pausedUntil = 0;
 
   constructor(
-    /** "app europe", "method europe Match-V5.getMatch": shown when it holds a request back. */
+    /** "europe limit", "method limit": shown when it holds a request back. */
     public readonly label: string,
     initialLimits: WindowLimit[] = [],
   ) {

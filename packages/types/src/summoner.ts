@@ -71,3 +71,22 @@ export type RefreshEvent =
   | { event: "stats"; data: SummonerStatsPayload }
   | { event: "error"; data: { code: RefreshErrorCode; retryAfterSeconds?: number } }
   | { event: "done"; data: Record<string, never> };
+
+/** A summoner with a recap, as the dev page lists them (`GET /dev/summoners`). */
+export interface DevSummonerRow {
+  gameName: string;
+  tagLine: string;
+  /** Game server, as stored ("euw1"). */
+  platform: string;
+  /** Its Match-V5 cluster, and refresh queue lane ("europe"). */
+  region: string;
+  /** Every stored match they played, placement-0 ones included. */
+  matchCount: number;
+  lastRefreshedAt: string;
+}
+
+export interface DevSummonerList {
+  /** Every summoner with a recap; `summoners` holds the latest ones only. */
+  total: number;
+  summoners: DevSummonerRow[];
+}

@@ -98,16 +98,18 @@ One line per event. `RIOT_LOG_LEVEL` sets the level (`debug | info | warn | erro
 default `info`):
 
 ```
-200  - [Europe]   [EUW1] [Match-V5]    getMatch: EUW1_7991578807 · 129ms · app 70/100 2m
+200  - [Europe]   [EUW1] [Match-V5]    getMatch: EUW1_7991578807 · 129ms · europe 70/100 2m
 404  - [Europe]   [EUW1] [Account-V1]  getAccountByRiotId: Nobody#EUW · 35ms
-WAIT - [Europe]   [EUW1] [Match-V5]    getMatch: EUW1_7991578808 · 34.2s · app limit 100/2m full
+WAIT - [Europe]   [EUW1] [Match-V5]    getMatch: EUW1_7991578808 · 34.2s · europe limit 100/2m full
 429  - [Americas] [NA1]  [Match-V5]    getMatchIdsByPuuid: 3fA9x…Qe1 queue=1750 start=0 · 12ms · method limit hit · retry 1/4 in 10s
 ERR  - [Europe]   [EUW1] [Summoner-V4] getSummonerByPuuid: 3fA9x…Qe1 · timeout after 30.0s · retry 2/4 in 4s
 ```
 
 Columns: status (or `WAIT` / `ERR` for events without one), region, platform, Riot API, our
-method and its arguments. After the `·`: time taken, then how full the host's app limit is
-(turns yellow at 90%), and the method limit once it's half full.
+method and its arguments. After the `·`: time taken, then how full the key's limit is on the host
+the call went to, named after it (`europe 70/100 2m`; Riot counts it separately per region, and
+per platform for platform-routed calls like Summoner-V4's `euw1`), turning yellow at 90%, and
+the method limit once it's half full.
 
 | Level | What |
 |---|---|

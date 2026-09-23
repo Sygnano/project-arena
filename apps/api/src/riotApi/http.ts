@@ -18,11 +18,10 @@ export interface RiotHttpOptions {
 /** Waits of at least this long log at info; shorter ones are routine pacing and log at debug. */
 const NOTABLE_WAIT_MS = 5000;
 
-const SCOPE_LABEL: Record<RateLimitScope, string> = {
-  application: "app limit",
-  method: "method limit",
-  service: "service limit",
-};
+/** Which limit a 429 was for. The key's own limit is per host, so it's named after it (`europe limit`). */
+function scopeLabel(scope: RateLimitScope, call: RiotCall) {
+  return scope === "application" ? `${call.routing} limit` : `${scope} limit`;
+}
 
 /** 2s, 4s, 8s, ... capped at 30s: for 5xx, network errors and 429s without Retry-After. */
 function backoffMs(attempt: number) {
@@ -105,7 +104,7 @@ export class RiotHttpClient {
         if (logger.enabled("info")) {
           const usage = limiter.usage(call);
           const method = usage.method && usage.method.used / usage.method.limit >= 0.5 ? usage.method : null;
-          logger.log("info", call, res.status, [took, formatUsage("app", usage.app), formatUsage("method", method)]);
+          logger.log("info", call, res.status, [took, formatUsage(call.routing, usage.app), formatUsage("method", method)]);
         }
         return data;
       }
@@ -116,7 +115,7 @@ export class RiotHttpClient {
         if (res.status === 429) {
           const ms = headers.retryAfterMs ?? backoffMs(attempt);
           limiter.pause(call, headers.scope, ms);
-          const which = headers.scope ? `${SCOPE_LABEL[headers.scope]} hit` : "limited by the service underneath";
+          const which = headers.scope ? `${scopeLabel(headers.scope, call)} hit` : "limited by the service underneath";
           logger.log("warn", call, res.status, [took, which, retry(attempt, ms)]);
         } else {
           const ms = backoffMs(attempt);

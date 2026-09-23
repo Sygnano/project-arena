@@ -34,7 +34,7 @@ export class RiotRateLimiter {
   }
 
   private appBucket(call: RiotCall) {
-    return this.bucket(`app:${call.routing}`, `app limit`, this.defaultAppLimits);
+    return this.bucket(`app:${call.routing}`, `${call.routing} limit`, this.defaultAppLimits);
   }
 
   private methodBucket(call: RiotCall) {
