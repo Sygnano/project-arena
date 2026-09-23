@@ -95,13 +95,18 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   (`refreshSummonerProfile`). A failed profile refresh is logged and the crawl moves on to the
   matches. `summoners` therefore holds far
   more than the friend group, so anything listing it must limit/filter.
-  A **bad match** (Riot answers a 4xx other than 429 for it or its timeline, the parser throws,
-  Postgres rejects its rows, or Riot sends it with no participants, as it does for an aborted
-  lobby: `endOfGameResult` other than `GameComplete`) is stored nowhere: `ingestSummoner` logs it in `skipped_matches` (one
-  row per match with the failing stage, Riot status and error, counting repeats, deleted if it
-  stores fine later) and in the process log, and the refresh goes on (decided with the user, so one
-  broken match can't block a summoner forever). Outages (network, 5xx, 429) still fail the refresh.
-  Look there when matches seem to be missing.
+  A **bad match** is one Riot says didn't end normally: `endOfGameResult` other than
+  `GameComplete` (an aborted lobby, e.g. `Abort_Unexpected`, sent with no participants; every
+  stored match says `GameComplete`). It goes to `bad_matches` and is **never fetched again**:
+  `ingestSummoner` leaves known bad ids out of every refresh, `check-recaps` included, and checks
+  the result right after the match call, before spending the timeline call (decided with the
+  user: an aborted lobby sits in up to 16 players' histories and cost 2 calls each time). A
+  **failed match** (Riot answers a 4xx other than 429 for it or its timeline, the parser throws,
+  or Postgres rejects its rows) is stored nowhere and **is fetched again** by the next refresh that
+  meets it: `ingestSummoner` logs it in `skipped_matches` (one row per match with the failing
+  stage, Riot status and error, counting repeats, deleted if it stores fine later) and in the
+  process log, and the refresh goes on (so one broken match can't block a summoner forever).
+  Outages (network, 5xx, 429) still fail the refresh. Look there when matches seem to be missing.
   Since refreshes only look back to the previous one, a gap further back stays until
   `pnpm --filter @arena/api check-recaps` (`scripts/check-recaps.ts`), a one-off run now and then
   in the stack like the crawler: it asks Riot for the whole history of every summoner with a

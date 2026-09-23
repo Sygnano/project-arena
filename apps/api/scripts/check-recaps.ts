@@ -8,8 +8,9 @@
  * late, an interrupted first fetch. This walks every summoner whose
  * `lastRefreshedAt` is set, asks Riot for their whole Arena history
  * (`ingestSummoner`'s `fullHistory`: one call per 100 games), and fetches
- * whatever isn't stored (2 calls per match). Bad matches are skipped and
- * logged in `skipped_matches` as usual. Each summoner checked gets a new
+ * whatever isn't stored or known bad (2 calls per match). A match skipped
+ * as failed earlier is tried again; bad ones (`bad_matches`) never are, and
+ * new failures are logged in `skipped_matches` as usual. Each summoner checked gets a new
  * `lastRefreshedAt`: their matches are now fully fetched.
  *
  * The list is taken once at start, oldest `lastRefreshedAt` first, and split
@@ -44,7 +45,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 
 type CheckTarget = Pick<Summoner, "puuid" | "region" | "riotIdGameName" | "riotIdTagline" | "lastRefreshedAt">;
 
-const totals = { checked: 0, complete: 0, withGaps: 0, stored: 0, skipped: 0, discovered: 0, failed: 0 };
+const totals = { checked: 0, complete: 0, withGaps: 0, stored: 0, skipped: 0, bad: 0, discovered: 0, failed: 0 };
 const startedAt = Date.now();
 
 /** Every summoner with a recap, oldest refresh first. */
@@ -89,12 +90,16 @@ async function checkLane(lane: Region, list: CheckTarget[]) {
           shouldStop: () => stopRequested,
           onSkip: (skip) => {
             const status = skip.riotStatus ? ` ${skip.riotStatus}` : "";
-            console.warn(`[check:${lane}]   ${name}: bad match ${skip.matchId} skipped (${skip.stage}${status}): ${skip.error}`);
+            console.warn(`[check:${lane}]   ${name}: match ${skip.matchId} failed, skipped (${skip.stage}${status}): ${skip.error}`);
+          },
+          onBadMatch: (badMatch) => {
+            console.log(`[check:${lane}]   ${name}: bad match ${badMatch.matchId} (${badMatch.endOfGameResult}), won't be fetched again`);
           },
         },
       );
       totals.stored += result.ingested;
       totals.skipped += result.skipped;
+      totals.bad += result.bad;
       totals.discovered += result.discovered;
       if (result.stopped) {
         log(`${position} ${name}: stopped early, rerun to check again`);
@@ -107,7 +112,9 @@ async function checkLane(lane: Region, list: CheckTarget[]) {
         log(`${position} ${name} (${summoner.region}): complete`);
       } else {
         totals.withGaps += 1;
-        const skipped = result.skipped > 0 ? `, ${result.skipped} bad match(es) skipped` : "";
+        const skipped =
+          (result.skipped > 0 ? `, ${result.skipped} failed match(es) skipped` : "") +
+          (result.bad > 0 ? `, ${result.bad} bad match(es)` : "");
         log(`${position} ${name} (${summoner.region}): ${missing} missing, ${result.ingested} stored${skipped}`);
       }
     } catch (err) {
@@ -154,7 +161,7 @@ async function main() {
   console.log(
     `[check] ${stopRequested ? "stopped" : "done"} in ${minutes} min: ${totals.checked}/${all.length} summoner(s) checked, ` +
       `${totals.complete} complete, ${totals.withGaps} with missing matches (${totals.stored} match(es) stored, ` +
-      `${totals.skipped} bad match(es) skipped), ${totals.discovered} new player(s), ${totals.failed} failed`,
+      `${totals.skipped} failed match(es) skipped, ${totals.bad} bad), ${totals.discovered} new player(s), ${totals.failed} failed`,
   );
   const failures = results.flatMap((result) => (result.status === "rejected" ? [errorMessage(result.reason)] : []));
   if (failures.length > 0) throw new Error(failures.join("; "));

@@ -213,7 +213,7 @@ export class RefreshQueue {
     this.notify(job.puuid);
     this.notifyQueued(job.lane);
     try {
-      const { ingested, skipped } = await ingestSummoner(
+      const { ingested, skipped, bad } = await ingestSummoner(
         this.db,
         this.riot,
         job,
@@ -225,11 +225,14 @@ export class RefreshQueue {
           }
           this.notify(job.puuid);
         },
-        { onSkip: (skip) => log.warn({ summoner: job.label, lane, ...skip }, "bad match skipped, see skipped_matches") },
+        {
+          onSkip: (skip) => log.warn({ summoner: job.label, lane, ...skip }, "match failed, skipped until the next refresh, see skipped_matches"),
+          onBadMatch: (badMatch) => log.info({ summoner: job.label, lane, ...badMatch }, "bad match, won't be fetched again"),
+        },
       );
       job.state = "done";
       log.info(
-        { summoner: job.label, lane, newMatches: ingested, skipped, seconds: Math.round((Date.now() - job.startedAt) / 1000) },
+        { summoner: job.label, lane, newMatches: ingested, skipped, bad, seconds: Math.round((Date.now() - job.startedAt) / 1000) },
         "fetch finished",
       );
     } catch (err) {

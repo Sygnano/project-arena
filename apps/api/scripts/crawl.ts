@@ -38,7 +38,7 @@ import { db } from "../src/db.js";
 import { riotIdLabel } from "../src/logger.js";
 import { PLATFORMS, riot, type Platform, type Region } from "../src/riotApi/index.js";
 import { matchRegion } from "../src/riotApi/routing.js";
-import { ingestSummoner, type SkippedMatch } from "../src/ingestion/ingestSummoner.js";
+import { ingestSummoner, type BadMatch, type SkippedMatch } from "../src/ingestion/ingestSummoner.js";
 import { refreshSummonerProfile, resolveSummonerByRiotId } from "../src/ingestion/resolveSummoner.js";
 import { CRAWL_SEEDS } from "./crawl-seeds.js";
 import { errorMessage, isFatal, progressLogger } from "./script-helpers.js";
@@ -174,12 +174,20 @@ async function refreshProfile(summoner: CrawlTarget, log: (message: string) => v
   }
 }
 
-/** A bad match left out of the database (see `ingestSummoner`): logged here and in `skipped_matches`. */
+/** A failed match left out of the database until a later refresh (see `ingestSummoner`): logged here and in `skipped_matches`. */
 function skipLogger(name: string, lane: Region) {
   return (skip: SkippedMatch) => {
     totals.skipped += 1;
     const status = skip.riotStatus ? ` ${skip.riotStatus}` : "";
-    console.warn(`[crawl:${lane}]   ${name}: bad match ${skip.matchId} skipped (${skip.stage}${status}): ${skip.error}`);
+    console.warn(`[crawl:${lane}]   ${name}: match ${skip.matchId} failed, skipped (${skip.stage}${status}): ${skip.error}`);
+  };
+}
+
+/** A bad match, never fetched again (see `ingestSummoner`): logged here and in `bad_matches`. */
+function badMatchLogger(name: string, lane: Region) {
+  return (badMatch: BadMatch) => {
+    totals.bad += 1;
+    console.log(`[crawl:${lane}]   ${name}: bad match ${badMatch.matchId} (${badMatch.endOfGameResult}), won't be fetched again`);
   };
 }
 
@@ -194,7 +202,7 @@ async function counts() {
 }
 
 // Totals across every lane.
-const totals = { crawled: 0, ingested: 0, skipped: 0, discovered: 0, failed: 0 };
+const totals = { crawled: 0, ingested: 0, skipped: 0, bad: 0, discovered: 0, failed: 0 };
 const startedAt = Date.now();
 
 /**
@@ -249,6 +257,7 @@ async function crawlLane(lane: Region) {
         const result = await ingestSummoner(db, riot, summoner, progressLogger(name, log), {
           shouldStop: () => stopRequested,
           onSkip: skipLogger(name, lane),
+          onBadMatch: badMatchLogger(name, lane),
         });
         totals.ingested += result.ingested;
         totals.discovered += result.discovered;
@@ -259,7 +268,9 @@ async function crawlLane(lane: Region) {
         totals.crawled += 1;
         consecutiveFailures = 0;
         outageSleepMs = OUTAGE_SLEEP_MS;
-        const skipped = result.skipped > 0 ? `, ${result.skipped} bad match(es) skipped` : "";
+        const skipped =
+          (result.skipped > 0 ? `, ${result.skipped} failed match(es) skipped` : "") +
+          (result.bad > 0 ? `, ${result.bad} bad match(es)` : "");
         log(`  ${name}: done, ${result.ingested} match(es) stored${skipped}, ${result.discovered} new player(s)`);
       } catch (err) {
         if (isFatal(err)) {
@@ -325,7 +336,7 @@ async function main() {
   );
 
   console.log(
-    `[crawl] done: ${totals.crawled} summoner(s) refreshed, ${totals.ingested} match(es) stored, ${totals.skipped} bad match(es) skipped, ${totals.discovered} player(s) discovered, ${totals.failed} failed`,
+    `[crawl] done: ${totals.crawled} summoner(s) refreshed, ${totals.ingested} match(es) stored, ${totals.skipped} failed match(es) skipped, ${totals.bad} bad match(es) found, ${totals.discovered} player(s) discovered, ${totals.failed} failed`,
   );
   const failures = results.flatMap((result) => (result.status === "rejected" ? [errorMessage(result.reason)] : []));
   if (failures.length > 0) throw new Error(failures.join("; "));

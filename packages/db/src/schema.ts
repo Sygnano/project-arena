@@ -269,13 +269,14 @@ export const matchRounds = pgTable(
 );
 
 /**
- * Matches ingestion left out because the match itself is bad: Riot refused it
- * or its timeline for good (a 4xx), the parser threw on it, or Postgres
- * rejected the parsed rows. Such a match is stored nowhere else, so the
- * refresh that met it still completes. An operations log to look into, not
- * data any page reads: one row per match, bumped each time another refresh
- * meets it again, and deleted once it's stored after all. Outages (network,
- * 5xx, 429) never land here: they fail the refresh instead.
+ * Matches ingestion failed to store: Riot refused it or its timeline (a 4xx),
+ * the parser threw on it, or Postgres rejected the parsed rows. Such a match
+ * is stored nowhere else, so the refresh that met it still completes, and
+ * it's fetched again whenever a refresh meets it (unlike `badMatches`). An
+ * operations log to look into, not data any page reads: one row per match,
+ * bumped each time another refresh meets it again, and deleted once it's
+ * stored after all. Outages (network, 5xx, 429) never land here: they fail
+ * the refresh instead.
  */
 export const skippedMatches = pgTable("skipped_matches", {
   matchId: text("match_id").primaryKey(),
@@ -290,6 +291,22 @@ export const skippedMatches = pgTable("skipped_matches", {
   firstSkippedAt: timestamp("first_skipped_at", { withTimezone: true }).notNull().defaultNow(),
   lastSkippedAt: timestamp("last_skipped_at", { withTimezone: true }).notNull().defaultNow(),
   timesSkipped: integer("times_skipped").notNull().default(1),
+});
+
+/**
+ * Bad matches: Riot says the game didn't end normally (`endOfGameResult`
+ * other than "GameComplete", e.g. an aborted lobby's "Abort_Unexpected"),
+ * and sends it with no participants. That answer never changes, so a match
+ * listed here is never fetched again, whoever's history lists it (decided
+ * with the user). Any other failure goes to `skippedMatches` and is retried.
+ */
+export const badMatches = pgTable("bad_matches", {
+  matchId: text("match_id").primaryKey(),
+  platform: text("platform").notNull(),
+  endOfGameResult: text("end_of_game_result").notNull(),
+  /** The summoner whose match history listed it first. */
+  seenInPuuid: text("seen_in_puuid").notNull(),
+  foundAt: timestamp("found_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export type Summoner = typeof summoners.$inferSelect;

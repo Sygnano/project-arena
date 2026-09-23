@@ -1,4 +1,5 @@
 import {
+  badMatches,
   eq,
   inArray,
   matches,
@@ -20,13 +21,13 @@ import { platformOfMatch, type Platform } from "../riotApi/routing.js";
 
 export type IngestProgress =
   | { phase: "matchIds" }
-  /** `done` counts stored and skipped matches alike. */
+  /** `done` counts stored, skipped and bad matches alike. */
   | { phase: "matches"; done: number; total: number };
 
-/** Where a bad match gave out: its Riot fetch, its timeline's, parsing, or storing. */
+/** Where a failed match gave out: its Riot fetch, its timeline's, parsing, or storing. */
 export type SkipStage = "match" | "timeline" | "parse" | "store";
 
-/** A match left out of the database because the match itself is bad (see `skippedMatches`). */
+/** A match that failed to store this time and will be fetched again (see `skippedMatches`). */
 export interface SkippedMatch {
   matchId: string;
   stage: SkipStage;
@@ -35,13 +36,21 @@ export interface SkippedMatch {
   error: string;
 }
 
+/** A match Riot says didn't end normally, never fetched again (see `badMatches`). */
+export interface BadMatch {
+  matchId: string;
+  endOfGameResult: string;
+}
+
 export interface IngestOptions {
   /** Checked between matches: returning true stops the refresh early,
    * WITHOUT stamping `lastRefreshedAt`, so the next run resumes it (matches
    * already stored are skipped). Used by the crawler's Ctrl-C handling. */
   shouldStop?: () => boolean;
-  /** Called for each bad match, after it's recorded in `skipped_matches`. */
+  /** Called for each failed match, after it's recorded in `skipped_matches`. */
   onSkip?: (skip: SkippedMatch) => void;
+  /** Called for each bad match met for the first time, after it's recorded in `bad_matches`. */
+  onBadMatch?: (bad: BadMatch) => void;
   /** Ask Riot for the summoner's whole Arena history instead of only games
    * since their last refresh, so a gap left further back (a match skipped
    * or not yet published back then) is found too. Costs one extra call per
@@ -63,8 +72,11 @@ function rootMessage(err: unknown): string {
   return current instanceof Error ? current.message : String(current);
 }
 
-/** The match itself is bad: skip it rather than fail the whole refresh. */
-class BadMatchError extends Error {
+/** What Riot says about every match that ended normally (all stored ones). */
+const GAME_COMPLETE = "GameComplete";
+
+/** The match failed to store: skip it this time rather than fail the whole refresh. */
+class FailedMatchError extends Error {
   constructor(
     readonly stage: SkipStage,
     readonly riotStatus: number | null,
@@ -74,9 +86,16 @@ class BadMatchError extends Error {
   }
 }
 
+/** Riot says the match didn't end normally: never worth fetching again. */
+class BadMatchError extends Error {
+  constructor(readonly endOfGameResult: string) {
+    super(`game didn't end normally (endOfGameResult: ${endOfGameResult})`);
+  }
+}
+
 /** Riot's final answer about this match: a 4xx other than 429. Fatal ones
  * (key, foreign PUUID) aren't about the match, and 429s, 5xx and network
- * errors that outlasted the retries are an outage, not a bad match. */
+ * errors that outlasted the retries are an outage, not a failed match. */
 function isRiotRefusal(err: unknown): err is RiotApiError {
   return err instanceof RiotApiError && !err.fatal && err.status >= 400 && err.status < 500 && err.status !== 429;
 }
@@ -93,15 +112,15 @@ function isRejectedData(err: unknown) {
 }
 
 /** Runs one step of a match's ingestion, turning a failure that's the
- * match's fault into a `BadMatchError`. Anything else is rethrown as is. */
+ * match's fault into a `FailedMatchError`. Anything else is rethrown as is. */
 async function step<T>(stage: SkipStage, run: () => Promise<T> | T): Promise<T> {
   try {
     return await run();
   } catch (err) {
     if (stage === "match" || stage === "timeline") {
-      if (isRiotRefusal(err)) throw new BadMatchError(stage, err.status, err);
+      if (isRiotRefusal(err)) throw new FailedMatchError(stage, err.status, err);
     } else if (stage === "parse" || isRejectedData(err)) {
-      throw new BadMatchError(stage, null, err);
+      throw new FailedMatchError(stage, null, err);
     }
     throw err;
   }
@@ -123,8 +142,9 @@ function participantSummoners(dto: RiotArenaMatchDto, region: string) {
 
 /**
  * Fetches, parses and stores one match, all or nothing. Returns how many of
- * its players were new to `summoners`. Throws `BadMatchError` when the match
- * itself is bad, anything else when something is down.
+ * its players were new to `summoners`. Throws `BadMatchError` when Riot says
+ * the game didn't end normally, `FailedMatchError` when this match failed
+ * to store, anything else when something is down.
  */
 async function ingestMatch(db: Db, riot: RiotClient, matchId: string) {
   // The match's own platform, not the summoner's: their history lists
@@ -136,14 +156,17 @@ async function ingestMatch(db: Db, riot: RiotClient, matchId: string) {
   try {
     platform = platformOfMatch(matchId);
   } catch (err) {
-    throw new BadMatchError("match", null, err);
+    throw new FailedMatchError("match", null, err);
   }
   const dto = await step("match", () => riot.match.getMatch(matchId));
+  // An aborted lobby ("Abort_Unexpected", ...) comes with no players, and
+  // every player of that lobby has it in their history. Checked before the
+  // timeline, which it doesn't need. A missing field isn't a verdict.
+  const { endOfGameResult } = dto.info;
+  if (endOfGameResult !== undefined && endOfGameResult !== GAME_COMPLETE) throw new BadMatchError(endOfGameResult);
   const timelineDto = await step("timeline", () => riot.match.getMatchTimeline(matchId));
   const parsed = await step("parse", () => {
-    // Riot answers an aborted lobby with an empty player list. Every player
-    // of that lobby has it in their history, so failing on it (the empty
-    // insert below used to throw) failed each of them in turn, forever.
+    // A complete game without players is unexpected: retried like any failure.
     if (dto.info.participants.length === 0) {
       throw new Error(`no participants (endOfGameResult: ${dto.info.endOfGameResult ?? "missing"})`);
     }
@@ -172,7 +195,22 @@ async function ingestMatch(db: Db, riot: RiotClient, matchId: string) {
   );
 }
 
-/** Logs a bad match in `skipped_matches`: one row per match, counting repeats. */
+/** Records a bad match in `bad_matches`, which keeps it from being fetched
+ * again. False when it was already there (another process met it first). */
+async function recordBadMatch(db: Db, bad: BadMatch, seenInPuuid: string) {
+  return db.transaction(async (tx) => {
+    const inserted = await tx
+      .insert(badMatches)
+      .values({ ...bad, platform: bad.matchId.split("_")[0]!.toLowerCase(), seenInPuuid })
+      .onConflictDoNothing({ target: badMatches.matchId })
+      .returning({ matchId: badMatches.matchId });
+    // Logged as a failure by an older build.
+    await tx.delete(skippedMatches).where(eq(skippedMatches.matchId, bad.matchId));
+    return inserted.length > 0;
+  });
+}
+
+/** Logs a failed match in `skipped_matches`: one row per match, counting repeats. */
 async function recordSkip(db: Db, skip: SkippedMatch, seenInPuuid: string) {
   const fields = { stage: skip.stage, riotStatus: skip.riotStatus, error: skip.error, seenInPuuid };
   await db
@@ -188,13 +226,16 @@ async function recordSkip(db: Db, skip: SkippedMatch, seenInPuuid: string) {
  * Pulls new Arena matches for one summoner: fetches their match ids (only
  * since the last refresh, when there was one), skips ones already in the DB
  * — matches are shared between players, so each is stored once no matter
- * how many of its players get refreshed — fetches + parses the rest, and
- * inserts them.
+ * how many of its players get refreshed — and known bad ones, fetches +
+ * parses the rest, and inserts them.
  *
- * A bad match (Riot refuses it or its timeline, the parser throws, Postgres
- * rejects the rows) is left out entirely, logged in `skipped_matches` (and
- * through `onSkip`), and the refresh goes on: one broken match must not
- * block a summoner forever. An outage still fails the refresh.
+ * A bad match (Riot says the game didn't end normally, e.g. an aborted
+ * lobby) goes to `bad_matches` (and through `onBadMatch`) and is never
+ * fetched again. A failed match (Riot refuses it or its timeline, the parser
+ * throws, Postgres rejects the rows) is left out, logged in
+ * `skipped_matches` (and through `onSkip`), and fetched again by the next
+ * refresh that meets it. Either way the refresh goes on: one broken match
+ * must not block a summoner forever. An outage still fails the refresh.
  *
  * Every participant of a newly stored match is added to `summoners` if
  * they aren't there yet (with `lastRefreshedAt` null, i.e. "never
@@ -230,34 +271,44 @@ export async function ingestSummoner(
     startTime: since,
   });
 
-  const existing =
+  // Stored, or bad (never worth another call). Failed ones are fetched again.
+  const known =
     recentMatchIds.length === 0
       ? []
       : await db
           .select({ matchId: matches.matchId })
           .from(matches)
-          .where(inArray(matches.matchId, recentMatchIds));
-  const existingIds = new Set(existing.map((m) => m.matchId));
+          .where(inArray(matches.matchId, recentMatchIds))
+          .union(db.select({ matchId: badMatches.matchId }).from(badMatches).where(inArray(badMatches.matchId, recentMatchIds)));
+  const knownIds = new Set(known.map((m) => m.matchId));
 
-  const newMatchIds = recentMatchIds.filter((id) => !existingIds.has(id));
+  const newMatchIds = recentMatchIds.filter((id) => !knownIds.has(id));
 
   let ingested = 0;
   let skipped = 0;
+  let bad = 0;
   let discovered = 0;
-  const progress = () => onProgress?.({ phase: "matches", done: ingested + skipped, total: newMatchIds.length });
+  const progress = () => onProgress?.({ phase: "matches", done: ingested + skipped + bad, total: newMatchIds.length });
   progress();
   for (const matchId of newMatchIds) {
-    if (options.shouldStop?.()) return { ingested, skipped, discovered, stopped: true };
+    if (options.shouldStop?.()) return { ingested, skipped, bad, discovered, stopped: true };
 
     try {
       discovered += await ingestMatch(db, riot, matchId);
       ingested += 1;
     } catch (err) {
-      if (!(err instanceof BadMatchError)) throw err;
-      const skip: SkippedMatch = { matchId, stage: err.stage, riotStatus: err.riotStatus, error: err.message };
-      await recordSkip(db, skip, summoner.puuid);
-      options.onSkip?.(skip);
-      skipped += 1;
+      if (err instanceof BadMatchError) {
+        const badMatch: BadMatch = { matchId, endOfGameResult: err.endOfGameResult };
+        if (await recordBadMatch(db, badMatch, summoner.puuid)) options.onBadMatch?.(badMatch);
+        bad += 1;
+      } else if (err instanceof FailedMatchError) {
+        const skip: SkippedMatch = { matchId, stage: err.stage, riotStatus: err.riotStatus, error: err.message };
+        await recordSkip(db, skip, summoner.puuid);
+        options.onSkip?.(skip);
+        skipped += 1;
+      } else {
+        throw err;
+      }
     }
     progress();
   }
@@ -269,5 +320,5 @@ export async function ingestSummoner(
     .set({ lastRefreshedAt: startedAt })
     .where(eq(summoners.puuid, summoner.puuid));
 
-  return { ingested, skipped, discovered, stopped: false };
+  return { ingested, skipped, bad, discovered, stopped: false };
 }
