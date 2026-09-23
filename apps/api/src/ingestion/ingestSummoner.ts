@@ -141,6 +141,12 @@ async function ingestMatch(db: Db, riot: RiotClient, matchId: string) {
   const dto = await step("match", () => riot.match.getMatch(matchId));
   const timelineDto = await step("timeline", () => riot.match.getMatchTimeline(matchId));
   const parsed = await step("parse", () => {
+    // Riot answers an aborted lobby with an empty player list. Every player
+    // of that lobby has it in their history, so failing on it (the empty
+    // insert below used to throw) failed each of them in turn, forever.
+    if (dto.info.participants.length === 0) {
+      throw new Error(`no participants (endOfGameResult: ${dto.info.endOfGameResult ?? "missing"})`);
+    }
     return {
       ...parseMatch(matchId, platform, dto, timelineDto),
       rounds: parseRounds(matchId, dto, timelineDto),

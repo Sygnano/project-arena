@@ -158,6 +158,9 @@ export interface RiotArenaMatchDto {
     gameDuration: number;
     queueId: number;
     gameVersion: string;
+    /** "GameComplete" on every stored match; an aborted lobby says why
+     * ("Abort_TooFewPlayers", ...) and comes with no participants. */
+    endOfGameResult?: string;
     participants: RiotArenaParticipantDto[];
     /**
      * Arena's ban list is lobby-wide, not per-team — despite living under

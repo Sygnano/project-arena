@@ -95,8 +95,9 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   (`refreshSummonerProfile`). A failed profile refresh is logged and the crawl moves on to the
   matches. `summoners` therefore holds far
   more than the friend group, so anything listing it must limit/filter.
-  A **bad match** (Riot answers a 4xx other than 429 for it or its timeline, the parser throws, or
-  Postgres rejects its rows) is stored nowhere: `ingestSummoner` logs it in `skipped_matches` (one
+  A **bad match** (Riot answers a 4xx other than 429 for it or its timeline, the parser throws,
+  Postgres rejects its rows, or Riot sends it with no participants, as it does for an aborted
+  lobby: `endOfGameResult` other than `GameComplete`) is stored nowhere: `ingestSummoner` logs it in `skipped_matches` (one
   row per match with the failing stage, Riot status and error, counting repeats, deleted if it
   stores fine later) and in the process log, and the refresh goes on (decided with the user, so one
   broken match can't block a summoner forever). Outages (network, 5xx, 429) still fail the refresh.
