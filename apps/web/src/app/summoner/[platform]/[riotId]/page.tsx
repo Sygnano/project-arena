@@ -1,13 +1,17 @@
 import { cache } from "react";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import type { SummonerView } from "@arena/types";
-import { getSummonerPage, getSummonerStatsByRiotId, hasRecap, summonerStatsQueryKey } from "@/lib/api";
+import { getSummonerPage, getSummonerStatsByRiotId, RecapRateLimitedError } from "@/lib/api";
+import { hasRecap, summonerStatsQueryKey } from "@/lib/summoner-query";
 import { formatUtcDateTime } from "@/lib/format";
 import { isKnownPlatform, platformRegionName } from "@/lib/riot";
 import { parseRiotIdSlug, summonerPath } from "@/lib/riot-id";
 import { getQueryClient } from "@/lib/query-client";
+import { visitorIp } from "@/lib/visitor-ip";
+import { RateLimitedView } from "./rate-limited";
 import { SummonerRecap } from "./recap";
 import { RefreshView } from "./refresh-view";
 
@@ -32,11 +36,14 @@ export async function generateMetadata(props: PageProps<"/summoner/[platform]/[r
   const summoner = (await loadSummonerPage(platform, parsed.gameName, parsed.tagLine).catch(() => null))?.summoner ?? null;
   const name = summoner ? `${summoner.gameName}#${summoner.tagLine}` : `${parsed.gameName}#${parsed.tagLine}`;
   const description = describeRecap(summoner, platform);
+  // Link previews name only stored summoners: otherwise any URL would put
+  // its own text in a card under this site's name (the tab keeps the name).
+  const previewTitle = summoner ? `${name} · Arena season recap` : "Arena season recap";
   return {
     title: `${name} · Arena Journey`,
     description,
-    openGraph: { title: `${name} · Arena season recap`, description, siteName: "Arena Journey", type: "website" },
-    twitter: { card: "summary_large_image", title: `${name} · Arena season recap`, description },
+    openGraph: { title: previewTitle, description, siteName: "Arena Journey", type: "website" },
+    twitter: { card: "summary_large_image", title: previewTitle, description },
   };
 }
 
@@ -74,12 +81,19 @@ export default async function SummonerPage(props: PageProps<"/summoner/[platform
   if (page!.summoner.matchCount === 0) return recap;
 
   const queryClient = getQueryClient();
+  const ip = visitorIp(await headers());
   // query() (not the deprecated fetchQuery/prefetchQuery pair) runs the
   // fetch and returns it, filling the cache that dehydrate() ships.
-  const stats = await queryClient.query({
-    queryKey: summonerStatsQueryKey(platform, parsed.gameName, parsed.tagLine),
-    queryFn: () => getSummonerStatsByRiotId(platform, parsed.gameName, parsed.tagLine),
-  });
+  let stats;
+  try {
+    stats = await queryClient.query({
+      queryKey: summonerStatsQueryKey(platform, parsed.gameName, parsed.tagLine),
+      queryFn: () => getSummonerStatsByRiotId(platform, parsed.gameName, parsed.tagLine, ip),
+    });
+  } catch (err) {
+    if (err instanceof RecapRateLimitedError) return <RateLimitedView retryAfterSeconds={err.retryAfterSeconds} />;
+    throw err;
+  }
   if (!stats) notFound();
 
   return <HydrationBoundary state={dehydrate(queryClient)}>{recap}</HydrationBoundary>;

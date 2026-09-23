@@ -40,18 +40,28 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   site-wide feed, since a shared list let anyone put any Riot ID on the homepage (decided with the
   user; the server-side `recapViewedAt` column that fed the old shared list was dropped). Riot
   requests are rate-limited per visitor IP in the refresh route (`apps/api/src/rateLimit.ts`: 30
-  Riot lookups or fetches / 10 min, 5 first fetches / hour, and no new first fetch while 10 jobs
-  wait); following a fetch that's already running costs nothing, but a visitor IP holds at most 4
-  refresh streams open at once. The web server forwards the visitor's IP in `x-arena-client-ip`:
-  the LAST `x-forwarded-for` entry, which Railway's edge appends (earlier entries are whatever the
-  client sent, so reading the first one let anyone choose their own rate-limit key; a CDN in front
-  would change which entry is right). That header is only trustworthy while the API is not
-  reachable from the internet. The refresh proxy refuses browser requests from other sites
+  Riot lookups or fetches / 10 min, 5 first fetches / hour); following a fetch that's already
+  running costs nothing, but a visitor IP holds at most 4 refresh streams open at once. Limits
+  shared by every visitor answer `busy`, since a pool of addresses gets past per-IP ones (a 2026-09
+  security audit): no new first fetch while 10 wait in the lane, no new refresh while 50 do, at
+  most 10 Riot ID lookups running per Account-V1 cluster (they share its Riot budget with match
+  fetches), and 200 refresh streams open overall. Recap reads (`GET .../stats`, so every recap page
+  view) are limited to 60 / 10 min per visitor IP: an uncached recap costs ~100 ms of the API's
+  only thread. An IPv6 visitor is keyed on their /64 (`rateLimitKey`), since one household holds
+  2^64 addresses. The web server forwards the visitor's IP in `x-arena-client-ip`
+  (`lib/visitor-ip.ts`): the LAST `x-forwarded-for` entry, which Railway's edge appends (earlier
+  entries are whatever the client sent, so reading the first one let anyone choose their own
+  rate-limit key; a CDN in front would change which entry is right). The API trusts that header
+  because only the web server can call it: both share `API_PROXY_SECRET`, sent as
+  `x-arena-proxy-secret` by `apiFetch` (`lib/api.ts`), and once it's set the API refuses every
+  request without it except `/health`. The refresh proxy refuses browser requests from other sites
   (`Sec-Fetch-Site` not `same-origin`), so no page elsewhere can spend Riot calls through its
   visitors. Inside the API process all match fetching runs through
   `apps/api/src/ingestion/refreshQueue.ts`, with one lane per Riot regional cluster (europe,
   americas, asia, sea; decided with the user): one summoner at a time per lane, lanes side by side,
-  since Riot's rate limits are per cluster. EUW, EUNE, TR, RU and ME share the `europe` lane (and budget), OCE, SG, TW and VN
+  since Riot's rate limits are per cluster. Within a lane, refreshes of already-fetched summoners
+  run before waiting first fetches (decided with the user, so ten huge first fetches can't hold the
+  friend group's refreshes back for hours). EUW, EUNE, TR, RU and ME share the `europe` lane (and budget), OCE, SG, TW and VN
   share `sea`; an NA fetch never waits behind EUW. Queue positions and the "queue full" limit are per lane. In memory
   (a restart drops the queue; pressing again re-queues), with `subscribe()` feeding the streams. A first fetch pulls the
   full history at ~2.4s per match on a dev key (2 calls per match, 100 calls / 2 min), which is why
@@ -424,9 +434,14 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   stays dev-only), listens on `::` (Railway's private network can be IPv6-only), closes cleanly
   on SIGTERM, and its `/health` fails (503) when the database doesn't answer. It has no CORS: only
   the web app's server calls it, so give it no public domain (Railway: same project, web reaches it
-  at `${{api.RAILWAY_PRIVATE_DOMAIN}}`). Wherever the web app lands, it needs two env vars: `API_URL` (the API's address, server-side
-  only) and `SITE_URL` (its own public origin, the root layout's `metadataBase`: without it, link
-  previews point their image at `http://localhost:3000`).
+  at `${{api.RAILWAY_PRIVATE_DOMAIN}}`). Wherever the web app lands, it needs `API_URL` (the API's address, server-side
+  only), `SITE_URL` (its own public origin, the root layout's `metadataBase`: without it, link
+  previews point their image at `http://localhost:3000`) and `API_PROXY_SECRET`, the same value
+  as the API's (at least 32 characters; see §1). The API should connect as a role that can only
+  read and write rows, with the startup migrations run through `MIGRATION_DATABASE_URL` (a role
+  that owns the schema; optional, `DATABASE_URL` is used when it's unset): Railway's default
+  `postgres` user is a superuser, so any SQL injection would otherwise reach the whole database
+  server.
 - **Auth** — deferred per §1, revisit if personalization is needed.
 - **CI** — the old prototype has GitHub Actions scaffolding for Copilot; a fresh CI setup
   (typecheck/lint/test on PR via Turborepo) should be added once the app has enough shape to be
@@ -633,12 +648,16 @@ redesigning:
   the loaded rows, not a new query; `aggregate.ts` has SQL-equivalent helpers (`sum` counts null as
   0, `avg`/`max` skip nulls). Ties are broken by id so the output is stable. Placement-0 games
   (broken lobbies, all players on one team) are left out of the recap.
-- **The stats cache** (`apps/api/src/summoners/statsCache.ts`, decided with the user) keeps a
-  recap, as its JSON string, only until 15 minutes after that summoner's `lastRefreshedAt`: the
-  window in which it's likely to be reopened, after which a refresh would replace it. Older recaps
-  are rebuilt per visit. Entries are invalidated by the summoner's game count + latest game time
-  (a teammate's refresh can add one of their games), swept every minute, and capped at
-  `STATS_CACHE_MAX_MB` (default 1024). A code deploy restarts the process, which clears it.
+- **The stats cache** (`apps/api/src/summoners/statsCache.ts`, decided with the user) keeps
+  recaps as their JSON strings, in two kinds. **Fresh**: until 15 minutes after that summoner's
+  `lastRefreshedAt`, the window in which it's likely to be reopened, after which a refresh would
+  replace it. **Recent**: any other recap someone opened, least recently used first within
+  `STATS_CACHE_RECENT_MB` (default 256), and for an hour at most after its last view (added after
+  a 2026-09 security audit: rebuilding an older recap on every view let a loop keep the API busy).
+  Entries are invalidated by the summoner's game count + latest game time (a teammate's refresh
+  can add one of their games), swept every minute, and capped at `STATS_CACHE_MAX_MB` (default
+  1024; recent entries are evicted first). Sizes count two bytes a character when the JSON holds
+  any non-Latin-1 character, as V8 stores it. A code deploy restarts the process, which clears it.
 - **Recaps carry ids; names and icons come from a catalog** (decided with the user). The API
   sends `SummonerStatsPayload` (`@arena/types` `catalog.ts`): items and augments as ids only, no
   champion list or display names. `GET /catalog` (`apps/api/src/leagueData/gameCatalog.ts`) serves
@@ -663,9 +682,24 @@ redesigning:
   `ASSET_HOSTS` (Data Dragon, CommunityDragon) only: loading images or anything else from a new
   host means adding it there, or it breaks in production while working in `next dev`. Checked
   with headless Chrome on a production build: no violations on the splash, a recap or /about.
-- **URL slugs are validated before use** (`parseRiotIdSlug` applies the Riot ID rules, and both
-  validators reject control characters, since a NUL made Postgres fail the query): the page, its
-  link preview and the refresh proxy echo or forward what it returns, so an invalid one is a 404,
-  never arbitrary text in a preview card or a `..` path segment in a request to the API.
+- **URL slugs are validated before use** (`parseRiotIdSlug` applies the Riot ID rules: game names
+  are letters, digits, combining marks and spaces only, as every one of 40,835 stored names is;
+  both validators refuse anything else, including control characters, since a NUL made Postgres
+  fail the query): the page, its link preview and the refresh proxy echo or forward what it
+  returns, so an invalid one is a 404, never markup or a `..` path segment in a request to the
+  API. Link previews name only stored summoners: a Riot ID that isn't stored gets a generic
+  `og:title` and card, or any URL could put its own text on a card under this site's name. Rendered
+  cards are kept in the web server's memory (100, least recently used first).
+- **Summoners are looked up by `riot_id_key`** (`riotIdKey()` in `packages/db/src/riotId.ts`:
+  trimmed, Unicode lowercase, NFC, "name#tag", indexed with the region). Not `lower()` in SQL: this
+  database's C collation only lowercases ASCII, and a quarter of stored names aren't ASCII. Every
+  writer of `summoners` goes through `riotIdColumns()`, which also trims the names (match data can
+  carry a trailing space). The API and the crawler fill keys missing from older rows at startup
+  (`backfillRiotIdKeys`). A successful lookup also corrects the stored platform, so a player who
+  moved server doesn't keep the old one's lane and match cluster.
+- **`apps/web/src/lib/api.ts` is server-only** (`import "server-only"`): it holds the API's
+  address and secret. Helpers the browser needs (`summonerStatsQueryKey`, `hasRecap`,
+  `formatRetryAfter`) live in `lib/summoner-query.ts`. The recap query is disabled in the
+  browser: its data only comes from the page's server prefetch or the refresh stream.
 - This file should be updated whenever a decision in §3's "explicitly deferred" list gets made, or
   when scope (§1) changes (e.g. friend-group → public tool would flip several decisions above).

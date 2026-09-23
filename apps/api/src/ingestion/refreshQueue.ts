@@ -11,6 +11,8 @@ export interface RefreshTarget {
   /** Their platform (`euw1`), which decides their lane. */
   region: string;
   label: string;
+  /** Never fetched before: their whole history, so it waits behind refreshes. */
+  firstFetch: boolean;
 }
 
 type Job = RefreshTarget & {
@@ -23,9 +25,15 @@ type Job = RefreshTarget & {
   finishedAt: number | null;
 };
 
-/** One regional cluster's line: its waiting jobs and whether one is running. */
+/**
+ * One regional cluster's line: its waiting jobs and whether one is running.
+ * Refreshes of already-fetched summoners (a few matches each) run before
+ * waiting first fetches (a whole history, up to hours), so a pile of first
+ * fetches can't hold the friend group's refreshes back.
+ */
 interface Lane {
-  pending: string[];
+  refreshes: string[];
+  firstFetches: string[];
   running: boolean;
 }
 
@@ -52,8 +60,9 @@ export function laneOf(platform: string): Region {
  * Riot regional cluster (europe, americas, asia, sea). Riot's rate limits are
  * per cluster, so a fetch on NA never waits behind one on EUW, while EUW and
  * EUNE share a lane because they share the `europe` budget (two lanes there
- * would only compete for it). Within a lane, one summoner at a time, first
- * come first served. Bulk ingestion isn't queued here: it's
+ * would only compete for it). Within a lane, one summoner at a time:
+ * refreshes first, then first fetches, each first come first served (see
+ * `Lane`). Bulk ingestion isn't queued here: it's
  * `scripts/crawl.ts`, its own process.
  *
  * In memory: a restart drops the queue and the next refresh press queues
@@ -73,7 +82,7 @@ export class RefreshQueue {
 
   private lane(region: Region): Lane {
     let lane = this.lanes.get(region);
-    if (!lane) this.lanes.set(region, (lane = { pending: [], running: false }));
+    if (!lane) this.lanes.set(region, (lane = { refreshes: [], firstFetches: [], running: false }));
     return lane;
   }
 
@@ -92,18 +101,25 @@ export class RefreshQueue {
       startedAt: null,
       finishedAt: null,
     });
-    this.lane(laneName).pending.push(target.puuid);
+    const lane = this.lane(laneName);
+    (target.firstFetch ? lane.firstFetches : lane.refreshes).push(target.puuid);
     log.info(
-      { summoner: target.label, lane: REGION_LABEL[laneName], position: this.progress(target.puuid)?.position },
+      {
+        summoner: target.label,
+        lane: REGION_LABEL[laneName],
+        firstFetch: target.firstFetch,
+        position: this.progress(target.puuid)?.position,
+      },
       "fetch queued",
     );
-    this.notify(target.puuid);
+    // A refresh moves every waiting first fetch back a place.
+    this.notifyQueued(laneName);
     void this.drain(laneName);
   }
 
-  /** Jobs waiting in a platform's lane, behind the one running there. */
-  waitingCount(platform: string) {
-    return this.lane(laneOf(platform)).pending.length;
+  /** Jobs of this kind waiting in a platform's lane, behind the one running there. */
+  waitingCount(platform: string, kind: "refreshes" | "firstFetches") {
+    return this.lane(laneOf(platform))[kind].length;
   }
 
   isActive(puuid: string) {
@@ -117,7 +133,8 @@ export class RefreshQueue {
     const job = this.jobs.get(puuid);
     if (!job) return null;
     const lane = this.lane(job.lane);
-    const position = job.state === "queued" ? lane.pending.indexOf(puuid) + (lane.running ? 1 : 0) : 0;
+    const ahead = job.firstFetch ? lane.refreshes.length + lane.firstFetches.indexOf(puuid) : lane.refreshes.indexOf(puuid);
+    const position = job.state === "queued" ? ahead + (lane.running ? 1 : 0) : 0;
     return {
       state: job.state,
       position,
@@ -136,7 +153,8 @@ export class RefreshQueue {
     set.add(listener);
     return () => {
       set.delete(listener);
-      if (set.size === 0) this.listeners.delete(puuid);
+      // Only this set's own entry: a later subscriber may have made a new one.
+      if (set.size === 0 && this.listeners.get(puuid) === set) this.listeners.delete(puuid);
     };
   }
 
@@ -154,7 +172,8 @@ export class RefreshQueue {
 
   /** Every waiting job's position moves when its lane does. */
   private notifyQueued(laneName: Region) {
-    for (const puuid of this.lane(laneName).pending) this.notify(puuid);
+    const lane = this.lane(laneName);
+    for (const puuid of [...lane.refreshes, ...lane.firstFetches]) this.notify(puuid);
   }
 
   private prune() {
@@ -170,8 +189,10 @@ export class RefreshQueue {
     if (lane.running) return;
     lane.running = true;
     try {
-      while (lane.pending.length > 0) {
-        const job = this.jobs.get(lane.pending.shift()!);
+      for (;;) {
+        const next = lane.refreshes.shift() ?? lane.firstFetches.shift();
+        if (next === undefined) break;
+        const job = this.jobs.get(next);
         if (!job) continue;
         await this.run(job);
       }
@@ -184,7 +205,11 @@ export class RefreshQueue {
     job.state = "running";
     job.startedAt = Date.now();
     const lane = REGION_LABEL[job.lane];
-    log.info({ summoner: job.label, lane, waiting: this.lane(job.lane).pending.length }, "fetch started");
+    const waiting = this.lane(job.lane);
+    log.info(
+      { summoner: job.label, lane, waitingRefreshes: waiting.refreshes.length, waitingFirstFetches: waiting.firstFetches.length },
+      "fetch started",
+    );
     this.notify(job.puuid);
     this.notifyQueued(job.lane);
     try {

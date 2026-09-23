@@ -27,6 +27,7 @@ export async function resolveSummonerByRiotId(region: string, gameName: string, 
       region,
       { ...account, gameName: account.gameName ?? gameName, tagLine: account.tagLine ?? tagLine },
       profile,
+      { platformConfirmed: true },
     );
     log.info({ summoner: riotIdLabel(summoner), region }, "summoner found at Riot");
     return summoner;

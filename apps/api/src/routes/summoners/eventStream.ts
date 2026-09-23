@@ -13,6 +13,7 @@ export interface EventStream {
   send<E extends EventName>(event: E, data: EventData<E>): void;
   /** Sends an event whose data is already serialized (the cached stats JSON). */
   sendJson(event: EventName, json: string): void;
+  /** Runs `handler` when the client goes, or right away if it already has. */
   onClose(handler: () => void): void;
   end(): void;
 }
@@ -70,7 +71,13 @@ export function openEventStream(reply: FastifyReply): EventStream {
     },
     send: (event, data) => write(event, JSON.stringify(data)),
     sendJson: write,
-    onClose: (handler) => closeHandlers.push(handler),
+    // A client that left during an earlier step (the Riot lookup) already
+    // fired `close`: a handler added now would never run, and the refresh
+    // would hold the visitor's stream slot until the whole fetch ended.
+    onClose: (handler) => {
+      if (open) closeHandlers.push(handler);
+      else handler();
+    },
     end: () => {
       clearInterval(heartbeat);
       openStreams.delete(stream);

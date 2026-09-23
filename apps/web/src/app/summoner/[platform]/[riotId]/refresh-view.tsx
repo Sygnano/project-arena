@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import type { SummonerPageData } from "@arena/types";
 import { HextechEmblem, NewSearchLink, StatusScreen, actionClass } from "@/components/status-screen";
 import { isRefreshActive, useSummonerRefresh } from "@/hooks/use-summoner-refresh";
-import { formatRetryAfter } from "@/lib/api";
+import { formatRetryAfter } from "@/lib/summoner-query";
 import { platformRegionName, profileIconUrl } from "@/lib/riot";
 import { summonerPath } from "@/lib/riot-id";
 import { SummonerRecap } from "./recap";
@@ -137,7 +137,7 @@ function RefreshView({ platform, gameName, tagLine, initial }: Props) {
           <StatusScreen eyebrow="HOLD ON" title={title} actions={retry}>
             <p className="text-lol-text-secondary">
               {state.code === "busy"
-                ? "The fetch queue is full right now. Try again in a few minutes."
+                ? "Too many fetches are running right now. Try again in a few minutes."
                 : `Too many fetches from your connection. Try again ${formatRetryAfter(state.retryAfterSeconds ?? 60)}.`}
             </p>
           </StatusScreen>

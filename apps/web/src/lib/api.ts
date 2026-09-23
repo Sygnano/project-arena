@@ -1,36 +1,65 @@
-import type { DevSummonerList, GameCatalog, SummonerPageData, SummonerStatsPayload, SummonerView } from "@arena/types";
+import "server-only";
+import type { DevSummonerList, GameCatalog, SummonerPageData, SummonerStatsPayload } from "@arena/types";
 
-// Server-only (no NEXT_PUBLIC_ prefix): the browser reaches the API through
-// this app's own routes (`app/api/...`), never directly.
+// Server-only (no NEXT_PUBLIC_ prefix, and `server-only` above keeps this
+// module out of client bundles): the browser reaches the API through this
+// app's own routes (`app/api/...`) and pages, never directly. Client-safe
+// helpers live in `lib/summoner-query.ts`.
 const API_URL = process.env.API_URL ?? "http://localhost:3001";
+// Shared with the API, which refuses every request without it once set
+// (apps/api/src/index.ts). Unset in local dev, like the API's.
+const API_PROXY_SECRET = process.env.API_PROXY_SECRET;
+
+/**
+ * Every call to the API. `visitorIp` (see `lib/visitor-ip.ts`) is what the
+ * API rate-limits by; without it the API counts this server's address.
+ */
+function apiFetch(path: string, { visitorIp, ...init }: RequestInit & { visitorIp?: string | null } = {}) {
+  const headers = new Headers(init.headers);
+  if (API_PROXY_SECRET) headers.set("x-arena-proxy-secret", API_PROXY_SECRET);
+  if (visitorIp) headers.set("x-arena-client-ip", visitorIp);
+  return fetch(`${API_URL}${path}`, { cache: "no-store", ...init, headers });
+}
 
 function summonerApiPath(region: string, gameName: string, tagLine: string) {
   return `/summoners/by-riot-id/${encodeURIComponent(region)}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
 }
 
-/** The API's URL for a summoner's refresh stream, for the proxy route. */
-export function refreshStreamUrl(region: string, gameName: string, tagLine: string) {
-  return `${API_URL}${summonerApiPath(region, gameName, tagLine)}/refresh`;
+/** The API's refresh stream, for the proxy route: a server-sent event stream. */
+export function fetchRefreshStream(
+  region: string,
+  gameName: string,
+  tagLine: string,
+  { visitorIp, signal }: { visitorIp: string | null; signal: AbortSignal },
+) {
+  return apiFetch(`${summonerApiPath(region, gameName, tagLine)}/refresh`, { method: "POST", visitorIp, signal });
+}
+
+/** The visitor asked for too many recaps; `retryAfterSeconds` says when to try again. */
+export class RecapRateLimitedError extends Error {
+  constructor(readonly retryAfterSeconds: number) {
+    super("Too many recaps requested");
+    this.name = "RecapRateLimitedError";
+  }
 }
 
 /** The recap, with items and augments as ids (see `resolveStats`). Null when
- * the summoner isn't stored. Database only, never Riot. */
+ * the summoner isn't stored. Database only, never Riot. Rate-limited per
+ * visitor by the API: throws `RecapRateLimitedError` past it. */
 export async function getSummonerStatsByRiotId(
   region: string,
   gameName: string,
   tagLine: string,
+  visitorIp: string | null,
 ): Promise<SummonerStatsPayload | null> {
-  const res = await fetch(`${API_URL}${summonerApiPath(region, gameName, tagLine)}/stats`, { cache: "no-store" });
+  const res = await apiFetch(`${summonerApiPath(region, gameName, tagLine)}/stats`, { visitorIp });
   if (res.status === 404) return null;
+  if (res.status === 429) {
+    const body = (await res.json().catch(() => ({}))) as { retryAfterSeconds?: number };
+    throw new RecapRateLimitedError(body.retryAfterSeconds ?? 60);
+  }
   if (!res.ok) throw new Error(`Failed to load summoner stats (${res.status})`);
   return res.json();
-}
-
-/** Shared between the server-side prefetch (page.tsx), the refresh stream
- * (which puts the new recap in the cache) and the client-side `useQuery`:
- * TanStack Query matches cached data to a query purely by this key. */
-export function summonerStatsQueryKey(region: string, gameName: string, tagLine: string) {
-  return ["summonerStats", region, gameName, tagLine] as const;
 }
 
 /** The stored summoner and their fetch in progress. Null when the Riot ID
@@ -40,21 +69,16 @@ export async function getSummonerPage(
   gameName: string,
   tagLine: string,
 ): Promise<SummonerPageData | null> {
-  const res = await fetch(`${API_URL}${summonerApiPath(region, gameName, tagLine)}`, { cache: "no-store" });
+  const res = await apiFetch(summonerApiPath(region, gameName, tagLine));
   if (res.status === 404 || res.status === 400) return null;
   if (!res.ok) throw new Error(`Failed to load the summoner (${res.status})`);
   return res.json();
 }
 
-/** Whether the summoner has a recap to show (matches fetched at least once). */
-export function hasRecap(summoner: SummonerView | null | undefined): summoner is SummonerView {
-  return summoner?.lastRefreshedAt != null;
-}
-
 /** Summoners with a recap, latest refresh first, for the /dev page, and
  * when the list was read (what its "ago" times count from). */
 export async function getDevSummoners(): Promise<DevSummonerList & { readAt: number }> {
-  const res = await fetch(`${API_URL}/dev/summoners`, { cache: "no-store" });
+  const res = await apiFetch("/dev/summoners");
   if (!res.ok) throw new Error(`Failed to load the summoner list (${res.status})`);
   return { ...((await res.json()) as DevSummonerList), readAt: Date.now() };
 }
@@ -69,7 +93,7 @@ let catalogCache: { at: number; catalog: Promise<GameCatalog> } | null = null;
  */
 export function getGameCatalog(): Promise<GameCatalog> {
   if (!catalogCache || Date.now() - catalogCache.at > CATALOG_TTL_MS) {
-    const catalog = fetch(`${API_URL}/catalog`, { cache: "no-store" }).then((res) => {
+    const catalog = apiFetch("/catalog").then((res) => {
       if (!res.ok) throw new Error(`Failed to load the game catalog (${res.status})`);
       return res.json() as Promise<GameCatalog>;
     });
@@ -81,12 +105,6 @@ export function getGameCatalog(): Promise<GameCatalog> {
   return catalogCache.catalog;
 }
 
-/** "in about 12 min" / "in a minute", for a rate limit's wait. */
-export function formatRetryAfter(seconds: number): string {
-  const minutes = Math.ceil(seconds / 60);
-  return minutes <= 1 ? "in a minute" : `in about ${minutes} min`;
-}
-
 /** Site-wide totals for the splash page, from the API's `GET /overview`. */
 export type Overview = {
   /** Every Arena match stored. */
@@ -96,7 +114,7 @@ export type Overview = {
 };
 
 export async function getOverview(): Promise<Overview> {
-  const res = await fetch(`${API_URL}/overview`, { cache: "no-store" });
+  const res = await apiFetch("/overview");
   if (!res.ok) throw new Error(`Failed to load the overview (${res.status})`);
   return res.json();
 }

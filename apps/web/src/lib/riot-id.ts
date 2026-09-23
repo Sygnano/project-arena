@@ -31,8 +31,9 @@ export function summonerPath(region: string, gameName: string, tagLine: string):
 }
 
 // Riot ID rules (mirrored by the API's routes/summoners/riotIdParams.ts): the game
-// name is 3-16 characters of any script's letters, digits or spaces; the
-// tag line is 3-5 letters or digits. Neither is case-sensitive. Lengths
+// name is 3-16 characters of any script's letters, digits or spaces (plus
+// combining marks, which scripts like Thai need); the tag line is 3-5
+// letters or digits. Neither is case-sensitive. Lengths
 // count code points, so a Korean or Cyrillic name isn't measured in UTF-16
 // halves.
 export const GAME_NAME_LENGTH = { min: 3, max: 16 } as const;
@@ -41,6 +42,7 @@ export const TAG_LINE_LENGTH = { min: 3, max: 5 } as const;
 // Riot's own default tags that break the 3-5 rule: OC1 accounts get "#OC".
 const SHORT_DEFAULT_TAG_LINES = new Set(["OC"]);
 
+const GAME_NAME_PATTERN = /^[\p{L}\p{N}\p{M} ]+$/u;
 const TAG_LINE_PATTERN = /^[\p{L}\p{N}]+$/u;
 
 export function gameNameError(gameName: string): string | null {
@@ -49,7 +51,7 @@ export function gameNameError(gameName: string): string | null {
   if (length < GAME_NAME_LENGTH.min || length > GAME_NAME_LENGTH.max) {
     return `Game names are ${GAME_NAME_LENGTH.min}–${GAME_NAME_LENGTH.max} characters.`;
   }
-  if (/[#\p{Cc}]/u.test(gameName)) return "Game names can't contain that character.";
+  if (!GAME_NAME_PATTERN.test(gameName.trim())) return "Game names only have letters, numbers and spaces.";
   return null;
 }
 

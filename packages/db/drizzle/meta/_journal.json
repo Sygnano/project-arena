@@ -127,6 +127,13 @@
       "when": 1790117806651,
       "tag": "0017_skipped_matches_riot_id_index",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790181375020,
+      "tag": "0018_summoners_riot_id_key",
+      "breakpoints": true
     }
   ]
 }

@@ -16,6 +16,17 @@ const GOLD_LIGHT = "#f0e6d2";
 const MUTED = "#a09b8c";
 const CYAN = "#0ac8b9";
 
+// Rendered cards (~150 KB each), least recently used first. A card is ~70 ms
+// of this server's CPU plus a Data Dragon download; chat apps and bots ask
+// for the same one again and again. Keyed by everything the card shows, so a
+// refresh or a new icon renders a new one.
+const MAX_CACHED_CARDS = 100;
+const cards = new Map<string, ArrayBuffer>();
+
+function png(bytes: ArrayBuffer) {
+  return new Response(bytes, { headers: { "content-type": "image/png" } });
+}
+
 /** The icon as a data URL, or null: a failed icon download must not fail
  * the whole card. */
 async function loadIcon(profileIconId: number | null): Promise<string | null> {
@@ -33,7 +44,9 @@ async function loadIcon(profileIconId: number | null): Promise<string | null> {
 /**
  * The summoner link's preview card (Discord, X, iMessage...): profile icon,
  * Riot ID, server, and when the matches were last fetched — "never" for a
- * summoner nobody has fetched yet.
+ * summoner nobody has fetched yet. A Riot ID that isn't stored gets a
+ * generic card: naming it would let any URL put its own text on a card
+ * under this site's name (and give every made-up name its own render).
  */
 export default async function Image({
   params,
@@ -47,6 +60,16 @@ export default async function Image({
     ? ((await getSummonerPage(platform, parsed.gameName, parsed.tagLine).catch(() => null))?.summoner ?? null)
     : null;
 
+  // An unknown platform segment would be echoed as is: left off instead.
+  const server = known ? platformRegionName(platform).toUpperCase() : null;
+  const cacheKey = JSON.stringify([server, summoner]);
+  const cached = cards.get(cacheKey);
+  if (cached) {
+    cards.delete(cacheKey);
+    cards.set(cacheKey, cached);
+    return png(cached);
+  }
+
   const fontDir = join(process.cwd(), "src/fonts");
   const [beaufort, spiegel, icon] = await Promise.all([
     readFile(join(fontDir, "beaufort/beaufortforlol-bold.otf")),
@@ -54,13 +77,13 @@ export default async function Image({
     loadIcon(summoner?.profileIconId ?? null),
   ]);
 
-  const gameName = summoner?.gameName ?? parsed?.gameName ?? "Unknown summoner";
-  const tagLine = summoner?.tagLine ?? parsed?.tagLine ?? "";
+  const gameName = summoner?.gameName ?? "Season recap";
+  const tagLine = summoner?.tagLine ?? "";
   const updated = summoner?.lastRefreshedAt
     ? `LAST UPDATED ${formatUtcDateTime(summoner.lastRefreshedAt).toUpperCase()}`
     : "LAST UPDATED · NEVER";
 
-  return new ImageResponse(
+  const image = new ImageResponse(
     (
       <div
         style={{
@@ -110,7 +133,7 @@ export default async function Image({
               ) : null}
             </div>
             <div style={{ display: "flex", marginTop: 18, fontSize: 24, letterSpacing: 6, color: MUTED }}>
-              {`ARENA SEASON RECAP · ${platformRegionName(platform).toUpperCase()}`}
+              {server ? `ARENA SEASON RECAP · ${server}` : "ARENA SEASON RECAP"}
             </div>
           </div>
         </div>
@@ -145,4 +168,8 @@ export default async function Image({
       ],
     },
   );
+  const bytes = await image.arrayBuffer();
+  cards.set(cacheKey, bytes);
+  if (cards.size > MAX_CACHED_CARDS) cards.delete(cards.keys().next().value!);
+  return png(bytes);
 }

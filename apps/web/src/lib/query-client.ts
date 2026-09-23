@@ -4,17 +4,12 @@ function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        // This app's only query today is fetched fresh server-side on every
-        // page load (see page.tsx's queryClient.fetchQuery), then hydrated
-        // into the browser's cache. Infinity keeps the client from ever
-        // silently re-running the queryFn on its own (window focus, mount,
-        // reconnect, ...) — apps/web/src/lib/api.ts's fetch reads
-        // `process.env.API_URL`, which Next.js does NOT inline into the
-        // client bundle (no NEXT_PUBLIC_ prefix), so a browser-triggered
-        // refetch would silently fall back to the http://localhost:3001
-        // dev default in any real deployment. Revisit once there's an
-        // actual browser-reachable API URL and a reason to refetch live
-        // (e.g. a manual "refresh" button).
+        // This app's only query (the recap) is fetched server-side on every
+        // page load (page.tsx) or put in the cache by the refresh stream, then
+        // read from the cache in the browser, which never fetches it: the
+        // fetcher is server-only (lib/api.ts) and the query is disabled in
+        // stats-view.tsx. Infinity also keeps hydrated data from counting as
+        // stale.
         staleTime: Infinity,
       },
     },

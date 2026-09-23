@@ -4,6 +4,7 @@ export * from "./migrate.js";
 export * from "./compression.js";
 export * from "./parseMatch.js";
 export * from "./parseRounds.js";
+export * from "./riotId.js";
 
 // Re-exported so consumers only need a single drizzle-orm version (this
 // package's) instead of adding their own dependency on it — see CLAUDE.md

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { RefreshErrorCode, RefreshEvent, RefreshProgress, SummonerView } from "@arena/types";
-import { summonerStatsQueryKey } from "@/lib/api";
+import { summonerStatsQueryKey } from "@/lib/summoner-query";
 import { summonerPath } from "@/lib/riot-id";
 
 export type SummonerRefreshState =

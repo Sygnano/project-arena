@@ -6,6 +6,7 @@ import {
   matchRounds,
   parseMatch,
   parseRounds,
+  riotIdColumns,
   skippedMatches,
   sql,
   summoners,
@@ -15,7 +16,7 @@ import type { RiotArenaMatchDto } from "@arena/types";
 import type { RiotClient } from "../riotApi/client.js";
 import { RiotApiError } from "../riotApi/errors.js";
 import { Queue } from "../riotApi/queues.js";
-import { platformOfMatch } from "../riotApi/routing.js";
+import { platformOfMatch, type Platform } from "../riotApi/routing.js";
 
 export type IngestProgress =
   | { phase: "matchIds" }
@@ -113,8 +114,7 @@ function participantSummoners(dto: RiotArenaMatchDto, region: string) {
     .filter((p) => p.riotIdGameName && p.riotIdTagline)
     .map((p) => ({
       puuid: p.puuid,
-      riotIdGameName: p.riotIdGameName,
-      riotIdTagline: p.riotIdTagline,
+      ...riotIdColumns(p.riotIdGameName, p.riotIdTagline),
       region,
       profileIconId: p.profileIcon ?? null,
       summonerLevel: p.summonerLevel ?? null,
@@ -127,13 +127,20 @@ function participantSummoners(dto: RiotArenaMatchDto, region: string) {
  * itself is bad, anything else when something is down.
  */
 async function ingestMatch(db: Db, riot: RiotClient, matchId: string) {
+  // The match's own platform, not the summoner's: their history lists
+  // their games on every platform of the cluster (an ME1 player's EUW1
+  // games too), and everyone met in an EUW1 game is on EUW1. A prefix we
+  // don't route (a platform Riot added or retired) makes the match
+  // unfetchable, which is the match's problem, not the refresh's.
+  let platform: Platform;
+  try {
+    platform = platformOfMatch(matchId);
+  } catch (err) {
+    throw new BadMatchError("match", null, err);
+  }
   const dto = await step("match", () => riot.match.getMatch(matchId));
   const timelineDto = await step("timeline", () => riot.match.getMatchTimeline(matchId));
   const parsed = await step("parse", () => {
-    // The match's own platform, not the summoner's: their history lists
-    // their games on every platform of the cluster (an ME1 player's EUW1
-    // games too), and everyone met in an EUW1 game is on EUW1.
-    const platform = platformOfMatch(matchId);
     return {
       ...parseMatch(matchId, platform, dto, timelineDto),
       rounds: parseRounds(matchId, dto, timelineDto),

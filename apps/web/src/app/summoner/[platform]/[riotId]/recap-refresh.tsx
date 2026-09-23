@@ -6,7 +6,7 @@ import { RefreshCw } from "lucide-react";
 import type { RefreshProgress, SummonerView } from "@arena/types";
 import { cn } from "cn";
 import { isRefreshActive, useSummonerRefresh } from "@/hooks/use-summoner-refresh";
-import { formatRetryAfter } from "@/lib/api";
+import { formatRetryAfter } from "@/lib/summoner-query";
 import { formatTimeAgo, formatUtcDateTime } from "@/lib/format";
 
 // Mirrors the API's REFRESH_COOLDOWN_MS: a refresh within this long of the

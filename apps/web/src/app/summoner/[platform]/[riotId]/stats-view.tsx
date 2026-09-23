@@ -4,8 +4,8 @@ import { useEffect, useMemo, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Welcome } from "@/modules/Welcome";
 import { TimePlayed } from "@/modules/TimePlayed";
-import type { RefreshProgress, SummonerView } from "@arena/types";
-import { getSummonerStatsByRiotId, summonerStatsQueryKey } from "@/lib/api";
+import type { RefreshProgress, SummonerStatsPayload, SummonerView } from "@arena/types";
+import { summonerStatsQueryKey } from "@/lib/summoner-query";
 import { KDA } from "@/modules/KDA";
 import { Placement } from "@/modules/Placement";
 import { TeamSlot } from "@/modules/TeamSlot";
@@ -75,9 +75,11 @@ function rate(count: number, total: number): number {
  * short label on the previous section's "next" cue, and the chapter rail.
  */
 const SummonerStatsView = ({ region, gameName, tagLine, summoner, refresh }: Props) => {
-  const { data: payload } = useQuery({
+  // Never fetched from the browser: the fetcher is server-only (it holds the
+  // API's address and secret), so the data only ever comes from the cache.
+  const { data: payload } = useQuery<SummonerStatsPayload | null>({
     queryKey: summonerStatsQueryKey(region, gameName, tagLine),
-    queryFn: () => getSummonerStatsByRiotId(region, gameName, tagLine),
+    enabled: false,
   });
   const catalog = useGameCatalog();
   const stats = useMemo(() => (payload ? resolveStats(payload, catalog) : undefined), [payload, catalog]);

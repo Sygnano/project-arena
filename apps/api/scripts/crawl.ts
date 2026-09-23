@@ -33,7 +33,7 @@
  * adopts the counts Riot reports, so they slow down rather than hit 429s.
  */
 import { parseArgs } from "node:util";
-import { and, asc, eq, inArray, isNull, lt, or, sql, summoners, type Summoner } from "@arena/db";
+import { and, asc, backfillRiotIdKeys, eq, inArray, isNull, lt, or, sql, summoners, type Summoner } from "@arena/db";
 import { db } from "../src/db.js";
 import { riotIdLabel } from "../src/logger.js";
 import { PLATFORMS, riot, type Platform, type Region } from "../src/riotApi/index.js";
@@ -311,6 +311,9 @@ async function main() {
     `[crawl] starting${forever ? " (forever)" : ""}: refreshing anyone not refreshed in ${refreshAfterHours}h` +
       `${Number.isFinite(maxSummoners) ? `, stops after ~${maxSummoners} summoner(s)` : ""}, lanes: ${LANES.join(", ")}`,
   );
+  // Rows an older build stored without a lookup key (the API does the same at startup).
+  const keyed = await backfillRiotIdKeys(db);
+  if (keyed > 0) console.log(`[crawl] filled ${keyed} Riot ID lookup key(s)`);
   const results = await Promise.allSettled(
     LANES.map((lane) =>
       crawlLane(lane).catch((err) => {

@@ -53,7 +53,8 @@ export type RefreshErrorCode =
   | "not_found"
   /** Too many Riot lookups or first fetches from this visitor. */
   | "rate_limited"
-  /** The queue is too long to take another first fetch. */
+  /** The site is at a limit shared by every visitor: the lane's queue is
+   * full, or too many Riot lookups or refresh streams are running. */
   | "busy"
   /** The fetch failed partway (matches fetched so far are kept). */
   | "failed"

@@ -5,6 +5,7 @@ import { refreshQueue } from "../../ingestion/index.js";
 import { resolveSummonerByRiotId } from "../../ingestion/resolveSummoner.js";
 import { riotIdLabel } from "../../logger.js";
 import { clientIp, SlidingWindowLimiter } from "../../rateLimit.js";
+import { accountRegion, toPlatform } from "../../riotApi/routing.js";
 import { REFRESH_COOLDOWN_MS, statsCache } from "../../summoners/statsCache.js";
 import {
   findSummonerByPuuid,
@@ -21,9 +22,24 @@ const riotRequestLimiter = new SlidingWindowLimiter(30, 10 * 60_000);
 // First fetches (a whole match history, ~2.4s a match on a dev key) per
 // visitor IP: the expensive thing to abuse.
 const firstFetchLimiter = new SlidingWindowLimiter(5, 60 * 60_000);
-// No new first fetch while this many wait in the summoner's region, so a
-// flood can't push the friend group's refreshes there back by hours.
-const MAX_WAITING_JOBS = 10;
+// No new first fetch while this many wait in the summoner's lane. Refreshes
+// run before first fetches (refreshQueue.ts), so this bounds how long a
+// first fetch can wait, not how long a refresh does.
+const MAX_WAITING_FIRST_FETCHES = 10;
+// No new refresh while this many wait in the lane: the per-IP limit alone
+// lets a few addresses queue refreshes of every stored summoner.
+const MAX_WAITING_REFRESHES = 50;
+// Riot ID lookups (Account-V1) running at once per Account-V1 cluster, all
+// visitors together. They share the cluster's Riot budget with match
+// fetches, and each waits in memory for its turn: without a ceiling, a few
+// addresses sending made-up Riot IDs could fill the budget and pile up
+// waiting lookups without end.
+const MAX_LOOKUPS_IN_FLIGHT = 10;
+const lookupsInFlight = new Map<string, number>();
+// Refresh streams open at once, all visitors together (each also holds a
+// connection through the web server).
+const MAX_OPEN_STREAMS = 200;
+let openStreams = 0;
 // Refresh streams open at once per visitor IP. Following a fetch costs no
 // limiter slot, so without this one client could hold any number of streams
 // (each also proxied by the web server). A stream counts until its handler
@@ -34,7 +50,11 @@ const openStreamsByIp = new Map<string, number>();
 /** Resolves when the summoner's fetch ends, or with "closed" when the visitor leaves first. */
 function followFetch(stream: EventStream, puuid: string): Promise<RefreshProgress | "closed"> {
   return new Promise((resolve) => {
+    let finished = false;
+    // Both the fetch ending and the stream closing call this.
     const finish = (outcome: RefreshProgress | "closed") => {
+      if (finished) return;
+      finished = true;
       unsubscribe();
       resolve(outcome);
     };
@@ -82,9 +102,23 @@ async function streamRefresh(stream: EventStream, { region, gameName, tagLine }:
 
   let summoner: Summoner | null | undefined = await findSummonerByRiotId(region, gameName, tagLine);
   if (!summoner) {
+    const cluster = accountRegion(toPlatform(region));
+    const inFlight = lookupsInFlight.get(cluster) ?? 0;
+    if (inFlight >= MAX_LOOKUPS_IN_FLIGHT) {
+      log.warn({ cluster, inFlight }, "lookup refused: too many running");
+      stream.send("error", { code: "busy" });
+      return;
+    }
     if (!allowed(riotRequestLimiter)) return;
     chargedRiotRequest = true;
-    summoner = await resolveSummonerByRiotId(region, gameName, tagLine);
+    lookupsInFlight.set(cluster, inFlight + 1);
+    try {
+      summoner = await resolveSummonerByRiotId(region, gameName, tagLine);
+    } finally {
+      const left = (lookupsInFlight.get(cluster) ?? 1) - 1;
+      if (left > 0) lookupsInFlight.set(cluster, left);
+      else lookupsInFlight.delete(cluster);
+    }
     if (!summoner) {
       stream.send("error", { code: "not_found" });
       return;
@@ -104,18 +138,16 @@ async function streamRefresh(stream: EventStream, { region, gameName, tagLine }:
       return;
     }
     const firstFetch = lastRefreshedAt === undefined;
-    if (firstFetch) {
-      const waiting = refreshQueue.waitingCount(summoner.region);
-      if (waiting >= MAX_WAITING_JOBS) {
-        log.warn({ summoner: label, waiting }, "first fetch refused: queue full");
-        stream.send("error", { code: "busy" });
-        return;
-      }
-      if (!allowed(firstFetchLimiter)) return;
+    const waiting = refreshQueue.waitingCount(summoner.region, firstFetch ? "firstFetches" : "refreshes");
+    if (waiting >= (firstFetch ? MAX_WAITING_FIRST_FETCHES : MAX_WAITING_REFRESHES)) {
+      log.warn({ summoner: label, waiting, firstFetch }, "fetch refused: queue full");
+      stream.send("error", { code: "busy" });
+      return;
     }
+    if (firstFetch && !allowed(firstFetchLimiter)) return;
     if (!chargedRiotRequest && !allowed(riotRequestLimiter)) return;
     log.info({ summoner: label }, firstFetch ? "first fetch requested" : "refresh requested");
-    refreshQueue.enqueue({ puuid, region: summoner.region, label });
+    refreshQueue.enqueue({ puuid, region: summoner.region, label, firstFetch });
   }
 
   const outcome = await followFetch(stream, puuid);
@@ -144,6 +176,12 @@ export async function refreshRoutes(app: FastifyInstance) {
     const log = request.log.child({ module: "refresh" });
     const ip = clientIp(request);
     const stream = openEventStream(reply);
+    if (openStreams >= MAX_OPEN_STREAMS) {
+      log.warn({ openStreams }, "refresh refused: too many open streams overall");
+      stream.send("error", { code: "busy" });
+      stream.end();
+      return;
+    }
     const open = openStreamsByIp.get(ip) ?? 0;
     if (open >= MAX_OPEN_STREAMS_PER_IP) {
       log.warn({ ip, open }, "refresh refused: too many open streams");
@@ -152,6 +190,7 @@ export async function refreshRoutes(app: FastifyInstance) {
       return;
     }
     openStreamsByIp.set(ip, open + 1);
+    openStreams += 1;
     try {
       await streamRefresh(stream, params, ip, log);
     } catch (err) {
@@ -159,6 +198,7 @@ export async function refreshRoutes(app: FastifyInstance) {
       stream.send("error", { code: "unavailable" });
     } finally {
       stream.end();
+      openStreams -= 1;
       const left = (openStreamsByIp.get(ip) ?? 1) - 1;
       if (left > 0) openStreamsByIp.set(ip, left);
       else openStreamsByIp.delete(ip);

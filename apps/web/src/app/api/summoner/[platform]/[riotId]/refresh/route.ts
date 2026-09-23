@@ -1,15 +1,7 @@
-import { refreshStreamUrl } from "@/lib/api";
+import { fetchRefreshStream } from "@/lib/api";
 import { isKnownPlatform } from "@/lib/riot";
 import { parseRiotIdSlug } from "@/lib/riot-id";
-
-/** The visitor's IP as the hosting proxy reports it, for the API's
- * per-visitor rate limit. The LAST `x-forwarded-for` entry, the one Railway's
- * edge appends: entries before it are whatever the client sent, so reading
- * the first one let anyone pick their own rate-limit key. Null in local dev,
- * where nothing sets it. */
-function visitorIp(request: Request): string | null {
-  return request.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim() || null;
-}
+import { visitorIp } from "@/lib/visitor-ip";
 
 /**
  * The summoner page's refresh stream, proxied as is so the API's address
@@ -29,14 +21,11 @@ export async function POST(request: Request, { params }: RouteContext<"/api/summ
   const parsed = parseRiotIdSlug(riotId);
   if (!parsed || !isKnownPlatform(platform)) return Response.json({ error: "invalid" }, { status: 400 });
 
-  const ip = visitorIp(request);
   let upstream: Response;
   try {
-    upstream = await fetch(refreshStreamUrl(platform, parsed.gameName, parsed.tagLine), {
-      method: "POST",
-      headers: ip ? { "x-arena-client-ip": ip } : {},
+    upstream = await fetchRefreshStream(platform, parsed.gameName, parsed.tagLine, {
+      visitorIp: visitorIp(request.headers),
       signal: request.signal,
-      cache: "no-store",
     });
   } catch {
     return Response.json({ error: "unavailable" }, { status: 502 });

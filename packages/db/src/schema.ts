@@ -10,7 +10,7 @@ import {
   customType,
   index,
 } from "drizzle-orm/pg-core";
-import { relations, sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 
 // Drizzle's pg-core has no built-in `bytea` helper — postgres.js already
 // marshals bytea <-> Buffer natively, so this just tells Drizzle the SQL
@@ -32,6 +32,10 @@ export const summoners = pgTable("summoners", {
   puuid: text("puuid").primaryKey(),
   riotIdGameName: text("riot_id_game_name").notNull(),
   riotIdTagline: text("riot_id_tagline").notNull(),
+  /** The Riot ID's lookup key (`riotIdKey()` in riotId.ts): what a summoner
+   * page is found by. Null only on rows from before the column, which the
+   * API fills at startup (`backfillRiotIdKeys`). */
+  riotIdKey: text("riot_id_key"),
   region: text("region").notNull(),
   profileIconId: integer("profile_icon_id"),
   summonerLevel: integer("summoner_level"),
@@ -42,13 +46,8 @@ export const summoners = pgTable("summoners", {
 }, (table) => [
   // The crawler's "who's next" lookup: oldest refresh first, nulls first.
   index("summoners_last_refreshed_at_idx").on(table.lastRefreshedAt.asc().nullsFirst()),
-  // Every summoner page's lookup, case-insensitive (Riot IDs get typed by
-  // hand): `findSummonerByRiotId` compares these exact expressions.
-  index("summoners_riot_id_idx").on(
-    table.region,
-    sql`lower(${table.riotIdGameName})`,
-    sql`lower(${table.riotIdTagline})`,
-  ),
+  // Every summoner page's lookup (`findSummonerByRiotId`).
+  index("summoners_riot_id_idx").on(table.region, table.riotIdKey),
 ]);
 
 /**
