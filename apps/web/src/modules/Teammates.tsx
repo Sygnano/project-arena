@@ -126,11 +126,11 @@ const Teammates = ({ teammates, totalTeammates, baselineTop3Rate }: Props) => {
     );
   }, [teammates, metric, sortDir, mixLowSample]);
 
-  const [selectedPuuid, setSelectedPuuid] = useState<string | null>(
-    () => rows[0]?.puuid ?? null,
+  const [selectedId, setSelectedId] = useState<number | null>(
+    () => rows[0]?.id ?? null,
   );
   const selected =
-    teammates.find((t) => t.puuid === selectedPuuid) ?? rows[0] ?? null;
+    teammates.find((t) => t.id === selectedId) ?? rows[0] ?? null;
 
   // Strips start empty and grow in once mounted.
   const [grown, setGrown] = useState(false);
@@ -306,7 +306,7 @@ const Teammates = ({ teammates, totalTeammates, baselineTop3Rate }: Props) => {
             }}
           >
             {rows.map((teammate, index) => {
-              const isSelected = teammate.puuid === selectedPuuid;
+              const isSelected = teammate.id === selectedId;
               const delta = top3Rate(teammate) - baselineTop3Rate;
               const lowSample =
                 metric !== "games" && isLowSample(teammate.gamesPlayed);
@@ -333,7 +333,7 @@ const Teammates = ({ teammates, totalTeammates, baselineTop3Rate }: Props) => {
                 // tweens its strip to the new teammate's placements.
                 <div
                   key={index}
-                  {...pressable(() => setSelectedPuuid(teammate.puuid), {
+                  {...pressable(() => setSelectedId(teammate.id), {
                     pressed: isSelected,
                   })}
                   aria-label={`${teammate.riotIdGameName}: ${teammate.gamesPlayed} games together, ${teammate.top1} first, ${teammate.top3ExclTop1} second or third, ${teammate.remaining} fourth or lower`}

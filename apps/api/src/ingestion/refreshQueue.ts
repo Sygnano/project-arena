@@ -19,7 +19,6 @@ type Job = RefreshTarget & {
   phase: RefreshProgress["phase"];
   done: number;
   total: number;
-  error: string | null;
   startedAt: number | null;
   finishedAt: number | null;
 };
@@ -90,7 +89,6 @@ export class RefreshQueue {
       phase: null,
       done: 0,
       total: 0,
-      error: null,
       startedAt: null,
       finishedAt: null,
     });
@@ -128,7 +126,6 @@ export class RefreshQueue {
       total: job.total,
       etaSeconds:
         job.state === "running" && job.phase === "matches" ? Math.ceil((job.total - job.done) * SECONDS_PER_MATCH) : null,
-      error: job.error,
     };
   }
 
@@ -212,7 +209,6 @@ export class RefreshQueue {
       );
     } catch (err) {
       job.state = "failed";
-      job.error = err instanceof Error ? err.message : String(err);
       log.error({ summoner: job.label, lane, err }, "fetch failed");
     }
     job.finishedAt = Date.now();

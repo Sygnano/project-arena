@@ -41,9 +41,14 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   user; the server-side `recapViewedAt` column that fed the old shared list was dropped). Riot
   requests are rate-limited per visitor IP in the refresh route (`apps/api/src/rateLimit.ts`: 30
   Riot lookups or fetches / 10 min, 5 first fetches / hour, and no new first fetch while 10 jobs
-  wait); following a fetch that's already running costs nothing. The web server forwards the
-  visitor's IP in `x-arena-client-ip`, which is only trustworthy while the API is not reachable from
-  the internet. Inside the API process all match fetching runs through
+  wait); following a fetch that's already running costs nothing, but a visitor IP holds at most 4
+  refresh streams open at once. The web server forwards the visitor's IP in `x-arena-client-ip`:
+  the LAST `x-forwarded-for` entry, which Railway's edge appends (earlier entries are whatever the
+  client sent, so reading the first one let anyone choose their own rate-limit key; a CDN in front
+  would change which entry is right). That header is only trustworthy while the API is not
+  reachable from the internet. The refresh proxy refuses browser requests from other sites
+  (`Sec-Fetch-Site` not `same-origin`), so no page elsewhere can spend Riot calls through its
+  visitors. Inside the API process all match fetching runs through
   `apps/api/src/ingestion/refreshQueue.ts`, with one lane per Riot regional cluster (europe,
   americas, asia, sea; decided with the user): one summoner at a time per lane, lanes side by side,
   since Riot's rate limits are per cluster. EUW, EUNE, TR, RU and ME share the `europe` lane (and budget), OCE, SG, TW and VN
@@ -648,5 +653,19 @@ redesigning:
   them; splash/loading art is deliberately not prefetched (hundreds of KB each). This cut the 910-game recap from 2,035 KB to
   1,364 KB (the catalog is 14 KB gzipped). Per-row `championName` keys stay in the payload
   (52 KB on that recap; replacing them means rewiring ~20 modules).
+- **PUUIDs never leave the server.** Riot's policies don't allow publishing them, and a recap
+  listing every co-player's PUUID (645 on one recap, embedded in the page HTML) made the database
+  easy to crawl. Teammate and opponent rows carry `id`, their position in the server's list, as
+  the page's selection key. No response sends raw error messages either (`RefreshProgress` has
+  no error text; the API's error handler answers a bare 500): they can name internal hosts.
+- **Security headers live in `apps/web/next.config.ts`**: nosniff, no framing, a referrer policy,
+  and in production only a CSP and HSTS. The CSP allows assets from this origin and
+  `ASSET_HOSTS` (Data Dragon, CommunityDragon) only: loading images or anything else from a new
+  host means adding it there, or it breaks in production while working in `next dev`. Checked
+  with headless Chrome on a production build: no violations on the splash, a recap or /about.
+- **URL slugs are validated before use** (`parseRiotIdSlug` applies the Riot ID rules, and both
+  validators reject control characters, since a NUL made Postgres fail the query): the page, its
+  link preview and the refresh proxy echo or forward what it returns, so an invalid one is a 404,
+  never arbitrary text in a preview card or a `..` path segment in a request to the API.
 - This file should be updated whenever a decision in §3's "explicitly deferred" list gets made, or
   when scope (§1) changes (e.g. friend-group → public tool would flip several decisions above).

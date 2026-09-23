@@ -979,7 +979,10 @@ export interface ChampionPicksStats {
  * shared.
  */
 export interface TeammateStats {
-  puuid: string;
+  /** The row's position in the server's list, which the page selects rows
+   * by. Not the player's PUUID: PUUIDs stay server-side (Riot's policies
+   * don't allow publishing them). */
+  id: number;
   riotIdGameName: string;
   riotIdTagline: string;
   gamesPlayed: number;
@@ -1014,7 +1017,8 @@ export interface TeammatesStats {
  * toward neither.
  */
 export interface OpponentStats {
-  puuid: string;
+  /** Row position, as `TeammateStats.id`: never the PUUID. */
+  id: number;
   riotIdGameName: string;
   riotIdTagline: string;
   gamesFaced: number;

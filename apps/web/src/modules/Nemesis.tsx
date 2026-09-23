@@ -163,11 +163,11 @@ const Nemesis = ({
     );
   }, [opponents, metric, sortDir, mixLowSample]);
 
-  const [selectedPuuid, setSelectedPuuid] = useState<string | null>(
-    () => rows[0]?.puuid ?? null,
+  const [selectedId, setSelectedId] = useState<number | null>(
+    () => rows[0]?.id ?? null,
   );
   const selected =
-    opponents.find((o) => o.puuid === selectedPuuid) ?? rows[0] ?? null;
+    opponents.find((o) => o.id === selectedId) ?? rows[0] ?? null;
 
   // Bars start empty and grow in once mounted.
   const [grown, setGrown] = useState(false);
@@ -337,7 +337,7 @@ const Nemesis = ({
             }}
           >
             {rows.map((opponent, index) => {
-              const isSelected = opponent.puuid === selectedPuuid;
+              const isSelected = opponent.id === selectedId;
               const lowSample =
                 !isCountMetric && isLowSample(opponent.gamesFaced);
               const aheadRate = vsYouRate(opponent);
@@ -350,7 +350,7 @@ const Nemesis = ({
                 // each slot in place and tweens its bars to the new opponent.
                 <div
                   key={index}
-                  {...pressable(() => setSelectedPuuid(opponent.puuid), {
+                  {...pressable(() => setSelectedId(opponent.id), {
                     pressed: isSelected,
                   })}
                   aria-label={`${opponent.riotIdGameName}: faced ${opponent.gamesFaced} times, rounds won ${opponent.roundsWon} to ${opponent.roundsLost}`}

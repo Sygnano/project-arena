@@ -19,6 +19,16 @@ const app = Fastify({ loggerInstance: logger });
 await runMigrations(db);
 app.log.info("Database migrations applied");
 
+// Fastify's default reply to a thrown error carries its message, which for a
+// failed query is the whole SQL with its parameters. Client errors (4xx,
+// e.g. a malformed request) keep theirs; anything else gets a bare 500, the
+// details go to the log.
+app.setErrorHandler((err: { statusCode?: number; message: string }, request, reply) => {
+  const status = err.statusCode && err.statusCode >= 400 && err.statusCode < 500 ? err.statusCode : 500;
+  if (status >= 500) request.log.error({ err }, "request failed");
+  return reply.code(status).send({ error: status >= 500 ? "internal" : err.message });
+});
+
 await app.register(healthRoutes);
 await app.register(catalogRoutes);
 await app.register(overviewRoutes);

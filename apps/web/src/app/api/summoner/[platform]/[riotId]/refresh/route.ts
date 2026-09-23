@@ -1,12 +1,14 @@
 import { refreshStreamUrl } from "@/lib/api";
+import { isKnownPlatform } from "@/lib/riot";
 import { parseRiotIdSlug } from "@/lib/riot-id";
 
-/** The visitor's IP as the hosting proxy reports it (the first
- * `x-forwarded-for` entry is the original client), for the API's per-visitor
- * rate limit. Null in local dev, where nothing sets these. */
+/** The visitor's IP as the hosting proxy reports it, for the API's
+ * per-visitor rate limit. The LAST `x-forwarded-for` entry, the one Railway's
+ * edge appends: entries before it are whatever the client sent, so reading
+ * the first one let anyone pick their own rate-limit key. Null in local dev,
+ * where nothing sets it. */
 function visitorIp(request: Request): string | null {
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return forwarded || request.headers.get("x-real-ip") || null;
+  return request.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim() || null;
 }
 
 /**
@@ -16,9 +18,16 @@ function visitorIp(request: Request): string | null {
  * the upstream request; the fetch itself carries on in the API.
  */
 export async function POST(request: Request, { params }: RouteContext<"/api/summoner/[platform]/[riotId]/refresh">) {
+  // Only this site's own pages may start a fetch from a browser: another
+  // site could otherwise make its visitors' browsers spend Riot calls, each
+  // under that visitor's rate limit. Browsers label every request with
+  // Sec-Fetch-Site; clients without it (scripts) meet the rate limit anyway.
+  const fetchSite = request.headers.get("sec-fetch-site");
+  if (fetchSite && fetchSite !== "same-origin") return Response.json({ error: "forbidden" }, { status: 403 });
+
   const { platform, riotId } = await params;
   const parsed = parseRiotIdSlug(riotId);
-  if (!parsed) return Response.json({ error: "invalid" }, { status: 400 });
+  if (!parsed || !isKnownPlatform(platform)) return Response.json({ error: "invalid" }, { status: 400 });
 
   const ip = visitorIp(request);
   let upstream: Response;

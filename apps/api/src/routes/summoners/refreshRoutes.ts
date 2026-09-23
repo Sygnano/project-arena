@@ -24,6 +24,12 @@ const firstFetchLimiter = new SlidingWindowLimiter(5, 60 * 60_000);
 // No new first fetch while this many wait in the summoner's region, so a
 // flood can't push the friend group's refreshes there back by hours.
 const MAX_WAITING_JOBS = 10;
+// Refresh streams open at once per visitor IP. Following a fetch costs no
+// limiter slot, so without this one client could hold any number of streams
+// (each also proxied by the web server). A stream counts until its handler
+// returns, which includes a Riot lookup still waiting after the visitor left.
+const MAX_OPEN_STREAMS_PER_IP = 4;
+const openStreamsByIp = new Map<string, number>();
 
 /** Resolves when the summoner's fetch ends, or with "closed" when the visitor leaves first. */
 function followFetch(stream: EventStream, puuid: string): Promise<RefreshProgress | "closed"> {
@@ -136,14 +142,26 @@ export async function refreshRoutes(app: FastifyInstance) {
     const params = parseRiotIdParams(request.params);
     if (!params) return reply.code(400).send({ error: "invalid_riot_id" });
     const log = request.log.child({ module: "refresh" });
+    const ip = clientIp(request);
     const stream = openEventStream(reply);
+    const open = openStreamsByIp.get(ip) ?? 0;
+    if (open >= MAX_OPEN_STREAMS_PER_IP) {
+      log.warn({ ip, open }, "refresh refused: too many open streams");
+      stream.send("error", { code: "rate_limited", retryAfterSeconds: 60 });
+      stream.end();
+      return;
+    }
+    openStreamsByIp.set(ip, open + 1);
     try {
-      await streamRefresh(stream, params, clientIp(request), log);
+      await streamRefresh(stream, params, ip, log);
     } catch (err) {
       log.error({ err, summoner: `${params.gameName}#${params.tagLine}` }, "refresh stream failed");
       stream.send("error", { code: "unavailable" });
     } finally {
       stream.end();
+      const left = (openStreamsByIp.get(ip) ?? 1) - 1;
+      if (left > 0) openStreamsByIp.set(ip, left);
+      else openStreamsByIp.delete(ip);
     }
   });
 }

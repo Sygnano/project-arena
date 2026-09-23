@@ -99,8 +99,9 @@ export function buildPeopleStats({ games, participantsByMatch, roundsByMatch }: 
     [...tallies]
       .filter(([, tally]) => games(tally) >= MIN_SHARED_GAMES_LISTED)
       .sort((a, b) => games(b[1]) - games(a[1]) || (a[0] < b[0] ? -1 : 1))
-      .map(([playerPuuid, { riotIdGameName, riotIdTagline, ...tally }]) => ({
-        puuid: playerPuuid,
+      // PUUIDs stay server-side: the page only needs a row key.
+      .map(([, { riotIdGameName, riotIdTagline, ...tally }], id) => ({
+        id,
         riotIdGameName: riotIdGameName ?? "Unknown",
         riotIdTagline: riotIdTagline ?? "????",
         ...tally,

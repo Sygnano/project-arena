@@ -37,7 +37,8 @@ export interface RefreshProgress {
   total: number;
   /** Rough seconds left while fetching matches, null otherwise. */
   etaSeconds: number | null;
-  error: string | null;
+  // Why a fetch failed stays in the API's log: the error's message can name
+  // internal hosts, the Riot key's state or PUUIDs.
 }
 
 export interface SummonerPageData {
