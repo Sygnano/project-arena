@@ -35,8 +35,8 @@ import { riotGateway } from "../src/riot.js";
 import { errorMessage, isFatal } from "./script-helpers.js";
 
 const scriptLog = logger.child({ module: "retry-skipped" });
-// Upkeep, like the crawler: whatever Riot budget the site leaves.
-const riot = riotGateway.client("crawler");
+// Upkeep: behind the site's requests, ahead of the crawler's.
+const riot = riotGateway.client("upkeep");
 
 const LANES: Region[] = ["europe", "americas", "asia", "sea"];
 const MAX_CONSECUTIVE_ERRORS = 5;

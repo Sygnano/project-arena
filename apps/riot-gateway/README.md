@@ -26,7 +26,8 @@ verbatim, the caller parses and stores it.
 | `lookup` | a visitor's Riot ID search (the refresh stream resolving an unknown Riot ID) |
 | `refresh` | the refresh queue fetching new matches of a summoner who has a recap |
 | `firstFetch` | the refresh queue fetching a first recap's whole history |
-| `crawler` | the crawler, `check-recaps`, `retry-skipped` |
+| `upkeep` | `check-recaps`, `retry-skipped`: repairs of stored recaps, ahead of discovery |
+| `crawler` | the crawler |
 
 Each Riot host (routing value: `europe`, `americas`, `euw1`, `na1`, ...) has its own queue, a FIFO
 per bucket, since that's what Riot's limits count. On one host, a bucket goes through **only once
@@ -72,8 +73,8 @@ A hold is sent whenever the request's standing changes, never on a timer: its po
 request ahead was sent or left, or a higher-priority one arrived) or it reaches the front. Each
 round of sends ends with one pass over the waiting requests, telling only those whose hold
 changed: one write per waiting request per send, fine for the hundreds this is sized for (about
-1,000 at most). The `crawler` bucket hears nothing (`hearsHolds` in `packages/riot/src/priority.ts`):
-nobody watches it call by call, and it's the bucket that piles up. Plain answers before a stream
+1,000 at most). The scripts' buckets, `upkeep` and `crawler`, hear nothing (`hearsHolds` in
+`packages/riot/src/priority.ts`): nobody watches them call by call, and they're the ones that pile up. Plain answers before a stream
 opens: `400` (bad parameters or priority), `403` (wrong secret).
 
 ### Dropped streams

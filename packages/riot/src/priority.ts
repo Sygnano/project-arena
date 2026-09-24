@@ -9,22 +9,24 @@
  *   is waiting on the page;
  * - `refresh`: new matches of a summoner who already has a recap;
  * - `firstFetch`: a summoner's whole history, their first recap;
- * - `crawler`: discovery and upkeep (the crawler, `check-recaps`,
- *   `retry-skipped`), whatever budget the site leaves.
+ * - `upkeep`: fixing stored recaps (`check-recaps`, `retry-skipped`),
+ *   ahead of discovery so a run finishes while the crawler goes on;
+ * - `crawler`: discovery, whatever budget everything above leaves.
  *
  * To add a bucket (a `vip` one day), insert it at its rank here: the gateway
  * builds its queues from this list, and callers pick it by name.
  */
-export const PRIORITIES = ["lookup", "refresh", "firstFetch", "crawler"] as const;
+export const PRIORITIES = ["lookup", "refresh", "firstFetch", "upkeep", "crawler"] as const;
 
 export type Priority = (typeof PRIORITIES)[number];
 
 /**
- * Buckets never told where they wait (no `hold` events): nobody watches the
- * crawler's progress call by call. Every other bucket hears its position
- * whenever it changes.
+ * Buckets never told where they wait (no `hold` events): the scripts'
+ * (decided with the user: only the site's buckets need a position), whose
+ * progress nobody watches call by call. Every other bucket hears its
+ * position whenever it changes.
  */
-const SILENT_PRIORITIES: ReadonlySet<Priority> = new Set(["crawler"]);
+const SILENT_PRIORITIES: ReadonlySet<Priority> = new Set(["upkeep", "crawler"]);
 
 /** Whether the gateway sends this bucket's requests their `hold` events. */
 export function hearsHolds(priority: Priority) {

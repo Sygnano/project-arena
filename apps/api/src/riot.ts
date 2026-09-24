@@ -9,6 +9,7 @@ import { env } from "./env.js";
  *   riotGateway.client("lookup")      a visitor's Riot ID search
  *   riotGateway.client("refresh")     a recap's new matches
  *   riotGateway.client("firstFetch")  a first recap's whole history
- *   riotGateway.client("crawler")     the crawler and the upkeep scripts
+ *   riotGateway.client("upkeep")      check-recaps, retry-skipped
+ *   riotGateway.client("crawler")     the crawler
  */
 export const riotGateway = new RiotGateway({ url: env.RIOT_GATEWAY_URL, secret: env.RIOT_GATEWAY_SECRET });

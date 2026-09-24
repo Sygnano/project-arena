@@ -73,14 +73,14 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   with the user 2026-09-24, aiming for a public build with a production key and the crawler running
   next to the live site). It's the only process holding `RIOT_API_KEY`: it keeps Riot's rate limits
   per Riot host (routing value) and sends each host's requests strictly by **priority bucket**,
-  `lookup` (a visitor's Riot ID search) > `refresh` > `firstFetch` > `crawler` (the crawler,
-  `check-recaps`, `retry-skipped`): a bucket goes out only once every bucket above it is empty on
+  `lookup` (a visitor's Riot ID search) > `refresh` > `firstFetch` > `upkeep` (`check-recaps`,
+  `retry-skipped`, decided with the user so a run finishes while the crawler goes on) > `crawler`: a bucket goes out only once every bucket above it is empty on
   that host, first come first served within one. A bucket is never full: it holds every request
   sent to it, and a lower bucket just waits as long as higher ones keep receiving requests
   (decided with the user; no cap, no refusal, no timeout for waiting). `PRIORITIES` in
   `packages/riot/src/priority.ts` is the list (a future `vip` bucket is one entry). One route per Riot endpoint, answering a
   server-sent event stream: `hold` events whenever a waiting request's standing changes (its queue position, or next in line for Riot's rate
-  limit; never sent to the `crawler` bucket), then Riot's body verbatim; callers parse and store it. Callers reach it through
+  limit; never sent to the scripts' `upkeep` and `crawler` buckets), then Riot's body verbatim; callers parse and store it. Callers reach it through
   `RiotGateway` (`@arena/riot`, `riotGateway.client(priority)` in `apps/api/src/riot.ts`), which
   keeps the old `riot.match.getMatch(...)` interface. The refresh queue turns a hold of 3s or more
   into `RefreshProgress.waitingOnRiot`, shown on the page as "waiting on Riot". No parallel
