@@ -30,7 +30,9 @@ export const getGameCatalogJson = memoizeAsync(async () => {
     ),
     items: Object.fromEntries(recapItems),
     augments: Object.fromEntries(
-      augments.all().map((augment) => [augment.id, { name: augment.name, iconUrl: augment.iconUrl, rarity: augment.rarity }]),
+      augments
+        .all()
+        .map((augment) => [augment.id, { name: augment.name, iconUrl: augment.iconUrl, rarity: augment.rarity }]),
     ),
   };
   return JSON.stringify(catalog);

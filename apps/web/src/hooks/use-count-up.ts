@@ -22,14 +22,10 @@ export function useCountUp(target: number, durationMs: number, enabled = true): 
   useEffect(() => {
     if (!enabled) return;
     const start = performance.now();
-    const reduceMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     function tick(now: number) {
-      const progress = reduceMotion
-        ? 1
-        : Math.min((now - start) / durationMs, 1);
+      const progress = reduceMotion ? 1 : Math.min((now - start) / durationMs, 1);
       const eased = 1 - (1 - progress) ** 4; // ease-out quartic
       setValue(target * eased);
       if (progress < 1) frameRef.current = requestAnimationFrame(tick);

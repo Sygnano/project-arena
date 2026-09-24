@@ -17,18 +17,13 @@ export default function AboutPage() {
         >
           ← BACK TO SEARCH
         </Link>
-        <h1 className="mt-8 font-display text-4xl tracking-[.08em] text-lol-gold-50 sm:text-5xl">
-          ABOUT
-        </h1>
+        <h1 className="mt-8 font-display text-4xl tracking-[.08em] text-lol-gold-50 sm:text-5xl">ABOUT</h1>
 
-        <h2 className="mt-10 text-[12px] tracking-[.36em] text-lol-gold-300">
-          RIOT GAMES DISCLAIMER
-        </h2>
+        <h2 className="mt-10 text-[12px] tracking-[.36em] text-lol-gold-300">RIOT GAMES DISCLAIMER</h2>
         <p className="mt-3 leading-relaxed text-lol-text-secondary">
-          Arena Journey isn&apos;t endorsed by Riot Games and doesn&apos;t reflect the views or
-          opinions of Riot Games or anyone officially involved in producing or managing Riot Games
-          properties. Riot Games, and all associated properties are trademarks or registered
-          trademarks of Riot Games, Inc.
+          Arena Journey isn&apos;t endorsed by Riot Games and doesn&apos;t reflect the views or opinions of Riot Games
+          or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated
+          properties are trademarks or registered trademarks of Riot Games, Inc.
         </p>
 
         <h2 className="mt-10 text-[12px] tracking-[.36em] text-lol-gold-300">DATA &amp; ASSETS</h2>
@@ -42,8 +37,7 @@ export default function AboutPage() {
           >
             Riot Games API
           </a>
-          . Champion, item and profile icon art comes from Riot&apos;s Data Dragon, and Arena
-          augment data and art from{" "}
+          . Champion, item and profile icon art comes from Riot&apos;s Data Dragon, and Arena augment data and art from{" "}
           <a
             href="https://www.communitydragon.org/"
             target="_blank"

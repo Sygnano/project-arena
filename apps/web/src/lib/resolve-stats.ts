@@ -14,11 +14,18 @@ export function resolveStats(payload: SummonerStatsPayload, catalog: GameCatalog
   };
   const augment = (augmentId: number) => {
     const entry = catalog.augments[augmentId];
-    return { augmentName: entry?.name ?? `Augment ${augmentId}`, iconUrl: entry?.iconUrl ?? "", rarity: entry?.rarity ?? -1 };
+    return {
+      augmentName: entry?.name ?? `Augment ${augmentId}`,
+      iconUrl: entry?.iconUrl ?? "",
+      rarity: entry?.rarity ?? -1,
+    };
   };
   const withItem = <T extends { itemId: number }>(row: T) => ({ ...row, ...item(row.itemId) });
   const withAugment = <T extends { augmentId: number }>(row: T) => ({ ...row, ...augment(row.augmentId) });
-  const withAugmentName = <T extends { augmentId: number }>(row: T) => ({ ...row, augmentName: augment(row.augmentId).augmentName });
+  const withAugmentName = <T extends { augmentId: number }>(row: T) => ({
+    ...row,
+    augmentName: augment(row.augmentId).augmentName,
+  });
   const withAugmentFace = <T extends { augmentId: number }>(row: T) => {
     const { augmentName, iconUrl } = augment(row.augmentId);
     return { ...row, augmentName, iconUrl };

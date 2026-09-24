@@ -8,9 +8,7 @@ export default function SummonerNotFound() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-lol-navy-950 px-6 text-center">
       <p className="text-[12px] tracking-[.42em] text-lol-gold-300">BROKEN LINK</p>
-      <h1 className="mt-4 font-display text-4xl tracking-[.06em] text-lol-gold-50">
-        SUMMONER NOT FOUND
-      </h1>
+      <h1 className="mt-4 font-display text-4xl tracking-[.06em] text-lol-gold-50">SUMMONER NOT FOUND</h1>
       <p className="mt-4 max-w-md text-lol-text-secondary">
         This link doesn&apos;t hold a valid Riot ID. Search for the summoner instead.
       </p>

@@ -9,12 +9,7 @@
  * labeled above each bar, so honest proportions win over tail legibility;
  * `minHeight` still keeps a tiny non-zero value from vanishing entirely.
  */
-export function barHeight(
-  value: number,
-  hi: number,
-  maxHeight: number,
-  minHeight: number,
-): number {
+export function barHeight(value: number, hi: number, maxHeight: number, minHeight: number): number {
   if (hi <= 0 || value <= 0) return value > 0 ? minHeight : 0;
   return Math.max(minHeight, (Math.min(value, hi) / hi) * maxHeight);
 }

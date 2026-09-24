@@ -26,24 +26,13 @@ type Props = NemesisStats & {
   expectedBeatenByRate: number;
 };
 
-type SortMetric =
-  | "ownTop1"
-  | "ownTop3"
-  | "roundsWon"
-  | "games"
-  | "roundsLost"
-  | "top3Rate"
-  | "vsYou";
+type SortMetric = "ownTop1" | "ownTop3" | "roundsWon" | "games" | "roundsLost" | "top3Rate" | "vsYou";
 type SortDir = "asc" | "desc";
 
 /** Metrics that are plain counts rather than rates: they sort straight on
  * their value, with no `MIN_SAMPLE` demotion or dimming (a row's own count
  * IS its sample, so there's nothing to be noisy about). */
-const COUNT_METRICS: readonly SortMetric[] = [
-  "games",
-  "roundsWon",
-  "roundsLost",
-];
+const COUNT_METRICS: readonly SortMetric[] = ["games", "roundsWon", "roundsLost"];
 
 // An opponent needs at least this many shared matches before they're
 // eligible for the sidebar's "BIGGEST NEMESIS" figure — same reasoning as
@@ -56,9 +45,7 @@ const TOP3_RATE_COLOR = "#e0b563";
 const VS_YOU_COLOR = "var(--color-lol-garnet)";
 
 function top3Rate(row: OpponentStats): number {
-  return row.gamesFaced > 0
-    ? ((row.top1 + row.top3ExclTop1) / row.gamesFaced) * 100
-    : 0;
+  return row.gamesFaced > 0 ? ((row.top1 + row.top3ExclTop1) / row.gamesFaced) * 100 : 0;
 }
 
 /** This opponent's win rate specifically AGAINST the summoner (their team
@@ -71,9 +58,7 @@ function vsYouRate(row: OpponentStats): number {
 /** The summoner's OWN win rate (top 3 finish) across the matches shared with
  * this opponent — mirrors `top3Rate` above, but for the summoner's team. */
 function ownTop3Rate(row: OpponentStats): number {
-  return row.gamesFaced > 0
-    ? ((row.ownTop1 + row.ownTop3ExclTop1) / row.gamesFaced) * 100
-    : 0;
+  return row.gamesFaced > 0 ? ((row.ownTop1 + row.ownTop3ExclTop1) / row.gamesFaced) * 100 : 0;
 }
 
 /** The summoner's OWN 1st-place rate across the matches shared with this
@@ -110,8 +95,7 @@ const YOU_COLOR = "var(--color-lol-blue-300)";
  * The bars are round duels won by each side (`roundsWon`/`roundsLost`),
  * growing outward from the name on one shared scale, so a row's combined
  * span is the number of rounds fought against that opponent. */
-const ROW_GRID =
-  "72px 64px 36px minmax(0,1fr) 190px minmax(0,1fr) 36px 64px 72px";
+const ROW_GRID = "72px 64px 36px minmax(0,1fr) 190px minmax(0,1fr) 36px 64px 72px";
 
 /**
  * Nemesis — the "opposing team" counterpart to `Teammates`: every Riot
@@ -122,11 +106,7 @@ const ROW_GRID =
  * `expectedBeatenByRate` — beating that is what makes someone a nemesis
  * rather than a frequently-seen name.
  */
-const Nemesis = ({
-  opponents,
-  totalOpponents,
-  expectedBeatenByRate,
-}: Props) => {
+const Nemesis = ({ opponents, totalOpponents, expectedBeatenByRate }: Props) => {
   const [metric, setMetric] = useState<SortMetric>("games");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   // Rate sorts: rank rows under MIN_SAMPLE with the rest (still dimmed).
@@ -149,9 +129,7 @@ const Nemesis = ({
     if (COUNT_METRICS.includes(metric)) {
       const dirSign = sortDir === "desc" ? 1 : -1;
       return [...opponents].sort(
-        (a, b) =>
-          dirSign * (metricValue(b, metric) - metricValue(a, metric)) ||
-          b.gamesFaced - a.gamesFaced,
+        (a, b) => dirSign * (metricValue(b, metric) - metricValue(a, metric)) || b.gamesFaced - a.gamesFaced,
       );
     }
     return sortByRate(
@@ -163,11 +141,8 @@ const Nemesis = ({
     );
   }, [opponents, metric, sortDir, mixLowSample]);
 
-  const [selectedId, setSelectedId] = useState<number | null>(
-    () => rows[0]?.id ?? null,
-  );
-  const selected =
-    opponents.find((o) => o.id === selectedId) ?? rows[0] ?? null;
+  const [selectedId, setSelectedId] = useState<number | null>(() => rows[0]?.id ?? null);
+  const selected = opponents.find((o) => o.id === selectedId) ?? rows[0] ?? null;
 
   // Bars start empty and grow in once mounted.
   const [grown, setGrown] = useState(false);
@@ -177,22 +152,12 @@ const Nemesis = ({
   }, []);
 
   // Rounds fought is a count, not a rate: every row sets the scale.
-  const maxRounds = Math.max(
-    1,
-    ...opponents.map((o) => o.roundsWon + o.roundsLost),
-  );
+  const maxRounds = Math.max(1, ...opponents.map((o) => o.roundsWon + o.roundsLost));
 
-  const mostFaced = opponents.reduce(
-    (max, o) => Math.max(max, o.gamesFaced),
-    0,
-  );
+  const mostFaced = opponents.reduce((max, o) => Math.max(max, o.gamesFaced), 0);
   const biggestNemesis = opponents
     .filter((o) => o.gamesFaced >= MIN_GAMES_FOR_NEMESIS)
-    .reduce<OpponentStats | null>(
-      (worst, o) =>
-        worst === null || vsYouRate(o) > vsYouRate(worst) ? o : worst,
-      null,
-    );
+    .reduce<OpponentStats | null>((worst, o) => (worst === null || vsYouRate(o) > vsYouRate(worst) ? o : worst), null);
 
   const lowSampleNote = ` · UNDER ${MIN_SAMPLE} GAMES DIMMED`;
   const modeCaption: string = {
@@ -226,11 +191,7 @@ const Nemesis = ({
       className={cn(
         "cursor-pointer select-none hover:opacity-100",
         span && "col-span-2",
-        align === "left"
-          ? "text-left"
-          : align === "center"
-            ? "text-center"
-            : "text-right",
+        align === "left" ? "text-left" : align === "center" ? "text-center" : "text-right",
       )}
       style={{ color, opacity: metric === key ? 1 : 0.55 }}
       onClick={() => sortBy(key)}
@@ -238,7 +199,6 @@ const Nemesis = ({
       <SortHeaderLabel label={label} active={metric === key} dir={sortDir} />
     </button>
   );
-
 
   return (
     <CategorySection
@@ -255,7 +215,6 @@ const Nemesis = ({
           />
 
           <div className="mt-auto">
-
             <SidebarStatRows
               rows={[
                 {
@@ -279,10 +238,7 @@ const Nemesis = ({
           caption={modeCaption}
           trailing={
             !COUNT_METRICS.includes(metric) ? (
-              <LowSampleSwitch
-                checked={mixLowSample}
-                onChange={setMixLowSample}
-              />
+              <LowSampleSwitch checked={mixLowSample} onChange={setMixLowSample} />
             ) : null
           }
         >
@@ -338,13 +294,10 @@ const Nemesis = ({
           >
             {rows.map((opponent, index) => {
               const isSelected = opponent.id === selectedId;
-              const lowSample =
-                !isCountMetric && isLowSample(opponent.gamesFaced);
+              const lowSample = !isCountMetric && isLowSample(opponent.gamesFaced);
               const aheadRate = vsYouRate(opponent);
               const youPct = grown ? (opponent.roundsWon / maxRounds) * 100 : 0;
-              const themPct = grown
-                ? (opponent.roundsLost / maxRounds) * 100
-                : 0;
+              const themPct = grown ? (opponent.roundsLost / maxRounds) * 100 : 0;
               return (
                 // Keyed by rank, like Utility's bar layer: a re-sort keeps
                 // each slot in place and tweens its bars to the new opponent.
@@ -360,38 +313,22 @@ const Nemesis = ({
                   )}
                   style={{
                     gridTemplateColumns: ROW_GRID,
-                    background: isSelected
-                      ? "rgba(200,170,110,.09)"
-                      : "transparent",
-                    boxShadow: isSelected
-                      ? "inset 0 0 0 1px rgba(200,170,110,.45)"
-                      : undefined,
+                    background: isSelected ? "rgba(200,170,110,.09)" : "transparent",
+                    boxShadow: isSelected ? "inset 0 0 0 1px rgba(200,170,110,.45)" : undefined,
                   }}
                 >
-                  <div
-                    className="text-left font-display text-[16px]"
-                    style={{ color: YOU_COLOR }}
-                  >
+                  <div className="text-left font-display text-[16px]" style={{ color: YOU_COLOR }}>
                     {ownTop1Rate(opponent).toFixed(0)}%
                   </div>
-                  <div
-                    className="text-left font-display text-[16px]"
-                    style={{ color: YOU_COLOR }}
-                  >
+                  <div className="text-left font-display text-[16px]" style={{ color: YOU_COLOR }}>
                     {ownTop3Rate(opponent).toFixed(0)}%
                   </div>
 
-                  <div
-                    className="text-right font-display text-[16px]"
-                    style={{ color: YOU_COLOR }}
-                  >
+                  <div className="text-right font-display text-[16px]" style={{ color: YOU_COLOR }}>
                     {opponent.roundsWon}
                   </div>
 
-                  <div
-                    className="relative h-2.5"
-                    style={{ background: "rgba(240,230,210,.05)" }}
-                  >
+                  <div className="relative h-2.5" style={{ background: "rgba(240,230,210,.05)" }}>
                     <div
                       className="absolute inset-y-0 right-0 transition-[width] duration-500 ease-out motion-reduce:transition-none"
                       style={{
@@ -414,17 +351,13 @@ const Nemesis = ({
                         {opponent.riotIdGameName}
                       </div>
                       <div className="truncate text-[11px] tracking-[.1em] text-lol-text-muted">
-                        #{opponent.riotIdTagline} ·{" "}
-                        {opponent.gamesFaced.toLocaleString()}{" "}
+                        #{opponent.riotIdTagline} · {opponent.gamesFaced.toLocaleString()}{" "}
                         {opponent.gamesFaced === 1 ? "GAME" : "GAMES"}
                       </div>
                     </div>
                   </div>
 
-                  <div
-                    className="relative h-2.5"
-                    style={{ background: "rgba(240,230,210,.05)" }}
-                  >
+                  <div className="relative h-2.5" style={{ background: "rgba(240,230,210,.05)" }}>
                     <div
                       className="absolute inset-y-0 left-0 transition-[width] duration-500 ease-out motion-reduce:transition-none"
                       style={{
@@ -435,26 +368,17 @@ const Nemesis = ({
                     />
                   </div>
 
-                  <div
-                    className="text-left font-display text-[16px]"
-                    style={{ color: VS_YOU_COLOR }}
-                  >
+                  <div className="text-left font-display text-[16px]" style={{ color: VS_YOU_COLOR }}>
                     {opponent.roundsLost}
                   </div>
 
-                  <div
-                    className="text-right font-display text-[16px]"
-                    style={{ color: TOP3_RATE_COLOR }}
-                  >
+                  <div className="text-right font-display text-[16px]" style={{ color: TOP3_RATE_COLOR }}>
                     {top3Rate(opponent).toFixed(0)}%
                   </div>
                   <div
                     className="text-right font-display text-[16px]"
                     style={{
-                      color:
-                        aheadRate > expectedBeatenByRate
-                          ? VS_YOU_COLOR
-                          : "var(--color-lol-text-muted)",
+                      color: aheadRate > expectedBeatenByRate ? VS_YOU_COLOR : "var(--color-lol-text-muted)",
                     }}
                     title={`Expected ~${expectedBeatenByRate.toFixed(0)}%`}
                   >
@@ -498,10 +422,7 @@ const Nemesis = ({
               },
               {
                 label: "AHEAD VS EXPECTED",
-                value: formatSignedPoints(
-                  vsYouRate(selected) - expectedBeatenByRate,
-                  0,
-                ),
+                value: formatSignedPoints(vsYouRate(selected) - expectedBeatenByRate, 0),
                 highlight: metric === "vsYou",
                 nowrap: true,
               },

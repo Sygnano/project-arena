@@ -17,12 +17,7 @@ import { PanelToolbar } from "@/components/panel-toolbar";
 import { SidebarStatRows } from "@/components/sidebar-stat-row";
 import { ChampionCard } from "./ChampionCard";
 import { CompositionDonut, type DonutSlice } from "./CompositionDonut";
-import {
-  DAMAGE_TYPE_COLORS,
-  DAMAGE_TYPE_KEYS,
-  DAMAGE_TYPE_LABELS,
-  sumDamageBreakdown,
-} from "@/lib/damage-types";
+import { DAMAGE_TYPE_COLORS, DAMAGE_TYPE_KEYS, DAMAGE_TYPE_LABELS, sumDamageBreakdown } from "@/lib/damage-types";
 import { ABILITY_COLORS, ABILITY_KEYS } from "@/lib/ability-colors";
 import { formatCompact, formatDuration, formatHoursMinutes, ordinal } from "@/lib/format";
 import { TIER_STYLE } from "@/lib/tier-bars";
@@ -58,7 +53,6 @@ function percent(part: number, whole: number): string {
   return `${Math.round((part / whole) * 100)}%`;
 }
 
-
 /** One titled block of the dossier's stat grid — a small caps heading over a
  * hairline rule, then its content. */
 function StatGroup({
@@ -79,21 +73,16 @@ function StatGroup({
   return (
     <section className={`flex min-w-0 flex-col ${className ?? ""}`}>
       <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
-        <h3 className="text-[11px] tracking-[.26em] whitespace-nowrap text-lol-gold-300">
-          {title}
-        </h3>
+        <h3 className="text-[11px] tracking-[.26em] whitespace-nowrap text-lol-gold-300">{title}</h3>
         {tabs}
         {aside ? (
-          <div className="ml-auto text-[11px] tracking-[.2em] text-lol-text-muted sm:whitespace-nowrap">
-            {aside}
-          </div>
+          <div className="ml-auto text-[11px] tracking-[.2em] text-lol-text-muted sm:whitespace-nowrap">{aside}</div>
         ) : null}
       </div>
       <div
         className="mt-1 mb-1 h-px w-full"
         style={{
-          background:
-            "linear-gradient(90deg, rgba(200,170,110,.32), transparent)",
+          background: "linear-gradient(90deg, rgba(200,170,110,.32), transparent)",
         }}
       />
       <div className="flex min-h-0 flex-1 flex-col">{children}</div>
@@ -118,14 +107,8 @@ function StatLine({
 }) {
   return (
     <div className="flex items-baseline gap-2">
-      <span className="flex-1 truncate text-[11px] tracking-[.14em] text-lol-text-muted">
-        {label}
-      </span>
-      {note ? (
-        <span className="text-[11px] text-lol-text-muted tabular-nums">
-          {note}
-        </span>
-      ) : null}
+      <span className="flex-1 truncate text-[11px] tracking-[.14em] text-lol-text-muted">{label}</span>
+      {note ? <span className="text-[11px] text-lol-text-muted tabular-nums">{note}</span> : null}
       <span
         className="font-display text-[16px] leading-[1.45] tabular-nums"
         style={{ color: valueColor ?? "var(--color-lol-gold-50)" }}
@@ -138,24 +121,14 @@ function StatLine({
 
 /** Reads a stat as a plain animated integer — the default for almost every
  * line below, so it's worth not repeating the `<AnimatedNumber>` call. */
-function Num({
-  value,
-  compact = false,
-  suffix,
-}: {
-  value: number;
-  compact?: boolean;
-  suffix?: string;
-}) {
+function Num({ value, compact = false, suffix }: { value: number; compact?: boolean; suffix?: string }) {
   return (
     <AnimatedNumber
       value={value}
       durationMs={700}
       format={(v) => {
         const rounded = Math.round(v);
-        const text = compact
-          ? formatCompact(rounded)
-          : rounded.toLocaleString("en-US");
+        const text = compact ? formatCompact(rounded) : rounded.toLocaleString("en-US");
         return suffix ? `${text}${suffix}` : text;
       }}
     />
@@ -180,10 +153,7 @@ function PlacementSplitBar({ champion }: { champion: ChampionPickBreakdown }) {
           className={segment.tier.fillClass}
           title={`${segment.value} game${segment.value === 1 ? "" : "s"}`}
           style={{
-            width:
-              champion.timesPicked > 0
-                ? `${(segment.value / champion.timesPicked) * 100}%`
-                : "0%",
+            width: champion.timesPicked > 0 ? `${(segment.value / champion.timesPicked) * 100}%` : "0%",
           }}
         />
       ))}
@@ -202,17 +172,14 @@ function FinishesChart({ counts }: { counts: readonly number[] }) {
   return (
     <div className="flex min-h-33 flex-1 items-stretch gap-2 pt-1">
       {counts.map((count, index) => {
-        const tier =
-          TIER_STYLE[index === 0 ? "prismatic" : index <= 2 ? "gold" : "silver"];
+        const tier = TIER_STYLE[index === 0 ? "prismatic" : index <= 2 ? "gold" : "silver"];
         return (
           <div
             key={index}
             className="flex min-w-0 flex-1 flex-col items-center"
             title={`${ordinal(index + 1)} · ${count} game${count === 1 ? "" : "s"} (${percent(count, games)})`}
           >
-            <div className="font-display text-[13px] text-lol-gold-50 tabular-nums">
-              {count}
-            </div>
+            <div className="font-display text-[13px] text-lol-gold-50 tabular-nums">{count}</div>
             <div className="relative mt-1 w-full flex-1">
               <div
                 className={`absolute inset-x-0 bottom-0 transition-[height] duration-500 ease-out ${tier.fillClass}`}
@@ -270,21 +237,14 @@ function streakCaption(form: ChampionFormStats): { text: string; color: string }
  * after it. The plot fills whatever height its cell has — it sits in an
  * absolutely positioned scroller so its own height never feeds back into
  * the row's. */
-function FormChart({
-  form,
-  maxPlacement,
-}: {
-  form: ChampionFormStats;
-  maxPlacement: number;
-}) {
+function FormChart({ form, maxPlacement }: { form: ChampionFormStats; maxPlacement: number }) {
   const reduceMotion = useReducedMotion();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   useEffect(() => {
     const scroller = scrollerRef.current;
     if (!scroller) return;
-    const measure = () =>
-      setSize({ width: scroller.clientWidth, height: scroller.clientHeight });
+    const measure = () => setSize({ width: scroller.clientWidth, height: scroller.clientHeight });
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(scroller);
@@ -306,9 +266,7 @@ function FormChart({
   }, [size.width, width]);
 
   const x = (index: number) =>
-    games.length === 1
-      ? width / 2
-      : FORM_PAD_X_PX + (index / (games.length - 1)) * (width - FORM_PAD_X_PX * 2);
+    games.length === 1 ? width / 2 : FORM_PAD_X_PX + (index / (games.length - 1)) * (width - FORM_PAD_X_PX * 2);
   const y = (placement: number) =>
     FORM_PAD_PX + ((placement - 1) / (worst - 1)) * Math.max(0, height - FORM_PAD_PX * 2);
   const points = games.map((game, index) => `${x(index)},${y(game.placement)}`).join(" ");
@@ -329,12 +287,7 @@ function FormChart({
                   style={{ top: (y(3) + y(4)) / 2 }}
                 />
               ) : null}
-              <svg
-                className="absolute inset-0 overflow-visible"
-                width={width}
-                height={height}
-                aria-hidden
-              >
+              <svg className="absolute inset-0 overflow-visible" width={width} height={height} aria-hidden>
                 <motion.polyline
                   points={points}
                   fill="none"
@@ -347,10 +300,7 @@ function FormChart({
                 />
               </svg>
               {games.map((game, index) => {
-                const tier =
-                  TIER_STYLE[
-                    game.placement === 1 ? "prismatic" : game.placement <= 3 ? "gold" : "silver"
-                  ];
+                const tier = TIER_STYLE[game.placement === 1 ? "prismatic" : game.placement <= 3 ? "gold" : "silver"];
                 const newest = index === games.length - 1;
                 return (
                   <motion.div
@@ -369,7 +319,11 @@ function FormChart({
                   >
                     <div
                       className={`h-full w-full rotate-45 ${tier.fillClass}`}
-                      style={newest ? { boxShadow: tier.glow, outline: `1px solid ${tier.edge}`, outlineOffset: 2 } : undefined}
+                      style={
+                        newest
+                          ? { boxShadow: tier.glow, outline: `1px solid ${tier.edge}`, outlineOffset: 2 }
+                          : undefined
+                      }
                     />
                   </motion.div>
                 );
@@ -382,9 +336,7 @@ function FormChart({
       <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-3 text-[11px] tracking-[.14em]">
         <span style={{ color: caption.color }}>{caption.text}</span>
         {form.longestWinStreak > 1 ? (
-          <span className="text-lol-text-muted">
-            BEST STREAK {form.longestWinStreak}
-          </span>
+          <span className="text-lol-text-muted">BEST STREAK {form.longestWinStreak}</span>
         ) : null}
       </div>
     </div>
@@ -426,11 +378,7 @@ const PICK_COLUMNS: readonly { key: PickSortKey; label: string }[] = [
  * Deliberately no small-sample handling here (no dimming, no pushing
  * low-game rows last): one champion's own games are often few, so on a
  * rarely played champion that rule would dim or demote nearly every row. */
-function sortPicks(
-  rows: readonly PickEntry[],
-  key: PickSortKey,
-  dir: "asc" | "desc",
-): PickEntry[] {
+function sortPicks(rows: readonly PickEntry[], key: PickSortKey, dir: "asc" | "desc"): PickEntry[] {
   const value =
     key === "games"
       ? (row: PickEntry) => row.games
@@ -463,12 +411,18 @@ function PickListGroup<K extends string>({
   round?: boolean;
 }) {
   const reduceMotion = useReducedMotion();
-  const [active, setActive] = useState<K>(
-    () => (tabs.find((tab) => tab.rows.length > 0) ?? tabs[0]).key,
-  );
+  const [active, setActive] = useState<K>(() => (tabs.find((tab) => tab.rows.length > 0) ?? tabs[0]).key);
   const tab = tabs.find((candidate) => candidate.key === active) ?? tabs[0];
-  const baseline = pooledRate(tab.rows, (row) => row.wins, (row) => row.games);
-  const firstBaseline = pooledRate(tab.rows, (row) => row.firsts, (row) => row.games);
+  const baseline = pooledRate(
+    tab.rows,
+    (row) => row.wins,
+    (row) => row.games,
+  );
+  const firstBaseline = pooledRate(
+    tab.rows,
+    (row) => row.firsts,
+    (row) => row.games,
+  );
   const [sort, setSort] = useState<{ key: PickSortKey; dir: "asc" | "desc" }>({
     key: "games",
     dir: "desc",
@@ -491,15 +445,12 @@ function PickListGroup<K extends string>({
       }
     >
       {tab.rows.length === 0 ? (
-        <div className="pt-2 text-[11px] tracking-[.14em] text-lol-text-muted">
-          {tab.empty}
-        </div>
+        <div className="pt-2 text-[11px] tracking-[.14em] text-lol-text-muted">{tab.empty}</div>
       ) : (
         <>
           <div className="flex items-center gap-2.5 pt-1 pb-1.5 text-[10px] tracking-[.18em] text-lol-text-muted">
             <span className="min-w-0 flex-1 truncate">
-              {tab.rows.length} {tab.noun} · AVG WIN {Math.round(baseline)}% · 1ST{" "}
-              {Math.round(firstBaseline)}%
+              {tab.rows.length} {tab.noun} · AVG WIN {Math.round(baseline)}% · 1ST {Math.round(firstBaseline)}%
             </span>
             {PICK_COLUMNS.map((column) => {
               const sorted = sort.key === column.key;
@@ -555,12 +506,8 @@ function PickListGroup<K extends string>({
                       className={`h-6.5 w-6.5 flex-none border bg-[#040c14] object-cover ${round ? "rounded-full" : ""}`}
                       style={{ borderColor: `color-mix(in srgb, ${tab.color} 60%, transparent)` }}
                     />
-                    <span className="min-w-0 flex-1 truncate text-[12px] text-lol-text-secondary">
-                      {row.name}
-                    </span>
-                    <span className="w-10 text-right text-[11px] text-lol-text-muted tabular-nums">
-                      {row.games}
-                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[12px] text-lol-text-secondary">{row.name}</span>
+                    <span className="w-10 text-right text-[11px] text-lol-text-muted tabular-nums">{row.games}</span>
                     <span
                       className="font-display w-10 text-right text-[14px] tabular-nums"
                       style={{
@@ -572,8 +519,7 @@ function PickListGroup<K extends string>({
                     <span
                       className="font-display w-10 text-right text-[14px] tabular-nums"
                       style={{
-                        color:
-                          firstDelta >= 0 ? FIRST_RATE_COLOR : "var(--color-lol-text-secondary)",
+                        color: firstDelta >= 0 ? FIRST_RATE_COLOR : "var(--color-lol-text-secondary)",
                       }}
                     >
                       {Math.round(firstRate)}%
@@ -600,10 +546,7 @@ function itemEntries(items: readonly ChampionItemStats[] | undefined): PickEntry
   }));
 }
 
-function augmentEntries(
-  augments: readonly ChampionAugmentStats[] | undefined,
-  rarity: number,
-): PickEntry[] {
+function augmentEntries(augments: readonly ChampionAugmentStats[] | undefined, rarity: number): PickEntry[] {
   return (augments ?? [])
     .filter((augment) => augment.rarity === rarity)
     .map((augment) => ({
@@ -683,17 +626,12 @@ export function ChampionDossier({
   const economy = stats?.economy;
   const utility = best ? stats?.utility.bestByType : stats?.utility.total;
 
-  const careerKda = kda
-    ? (kda.totalKills + kda.totalAssists) / Math.max(1, kda.totalDeaths)
-    : 0;
+  const careerKda = kda ? (kda.totalKills + kda.totalAssists) / Math.max(1, kda.totalDeaths) : 0;
   const bestGame = kda?.bestGame;
-  const bestKda = bestGame
-    ? (bestGame.kills + bestGame.assists) / Math.max(1, bestGame.deaths)
-    : 0;
+  const bestKda = bestGame ? (bestGame.kills + bestGame.assists) / Math.max(1, bestGame.deaths) : 0;
 
   const damageDealt = (best ? stats?.damage.maxGame : stats?.damage.total) ?? NO_DAMAGE;
-  const damageTaken =
-    (best ? stats?.damageTaken.maxGame : stats?.damageTaken.total) ?? NO_DAMAGE;
+  const damageTaken = (best ? stats?.damageTaken.maxGame : stats?.damageTaken.total) ?? NO_DAMAGE;
   const casts = (best ? stats?.ability.maxGame : stats?.ability.total) ?? NO_CASTS;
   const anvils = best
     ? (economy?.maxGameAnvils ?? { stat: 0, legendary: 0, prismatic: 0 })
@@ -765,9 +703,7 @@ export function ChampionDossier({
         <PanelToolbar
           className="mb-6 flex-none"
           caption={
-            best
-              ? "SINGLE-MATCH RECORDS"
-              : `ACROSS ${games.toLocaleString("en-US")} GAME${games === 1 ? "" : "S"}`
+            best ? "SINGLE-MATCH RECORDS" : `ACROSS ${games.toLocaleString("en-US")} GAME${games === 1 ? "" : "S"}`
           }
         >
           <DiamondTabs
@@ -794,100 +730,45 @@ export function ChampionDossier({
           of stacking all ten groups in one column and needing to scroll. */}
         <div className="grid grid-flow-row-dense grid-cols-1 content-start gap-6 @sm:grid-cols-2 @lg:grid-cols-3 @2xl:grid-cols-4 deck:min-h-0 deck:flex-1 deck:@2xl:grid-rows-[auto_auto_minmax(10rem,1fr)]">
           {/* Above Finishes, so the two placement views share a column. */}
-          <StatGroup
-            title="FORM"
-            aside={stats ? `${stats.form.games.length} GAMES` : undefined}
-          >
+          <StatGroup title="FORM" aside={stats ? `${stats.form.games.length} GAMES` : undefined}>
             {stats && stats.form.games.length > 0 ? (
-              <FormChart
-                key={stats.championId}
-                form={stats.form}
-                maxPlacement={stats.placementCounts.length}
-              />
+              <FormChart key={stats.championId} form={stats.form} maxPlacement={stats.placementCounts.length} />
             ) : null}
           </StatGroup>
 
           {/* The four stat groups split the other three columns evenly. */}
           <div className="grid min-w-0 grid-cols-1 gap-6 @sm:col-span-2 @sm:grid-cols-2 @lg:col-span-2 @2xl:col-span-3 @2xl:grid-cols-4">
             <StatGroup title="COMBAT">
-              <StatLine
-                label="KILLS"
-                value={<Num value={(best ? kda?.mostKills : kda?.totalKills) ?? 0} />}
-              />
-              <StatLine
-                label="DEATHS"
-                value={<Num value={(best ? kda?.mostDeaths : kda?.totalDeaths) ?? 0} />}
-              />
-              <StatLine
-                label="ASSISTS"
-                value={
-                  <Num value={(best ? kda?.mostAssists : kda?.totalAssists) ?? 0} />
-                }
-              />
+              <StatLine label="KILLS" value={<Num value={(best ? kda?.mostKills : kda?.totalKills) ?? 0} />} />
+              <StatLine label="DEATHS" value={<Num value={(best ? kda?.mostDeaths : kda?.totalDeaths) ?? 0} />} />
+              <StatLine label="ASSISTS" value={<Num value={(best ? kda?.mostAssists : kda?.totalAssists) ?? 0} />} />
               <StatLine
                 label="KDA"
-                note={
-                  best && bestGame
-                    ? `${bestGame.kills}/${bestGame.deaths}/${bestGame.assists}`
-                    : undefined
-                }
-                value={
-                  <AnimatedNumber
-                    value={best ? bestKda : careerKda}
-                    decimals={2}
-                    durationMs={700}
-                  />
-                }
+                note={best && bestGame ? `${bestGame.kills}/${bestGame.deaths}/${bestGame.assists}` : undefined}
+                value={<AnimatedNumber value={best ? bestKda : careerKda} decimals={2} durationMs={700} />}
               />
-              <StatLine
-                label="BIGGEST CRIT"
-                value={<Num value={combat?.largestCriticalStrike ?? 0} compact />}
-              />
+              <StatLine label="BIGGEST CRIT" value={<Num value={combat?.largestCriticalStrike ?? 0} compact />} />
             </StatGroup>
 
             <StatGroup title="MULTIKILLS">
               <StatLine
                 label="DOUBLE"
-                value={
-                  <Num
-                    value={(best ? combat?.mostDoubleKills : combat?.doubleKills) ?? 0}
-                  />
-                }
+                value={<Num value={(best ? combat?.mostDoubleKills : combat?.doubleKills) ?? 0} />}
               />
               <StatLine
                 label="TRIPLE"
-                value={
-                  <Num
-                    value={(best ? combat?.mostTripleKills : combat?.tripleKills) ?? 0}
-                  />
-                }
+                value={<Num value={(best ? combat?.mostTripleKills : combat?.tripleKills) ?? 0} />}
               />
               <StatLine
                 label="QUADRA"
-                value={
-                  <Num
-                    value={(best ? combat?.mostQuadraKills : combat?.quadraKills) ?? 0}
-                  />
-                }
+                value={<Num value={(best ? combat?.mostQuadraKills : combat?.quadraKills) ?? 0} />}
               />
               <StatLine
                 label="PENTA"
-                value={
-                  <Num
-                    value={(best ? combat?.mostPentaKills : combat?.pentaKills) ?? 0}
-                  />
-                }
+                value={<Num value={(best ? combat?.mostPentaKills : combat?.pentaKills) ?? 0} />}
               />
-              <StatLine
-                label="SOLO KILLS"
-                value={
-                  <Num value={(best ? kda?.mostSoloKills : kda?.soloKills) ?? 0} />
-                }
-              />
-              <StatLine
-                label="BEST SPREE"
-                value={<Num value={kda?.largestKillingSpree ?? 0} />}
-              />
+              <StatLine label="SOLO KILLS" value={<Num value={(best ? kda?.mostSoloKills : kda?.soloKills) ?? 0} />} />
+              <StatLine label="BEST SPREE" value={<Num value={kda?.largestKillingSpree ?? 0} />} />
             </StatGroup>
 
             <StatGroup title="UTILITY">
@@ -901,25 +782,12 @@ export function ChampionDossier({
                 value={<Num value={utility?.ccScoreSeconds ?? 0} compact />}
                 valueColor={CC_COLOR}
               />
-              <StatLine
-                label="CC TIME DEALT"
-                value={formatDuration(utility?.ccTimeDealt ?? 0)}
-              />
-              <StatLine
-                label="SAVES"
-                value={<Num value={utility?.savesFromDeath ?? 0} />}
-              />
+              <StatLine label="CC TIME DEALT" value={formatDuration(utility?.ccTimeDealt ?? 0)} />
+              <StatLine label="SAVES" value={<Num value={utility?.savesFromDeath ?? 0} />} />
               <StatLine
                 label="SELF-MITIGATED"
                 value={
-                  <Num
-                    value={
-                      (best
-                        ? combat?.bestDamageSelfMitigated
-                        : combat?.damageSelfMitigated) ?? 0
-                    }
-                    compact
-                  />
+                  <Num value={(best ? combat?.bestDamageSelfMitigated : combat?.damageSelfMitigated) ?? 0} compact />
                 }
               />
             </StatGroup>
@@ -927,31 +795,14 @@ export function ChampionDossier({
             <StatGroup title="ECONOMY">
               <StatLine
                 label="GOLD EARNED"
-                value={
-                  <Num
-                    value={
-                      (best ? economy?.bestGameGoldEarned : economy?.goldEarned) ?? 0
-                    }
-                    compact
-                  />
-                }
+                value={<Num value={(best ? economy?.bestGameGoldEarned : economy?.goldEarned) ?? 0} compact />}
                 valueColor="#c8aa6e"
               />
               <StatLine
                 label="ITEMS BOUGHT"
-                value={
-                  <Num
-                    value={
-                      (best ? economy?.mostItemsPurchased : economy?.itemsPurchased) ??
-                      0
-                    }
-                  />
-                }
+                value={<Num value={(best ? economy?.mostItemsPurchased : economy?.itemsPurchased) ?? 0} />}
               />
-              <StatLine
-                label="LONGEST GAME"
-                value={formatDuration(stats?.longestGameSeconds ?? 0)}
-              />
+              <StatLine label="LONGEST GAME" value={formatDuration(stats?.longestGameSeconds ?? 0)} />
             </StatGroup>
           </div>
 
@@ -972,11 +823,7 @@ export function ChampionDossier({
           </StatGroup>
 
           <StatGroup title="ABILITY CASTS">
-            <CompositionDonut
-              slices={castSlices(casts)}
-              format={plain}
-              caption={perGame(sumCasts(casts), plain)}
-            />
+            <CompositionDonut slices={castSlices(casts)} format={plain} caption={perGame(sumCasts(casts), plain)} />
           </StatGroup>
 
           <StatGroup title="ANVILS">
@@ -1002,20 +849,13 @@ export function ChampionDossier({
                 },
               ]}
               format={plain}
-              caption={perGame(anvils.stat + anvils.legendary + anvils.prismatic, (v) =>
-                v.toFixed(1),
-              )}
+              caption={perGame(anvils.stat + anvils.legendary + anvils.prismatic, (v) => v.toFixed(1))}
             />
           </StatGroup>
 
           {/* First column of the bottom row, under the form chart, with the
             item and augment lists beside it. */}
-          <StatGroup
-            title="FINISHES"
-            aside={
-              stats ? `AVG ${stats.avgPlacement.toFixed(2)}` : undefined
-            }
-          >
+          <StatGroup title="FINISHES" aside={stats ? `AVG ${stats.avgPlacement.toFixed(2)}` : undefined}>
             <FinishesChart counts={stats?.placementCounts ?? []} />
           </StatGroup>
 
@@ -1096,7 +936,6 @@ export function ChampionDossier({
               ]}
             />
           </div>
-
         </div>
       </div>
     </div>

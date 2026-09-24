@@ -4,11 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useReducedMotion } from "motion/react";
 import { ResponsiveTimeRange, type ColorScale } from "@/vendor/nivo-calendar";
 import type { CalendarStats } from "@arena/types";
-import {
-  tierForDayBestPlacement,
-  tierForDayGames,
-  type Tier,
-} from "@/lib/tier-bars";
+import { tierForDayBestPlacement, tierForDayGames, type Tier } from "@/lib/tier-bars";
 import { DayHoverCard } from "./HoverCards";
 
 type Mode = "games" | "wins";
@@ -91,14 +87,7 @@ function TierFillDefs({ animate }: { animate: boolean }) {
           <stop offset="40%" stopColor="#bec7cb" />
           <stop offset="100%" stopColor="#919b9f" />
         </linearGradient>
-        <linearGradient
-          id={PRISMATIC_FILL_ID}
-          x1="0"
-          y1="0"
-          x2="1"
-          y2="1"
-          spreadMethod="reflect"
-        >
+        <linearGradient id={PRISMATIC_FILL_ID} x1="0" y1="0" x2="1" y2="1" spreadMethod="reflect">
           <stop offset="0%" stopColor="#d9a3cf" />
           <stop offset="33%" stopColor="#b99be0" />
           <stop offset="66%" stopColor="#9fbde8" />
@@ -153,20 +142,14 @@ function useCellEntrance(enabled: boolean, replayKey: string) {
     let attemptsLeft = 20;
 
     const run = () => {
-      const cells = Array.from(
-        root.querySelectorAll<SVGRectElement>("svg rect"),
-      );
+      const cells = Array.from(root.querySelectorAll<SVGRectElement>("svg rect"));
       if (cells.length === 0) {
         if (attemptsLeft-- > 0) frame = requestAnimationFrame(run);
         return;
       }
 
-      const columns = [
-        ...new Set(cells.map((c) => Number(c.getAttribute("x")))),
-      ].sort((a, b) => a - b);
-      const rows = [
-        ...new Set(cells.map((c) => Number(c.getAttribute("y")))),
-      ].sort((a, b) => a - b);
+      const columns = [...new Set(cells.map((c) => Number(c.getAttribute("x"))))].sort((a, b) => a - b);
+      const rows = [...new Set(cells.map((c) => Number(c.getAttribute("y"))))].sort((a, b) => a - b);
 
       for (const cell of cells) {
         const column = columns.indexOf(Number(cell.getAttribute("x")));
@@ -210,17 +193,14 @@ const Calendar = ({ calendar, mode, onSelectDate }: Props) => {
     .map((day) => ({
       day: day.date,
       value: TIER_ORDER.indexOf(
-        mode === "games"
-          ? (tierForDayGames(day.gamesPlayed) ?? "silver")
-          : tierForDayBestPlacement(day.bestPlacement),
+        mode === "games" ? (tierForDayGames(day.gamesPlayed) ?? "silver") : tierForDayBestPlacement(day.bestPlacement),
       ),
     }));
 
   const colorScale = useMemo(
     () =>
       Object.assign(
-        (value: number | { valueOf(): number }) =>
-          TIER_FILL[TIER_ORDER[Number(value)] ?? "silver"],
+        (value: number | { valueOf(): number }) => TIER_FILL[TIER_ORDER[Number(value)] ?? "silver"],
         // No legend is rendered here, so `.ticks` (required by `ColorScale`
         // for legend tick generation) is never actually called.
         { ticks: (): number[] => [] },
@@ -234,10 +214,7 @@ const Calendar = ({ calendar, mode, onSelectDate }: Props) => {
   }
 
   return (
-    <div
-      ref={gridRef}
-      className="calendar-time-range relative flex h-full w-full"
-    >
+    <div ref={gridRef} className="calendar-time-range relative flex h-full w-full">
       <TierFillDefs animate={!reduceMotion} />
       <ResponsiveTimeRange
         data={data}

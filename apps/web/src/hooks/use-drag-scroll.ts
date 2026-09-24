@@ -34,17 +34,12 @@ const FRICTION_PER_MS = 0.004;
  * actually overflows on `axis`, so the grab cursor doesn't show up on
  * content that already fits.
  */
-function useDragScroll<T extends HTMLElement>(
-  ref: RefObject<T | null>,
-  axis: "x" | "y",
-) {
+function useDragScroll<T extends HTMLElement>(ref: RefObject<T | null>, axis: "x" | "y") {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
-    const reducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     let dragging = false;
     let dragged = false;
@@ -61,10 +56,7 @@ function useDragScroll<T extends HTMLElement>(
       if (axis === "x") el.scrollLeft = value;
       else el.scrollTop = value;
     };
-    const overflows = () =>
-      axis === "x"
-        ? el.scrollWidth > el.clientWidth
-        : el.scrollHeight > el.clientHeight;
+    const overflows = () => (axis === "x" ? el.scrollWidth > el.clientWidth : el.scrollHeight > el.clientHeight);
 
     const updateOverflowClass = () => {
       el.classList.toggle("drag-scrollable", overflows());

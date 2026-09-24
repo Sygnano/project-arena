@@ -1,8 +1,10 @@
 import type { RiotArenaMatchDto, RiotArenaParticipantDto, RiotMatchTimelineDto } from "@arena/types";
-import { compressJson } from "./compression.js";
-import type { matches, matchParticipants } from "./schema.js";
+import { PING_TYPES, type matches, type matchParticipants } from "./schema.js";
 
-type NewMatch = typeof matches.$inferInsert;
+/** A `matches` row without its `raw`/`timeline` blobs: the caller compresses
+ * those (`compressJson`, async), and backfills that only re-derive rows
+ * don't need them at all. */
+export type ParsedMatch = Omit<typeof matches.$inferInsert, "raw" | "timeline">;
 type NewParticipant = typeof matchParticipants.$inferInsert;
 
 // The 8 Arena anvil item IDs (also used by apps/api/src/leagueData), confirmed via the items' own
@@ -64,9 +66,7 @@ interface BootTransactions {
  * sold count is for. Anything that needs true end-of-match footwear should
  * read `match_participants.items`, which is exact.
  */
-function bootTransactionsByParticipant(
-  timelineDto: RiotMatchTimelineDto,
-): Map<number, BootTransactions> {
+function bootTransactionsByParticipant(timelineDto: RiotMatchTimelineDto): Map<number, BootTransactions> {
   const byParticipant = new Map<number, BootTransactions>();
   const entry = (participantId: number) => {
     let existing = byParticipant.get(participantId);
@@ -213,15 +213,13 @@ export function parseMatch(
   // were fetched at all — re-parsing those can still recover everything
   // except the anvil counts and frames (which need timeline events).
   timelineDto: RiotMatchTimelineDto | null,
-): { match: NewMatch; participants: NewParticipant[] } {
+): { match: ParsedMatch; participants: NewParticipant[] } {
   const { info } = dto;
 
-  const match: NewMatch = {
+  const match: ParsedMatch = {
     matchId,
     region,
     gameCreation: new Date(info.gameCreation),
-    raw: compressJson(dto),
-    ...(timelineDto ? { timeline: compressJson(timelineDto) } : {}),
     bannedChampionIds: bannedChampionIds(dto),
   };
 
@@ -236,9 +234,7 @@ export function parseMatch(
   const bootsByParticipantId = timelineDto
     ? bootTransactionsByParticipant(timelineDto)
     : new Map<number, BootTransactions>();
-  const purchasesByParticipantId = timelineDto
-    ? purchasedItemsByParticipant(timelineDto)
-    : new Map<number, number[]>();
+  const purchasesByParticipantId = timelineDto ? purchasedItemsByParticipant(timelineDto) : new Map<number, number[]>();
 
   const participants: NewParticipant[] = info.participants.map((p) => {
     const participantId = participantIdByPuuid.get(p.puuid);
@@ -252,12 +248,8 @@ export function parseMatch(
     // "this match predates timeline ingestion, we don't know".
     const bootsBought = participantId !== undefined ? (boots?.bought ?? []) : null;
     const bootsSold = participantId !== undefined ? (boots?.sold ?? []) : null;
-    const purchasedItemIds =
-      participantId !== undefined ? (purchasesByParticipantId.get(participantId) ?? []) : null;
-    const frames =
-      participantId !== undefined && timelineDto
-        ? buildFrameSeries(timelineDto, participantId)
-        : null;
+    const purchasedItemIds = participantId !== undefined ? (purchasesByParticipantId.get(participantId) ?? []) : null;
+    const frames = participantId !== undefined && timelineDto ? buildFrameSeries(timelineDto, participantId) : null;
 
     return {
       matchId,
@@ -301,22 +293,7 @@ export function parseMatch(
       summonerSpell2Casts: p.summoner2Casts,
       summonerSpell1Id: p.summoner1Id,
       summonerSpell2Id: p.summoner2Id,
-      pings: {
-        allIn: p.allInPings,
-        assistMe: p.assistMePings,
-        basic: p.basicPings,
-        command: p.commandPings,
-        danger: p.dangerPings,
-        enemyMissing: p.enemyMissingPings,
-        enemyVision: p.enemyVisionPings,
-        getBack: p.getBackPings,
-        hold: p.holdPings,
-        needVision: p.needVisionPings,
-        onMyWay: p.onMyWayPings,
-        push: p.pushPings,
-        retreat: p.retreatPings,
-        visionCleared: p.visionClearedPings,
-      },
+      pings: PING_TYPES.map((type) => p[`${type}Pings`] ?? 0),
       statAnvilsBought,
       legendaryAnvilsBought,
       prismaticAnvilsBought,

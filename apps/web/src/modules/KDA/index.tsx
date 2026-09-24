@@ -4,10 +4,7 @@ import { useMemo, useState } from "react";
 import type { ChampionStats } from "@arena/types";
 import { CategorySection } from "@/components/category-section";
 import { HextechPanel } from "@/components/hextech-panel";
-import {
-  HextechBarChart,
-  type BarColumn,
-} from "@/components/hextech-bar-chart";
+import { HextechBarChart, type BarColumn } from "@/components/hextech-bar-chart";
 import { championIconUrl } from "@/lib/riot";
 import { Dial } from "@/components/dial";
 import { DetailBand } from "@/components/detail-band";
@@ -114,12 +111,7 @@ function tierForBar(index: number): TierStyle {
  * Adapts a ranked `ChartRow[]` into the generic `HextechBarChart`'s
  * `BarColumn[]` shape — one single-segment column per champion.
  */
-function toBarColumns(
-  rows: ChartRow[],
-  metric: Metric,
-  mode: Mode,
-  displayName: (key: string) => string,
-): BarColumn[] {
+function toBarColumns(rows: ChartRow[], metric: Metric, mode: Mode, displayName: (key: string) => string): BarColumn[] {
   return rows.map((row, index) => {
     const tier = tierForBar(index);
     const lowSample = mode !== "total" && isLowSample(row.entry.games);
@@ -178,11 +170,7 @@ function KdaHoverCard({
           {isLowSample(stats.matchesPlayed) ? " · few games" : ""}
         </span>
       }
-      footer={
-        <div className="mt-2.5 text-[10px] tracking-[.2em] text-lol-text-muted/70">
-          CLICK TO PIN BELOW
-        </div>
-      }
+      footer={<div className="mt-2.5 text-[10px] tracking-[.2em] text-lol-text-muted/70">CLICK TO PIN BELOW</div>}
     />
   );
 }
@@ -192,9 +180,7 @@ function KdaHoverCard({
  * stats response — `championPicks` isn't needed here anymore, since
  * `soloKills`/`largestKillingSpree` live directly on `ChampionKdaStats`.
  */
-function buildRoster(
-  champions: Record<number, ChampionStats>,
-): ChampionRosterEntry[] {
+function buildRoster(champions: Record<number, ChampionStats>): ChampionRosterEntry[] {
   return Object.values(champions).map((champion) => {
     const {
       totalKills,
@@ -207,12 +193,8 @@ function buildRoster(
       fewestDeaths,
       mostAssists,
     } = champion.kda;
-    const kda =
-      totalDeaths === 0
-        ? totalKills + totalAssists
-        : (totalKills + totalAssists) / totalDeaths;
-    const bestKda =
-      (bestGame.kills + bestGame.assists) / Math.max(1, bestGame.deaths);
+    const kda = totalDeaths === 0 ? totalKills + totalAssists : (totalKills + totalAssists) / totalDeaths;
+    const bestKda = (bestGame.kills + bestGame.assists) / Math.max(1, bestGame.deaths);
     return {
       championId: champion.championId,
       championName: champion.championName,
@@ -234,11 +216,7 @@ function buildRoster(
   });
 }
 
-function metricValue(
-  entry: ChampionRosterEntry,
-  metric: Metric,
-  mode: Mode,
-): number {
+function metricValue(entry: ChampionRosterEntry, metric: Metric, mode: Mode): number {
   if (mode === "best") return entry.best[metric];
   if (mode === "perGame" && metric !== "kda") {
     return entry.games > 0 ? entry[metric] / entry.games : 0;
@@ -292,9 +270,7 @@ function buildChartRows(
   // ceiling and flatten every real bar. Outliers are clamped to the scale.
   // Once the viewer mixes them in, they rank among the rest and must scale
   // too — clamped, every mixed-in outlier would render as an equal max bar.
-  const scaled = ranked.filter(
-    (row) => mode === "total" || mixLowSample || !isLowSample(row.entry.games),
-  );
+  const scaled = ranked.filter((row) => mode === "total" || mixLowSample || !isLowSample(row.entry.games));
   const values = (scaled.length > 0 ? scaled : ranked).map((row) => row.value);
   const hi = Math.max(...values);
   const lo = Math.min(...values);
@@ -324,15 +300,7 @@ function buildChartRows(
  * it); this component only owns the identity column's dial/totals
  * (`sidebar`) and the instrument panel itself (`children`).
  */
-const KDA = ({
-  kills,
-  deaths,
-  assists,
-  kda,
-  mostKills,
-  bestKda,
-  champions,
-}: Props) => {
+const KDA = ({ kills, deaths, assists, kda, mostKills, bestKda, champions }: Props) => {
   const [metric, setMetric] = useState<Metric>("kills");
   const [mode, setMode] = useState<Mode>("total");
   // Outside TOTAL: rank champions under MIN_SAMPLE games with the rest (still dimmed).
@@ -342,9 +310,7 @@ const KDA = ({
   const roster = useMemo(() => buildRoster(champions), [champions]);
 
   const [selectedChampionId, setSelectedChampionId] = useState<number | null>(
-    () =>
-      buildChartRows(roster, "kills", "perGame", null)[0]?.entry.championId ??
-      null,
+    () => buildChartRows(roster, "kills", "perGame", null)[0]?.entry.championId ?? null,
   );
 
   const chartRows = useMemo(
@@ -358,27 +324,19 @@ const KDA = ({
   );
 
   const { hover, onHover, containerRef: hoverRef } = useChartHover<number>();
-  const hoveredIndex = hover
-    ? chartRows.findIndex((row) => row.entry.championId === hover.id)
-    : -1;
+  const hoveredIndex = hover ? chartRows.findIndex((row) => row.entry.championId === hover.id) : -1;
   const hoveredRow = hoveredIndex === -1 ? null : chartRows[hoveredIndex];
 
-  const selectedEntry =
-    roster.find((entry) => entry.championId === selectedChampionId) ??
-    roster[0] ??
-    null;
+  const selectedEntry = roster.find((entry) => entry.championId === selectedChampionId) ?? roster[0] ?? null;
 
-  const modeLabel =
-    mode === "perGame" ? "PER GAME" : mode === "total" ? "ALL GAMES" : "BEST SINGLE GAME";
+  const modeLabel = mode === "perGame" ? "PER GAME" : mode === "total" ? "ALL GAMES" : "BEST SINGLE GAME";
   // Deaths sort ascending outside TOTAL (see `buildChartRows`) — called out
   // as "FEWEST" since lower-is-better is the opposite of every other column.
-  const sortLabel =
-    mode !== "total" && metric === "deaths" ? "FEWEST DEATHS" : METRIC_LABEL[metric];
+  const sortLabel = mode !== "total" && metric === "deaths" ? "FEWEST DEATHS" : METRIC_LABEL[metric];
   const modeCaption =
     mode === "total"
       ? `${modeLabel} · BY ${sortLabel}`
       : `${modeLabel} · BY ${sortLabel} · UNDER ${MIN_SAMPLE} GAMES DIMMED`;
-
 
   return (
     <CategorySection
@@ -390,7 +348,6 @@ const KDA = ({
           <Dial value={kda} label="KDA" />
 
           <div className="mt-auto">
-
             <SidebarStatRows
               rows={[
                 { label: "KILLS", value: kills.toLocaleString() },
@@ -407,14 +364,7 @@ const KDA = ({
       <HextechPanel>
         <PanelToolbar
           caption={modeCaption}
-          trailing={
-            mode !== "total" ? (
-              <LowSampleSwitch
-                checked={mixLowSample}
-                onChange={setMixLowSample}
-              />
-            ) : null
-          }
+          trailing={mode !== "total" ? <LowSampleSwitch checked={mixLowSample} onChange={setMixLowSample} /> : null}
         >
           <DiamondTabs
             tabs={[

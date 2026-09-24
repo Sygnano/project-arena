@@ -38,8 +38,7 @@ function useFitZoom<T extends HTMLElement>(count: number) {
         setZoom(1);
         return;
       }
-      const width =
-        (box.clientWidth - 2 * GLOW_MARGIN - (count - 1) * CARD_GAP) / count;
+      const width = (box.clientWidth - 2 * GLOW_MARGIN - (count - 1) * CARD_GAP) / count;
       const byWidth = width / CARD_WIDTH;
       const byHeight = (box.clientHeight - 2 * GLOW_MARGIN) / CARD_HEIGHT;
       if (byWidth <= 0 || byHeight <= 0) return;
@@ -85,7 +84,6 @@ const MetaAugments = ({ metaAugments }: Props) => {
   const augments = metaAugments.augments;
   const [fitRef, zoom] = useFitZoom<HTMLDivElement>(augments.length);
 
-
   return (
     <CategorySection
       imageUrl={SECTION_BACKGROUNDS.metaAugments}
@@ -116,10 +114,7 @@ const MetaAugments = ({ metaAugments }: Props) => {
                   className="flex-none"
                   style={{ width: Math.floor(CARD_WIDTH * (zoom ?? 1)) }}
                 >
-                  <AugmentFramedCard
-                    augment={augment}
-                    className="h-auto w-full"
-                  />
+                  <AugmentFramedCard augment={augment} className="h-auto w-full" />
                 </li>
               ))}
             </ul>

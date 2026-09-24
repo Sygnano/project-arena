@@ -19,12 +19,7 @@ type Props = {
  * import per visible section.
  */
 const DamageTaken = ({ damageTaken, champions, skillshotsDodged }: Props) => (
-  <Damage
-    variant="taken"
-    damage={damageTaken}
-    champions={champions}
-    skillshots={skillshotsDodged}
-  />
+  <Damage variant="taken" damage={damageTaken} champions={champions} skillshots={skillshotsDodged} />
 );
 
 export { DamageTaken };

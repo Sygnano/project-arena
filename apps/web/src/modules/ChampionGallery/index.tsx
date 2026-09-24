@@ -46,10 +46,7 @@ const ChampionGallery = ({ championPicks, champions }: Props) => {
   // so the first card here is the champion that section's tallest bar just
   // pointed at.
   const roster = useMemo(
-    () =>
-      [...championPicks.champions].sort(
-        (a, b) => b.timesPicked - a.timesPicked,
-      ),
+    () => [...championPicks.champions].sort((a, b) => b.timesPicked - a.timesPicked),
     [championPicks.champions],
   );
 
@@ -64,9 +61,7 @@ const ChampionGallery = ({ championPicks, champions }: Props) => {
   useOpenDossierRequests(
     useCallback(
       (championId: number) => {
-        const index = roster.findIndex(
-          (champion) => champion.championId === championId,
-        );
+        const index = roster.findIndex((champion) => champion.championId === championId);
         if (index === -1) return;
         setCenteredIndex(index);
         setOpenIndex(index);
@@ -77,7 +72,6 @@ const ChampionGallery = ({ championPicks, champions }: Props) => {
 
   const openChampion = openIndex == null ? null : roster[openIndex];
   const displayName = useChampionName();
-
 
   return (
     <CategorySection
@@ -107,9 +101,7 @@ const ChampionGallery = ({ championPicks, champions }: Props) => {
               </span>
             </button>
           ) : (
-            <div className="text-[11px] tracking-[.28em] text-lol-gold-300">
-              {roster.length} CHAMPIONS PLAYED
-            </div>
+            <div className="text-[11px] tracking-[.28em] text-lol-gold-300">{roster.length} CHAMPIONS PLAYED</div>
           )}
 
           <FadingRule />
@@ -169,9 +161,7 @@ const ChampionGallery = ({ championPicks, champions }: Props) => {
                       setCenteredIndex(index);
                       setOpenIndex(index);
                     }}
-                    renderItem={(champion) => (
-                      <ChampionCard champion={champion} />
-                    )}
+                    renderItem={(champion) => <ChampionCard champion={champion} />}
                   />
                 </motion.div>
               )}

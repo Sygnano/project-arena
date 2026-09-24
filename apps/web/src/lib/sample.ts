@@ -47,11 +47,7 @@ export function sortByRate<T>(
  * items vs 4.9 for 6th. So nearly every augment or item "beats" the plain
  * per-game rate; comparing to the average pick removes that shared lift.
  */
-export function pooledRate<T>(
-  rows: readonly T[],
-  hits: (row: T) => number,
-  count: (row: T) => number,
-): number {
+export function pooledRate<T>(rows: readonly T[], hits: (row: T) => number, count: (row: T) => number): number {
   const total = rows.reduce((sum, row) => sum + count(row), 0);
   return total > 0 ? (rows.reduce((sum, row) => sum + hits(row), 0) / total) * 100 : 0;
 }

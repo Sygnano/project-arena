@@ -2,26 +2,15 @@
 
 import { useMemo, type CSSProperties } from "react";
 import { cn } from "cn";
-import type {
-  GuestOfHonorAugmentStats,
-  GuestOfHonorChampionStats,
-  GuestOfHonorStats,
-} from "@arena/types";
+import type { GuestOfHonorAugmentStats, GuestOfHonorChampionStats, GuestOfHonorStats } from "@arena/types";
 import { CategorySection } from "@/components/category-section";
 import { HextechPanel } from "@/components/hextech-panel";
 import { FadingRule } from "@/components/fading-rule";
-import {
-  AccordionGallery,
-  type AccordionGalleryItem,
-} from "@/components/accordion-gallery";
+import { AccordionGallery, type AccordionGalleryItem } from "@/components/accordion-gallery";
 import { championIconUrl, championSplashUrl } from "@/lib/riot";
 import { TIER_STYLE } from "@/lib/tier-bars";
 import { isLowSample } from "@/lib/sample";
-import {
-  RING_WIDTH,
-  augmentFrameClassName,
-  tierForAugmentCard,
-} from "@/components/augment-framed-card";
+import { RING_WIDTH, augmentFrameClassName, tierForAugmentCard } from "@/components/augment-framed-card";
 import { SECTION_BACKGROUNDS } from "@/lib/section-backgrounds";
 import { useFitScale } from "@/hooks/use-fit-scale";
 
@@ -58,11 +47,7 @@ function iconName(championName: string): string {
   return championName.replace(/\s+/g, "");
 }
 
-function CompactAugmentCard({
-  augment,
-}: {
-  augment: GuestOfHonorAugmentStats;
-}) {
+function CompactAugmentCard({ augment }: { augment: GuestOfHonorAugmentStats }) {
   const tier = tierForAugmentCard(augment);
   const tierStyle = tier ? TIER_STYLE[tier] : null;
   const picked = augment.timesPicked;
@@ -78,9 +63,7 @@ function CompactAugmentCard({
     <div
       className={cn(
         "flex w-58 flex-none flex-col gap-2.5 rounded-md border bg-[rgba(1,10,19,.84)] p-3 shadow-[0_6px_24px_rgba(0,0,0,.45)] backdrop-blur-md",
-        picked === 0
-          ? "border-[rgba(126,138,150,.18)] opacity-60"
-          : "border-[rgba(200,170,110,.28)]",
+        picked === 0 ? "border-[rgba(126,138,150,.18)] opacity-60" : "border-[rgba(200,170,110,.28)]",
       )}
     >
       <div className="flex items-center gap-3">
@@ -100,10 +83,7 @@ function CompactAugmentCard({
               filter: tier ? undefined : "grayscale(1) brightness(.7)",
             } as CSSProperties
           }
-          className={cn(
-            "aspect-square w-11 flex-none rounded-full object-cover",
-            augmentFrameClassName(tier),
-          )}
+          className={cn("aspect-square w-11 flex-none rounded-full object-cover", augmentFrameClassName(tier))}
         />
         <div className="min-w-0 font-display text-[14px] leading-tight tracking-[.04em] text-lol-gold-50">
           {augment.augmentName}
@@ -113,9 +93,7 @@ function CompactAugmentCard({
       <div className="h-px bg-[linear-gradient(to_right,rgba(200,170,110,0),rgba(200,170,110,.35),rgba(200,170,110,0))]" />
 
       {picked === 0 ? (
-        <div className="py-2 text-center text-[11px] tracking-[.2em] text-lol-text-muted">
-          NEVER PICKED
-        </div>
+        <div className="py-2 text-center text-[11px] tracking-[.2em] text-lol-text-muted">NEVER PICKED</div>
       ) : (
         <>
           <div className="grid grid-cols-3 divide-x divide-[rgba(200,170,110,.2)] text-center">
@@ -128,24 +106,17 @@ function CompactAugmentCard({
                 <span className="font-display text-[20px] leading-none text-lol-gold-50 tabular-nums">
                   {stat.value}
                 </span>
-                <span className="mt-1 text-[10px] tracking-[.14em] text-lol-text-muted">
-                  {stat.label}
-                </span>
+                <span className="mt-1 text-[10px] tracking-[.14em] text-lol-text-muted">{stat.label}</span>
               </div>
             ))}
           </div>
           <div className={cn("flex flex-col gap-1", lowSample && "opacity-60")}>
             <div className="flex items-baseline justify-between text-[10px] tracking-[.14em] text-lol-text-muted">
               <span>WINRATE</span>
-              <span className="font-display text-[12px] text-lol-gold-100 tabular-nums">
-                {Math.round(top3Rate)}%
-              </span>
+              <span className="font-display text-[12px] text-lol-gold-100 tabular-nums">{Math.round(top3Rate)}%</span>
             </div>
             <div className="h-1 overflow-hidden rounded-full bg-[rgba(200,170,110,.12)]">
-              <div
-                className={cn("h-full rounded-full", tierStyle?.fillClass)}
-                style={{ width: `${top3Rate}%` }}
-              />
+              <div className={cn("h-full rounded-full", tierStyle?.fillClass)} style={{ width: `${top3Rate}%` }} />
             </div>
           </div>
         </>
@@ -159,15 +130,8 @@ function CompactAugmentCard({
  * as a whole until it fits the panel (no inner scrollbar). Wrapping alone
  * isn't enough: a 3x3 grid is too tall for a short deck-mode panel at any column count, and squeezing the cards' own
  * type sizes per row count would mean re-tuning them against one screen. */
-function ChampionAugments({
-  champion,
-}: {
-  champion: GuestOfHonorChampionStats;
-}) {
-  const { outerRef, innerRef, scale } = useFitScale<
-    HTMLDivElement,
-    HTMLDivElement
-  >();
+function ChampionAugments({ champion }: { champion: GuestOfHonorChampionStats }) {
+  const { outerRef, innerRef, scale } = useFitScale<HTMLDivElement, HTMLDivElement>();
 
   return (
     <div
@@ -230,7 +194,6 @@ const GuestOfHonor = ({ guestOfHonor }: Props) => {
     [champions],
   );
 
-
   return (
     <CategorySection
       imageUrl={SECTION_BACKGROUNDS.guestOfHonor}
@@ -239,9 +202,7 @@ const GuestOfHonor = ({ guestOfHonor }: Props) => {
     >
       <HextechPanel bodyClassName="p-8">
         <div className="mb-4 flex flex-none flex-wrap items-center gap-x-6 gap-y-3">
-          <div className="text-[11px] tracking-[.28em] text-lol-gold-300">
-            {champions.length} CHAMPIONS
-          </div>
+          <div className="text-[11px] tracking-[.28em] text-lol-gold-300">{champions.length} CHAMPIONS</div>
           <FadingRule />
           <div className="text-[11px] tracking-[.28em] text-lol-text-muted sm:whitespace-nowrap">
             SELECT A CHAMPION TO OPEN THEIR LINE

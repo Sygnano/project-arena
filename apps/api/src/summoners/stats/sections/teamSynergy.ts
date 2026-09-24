@@ -41,7 +41,10 @@ export function buildTeamSynergyStats({ games, participantsByMatch }: StatsData)
   const winsOnTeam = new Map<number, { top1: number; top3: number }>();
   const nameById = new Map<number, string>();
   const pairs = new Map<string, PairTally>();
-  const teammateChampions = new Map<number, PlacementSplit & { championId: number; championName: string; games: number }>();
+  const teammateChampions = new Map<
+    number,
+    PlacementSplit & { championId: number; championName: string; games: number }
+  >();
 
   for (const game of games) {
     // One entry per champion, in case a champion were ever on a team twice.
@@ -61,7 +64,8 @@ export function buildTeamSynergyStats({ games, participantsByMatch }: StatsData)
       // Teammates' champions only: "which champions on my team go with my best results".
       if (championId !== game.championId) {
         let teammate = teammateChampions.get(championId);
-        if (!teammate) teammateChampions.set(championId, (teammate = { championId, championName, games: 0, ...emptySplit() }));
+        if (!teammate)
+          teammateChampions.set(championId, (teammate = { championId, championName, games: 0, ...emptySplit() }));
         teammate.games += 1;
         addToSplit(teammate, game.placement);
       }
@@ -85,7 +89,10 @@ export function buildTeamSynergyStats({ games, participantsByMatch }: StatsData)
   }
 
   const allPairs = [...pairs.values()];
-  const mostPlayed = allPairs.reduce<PairTally | null>((best, pair) => (!best || pair.games > best.games ? pair : best), null);
+  const mostPlayed = allPairs.reduce<PairTally | null>(
+    (best, pair) => (!best || pair.games > best.games ? pair : best),
+    null,
+  );
   const best = allPairs
     .filter((pair) => pair.games >= BEST_PAIR_MIN_GAMES)
     .reduce<PairTally | null>(

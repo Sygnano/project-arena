@@ -2,11 +2,7 @@
 
 import { useState } from "react";
 import { ResponsivePie } from "@nivo/pie";
-import {
-  HoverCardRows,
-  HoverCardSection,
-  HoverStatCard,
-} from "@/components/hover-stat-card";
+import { HoverCardRows, HoverCardSection, HoverStatCard } from "@/components/hover-stat-card";
 import type { BootStats, BootsOutcome, BootsStats } from "@arena/types";
 import { CategorySection } from "@/components/category-section";
 import { HextechPanel } from "@/components/hextech-panel";
@@ -66,8 +62,7 @@ function BootsOutcomeStrip({ outcomes }: { outcomes: BootsStats["outcomes"] }) {
   const all = Object.values(outcomes);
   const games = all.reduce((sum, o) => sum + o.games, 0);
   if (games === 0) return null;
-  const baseline =
-    (all.reduce((sum, o) => sum + o.top3Finishes, 0) / games) * 100;
+  const baseline = (all.reduce((sum, o) => sum + o.top3Finishes, 0) / games) * 100;
   return (
     <div className="mt-4 border-t border-[rgba(200,170,110,.14)] pt-3">
       <ul className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -87,9 +82,7 @@ function BootsOutcomeStrip({ outcomes }: { outcomes: BootsStats["outcomes"] }) {
               }}
             >
               <div className="min-w-0">
-                <div className="text-[11px] tracking-[.2em] text-lol-text-secondary">
-                  {label}
-                </div>
+                <div className="text-[11px] tracking-[.2em] text-lol-text-secondary">{label}</div>
                 <div className="mt-0.5 text-[11px] tracking-[.14em] text-lol-text-muted">
                   {outcome.games.toLocaleString()} GAMES
                 </div>
@@ -122,9 +115,7 @@ const Boots = ({ boots }: Props) => {
   const [mode, setMode] = useState<Mode>("bought");
   const [hoveredId, setHoveredId] = useState<number | null>(null);
 
-  const ranked = [...boots.boots].sort(
-    (a, b) => modeValue(b, mode) - modeValue(a, mode) || a.itemId - b.itemId,
-  );
+  const ranked = [...boots.boots].sort((a, b) => modeValue(b, mode) - modeValue(a, mode) || a.itemId - b.itemId);
   // A pair never bought (or, in SOLD mode, never sold) has no slice to draw —
   // it stays in the legend below, dimmed, the same treatment MetaAugments
   // gives a never-picked augment.
@@ -132,10 +123,7 @@ const Boots = ({ boots }: Props) => {
   const total = sliced.reduce((sum, boot) => sum + modeValue(boot, mode), 0);
 
   const colorById = new Map(
-    sliced.map((boot, rank) => [
-      boot.itemId,
-      tierGradient(sliced.length <= 1 ? 1 : 1 - rank / (sliced.length - 1)),
-    ]),
+    sliced.map((boot, rank) => [boot.itemId, tierGradient(sliced.length <= 1 ? 1 : 1 - rank / (sliced.length - 1))]),
   );
 
   // The legend's bars scale against the LEADER, not against the total —
@@ -145,21 +133,16 @@ const Boots = ({ boots }: Props) => {
   // ranking.
   const leaderValue = sliced.length > 0 ? modeValue(sliced[0], mode) : 0;
 
-  const focused =
-    ranked.find((boot) => boot.itemId === hoveredId) ?? sliced[0] ?? null;
+  const focused = ranked.find((boot) => boot.itemId === hoveredId) ?? sliced[0] ?? null;
   const focusedValue = focused ? modeValue(focused, mode) : 0;
   const focusedShare = total > 0 ? (focusedValue / total) * 100 : 0;
 
   const modeNoun = mode === "bought" ? "BOUGHT" : "SOLD";
-  const trackedGames = Object.values(boots.outcomes).reduce(
-    (sum, o) => sum + o.games,
-    0,
-  );
+  const trackedGames = Object.values(boots.outcomes).reduce((sum, o) => sum + o.games, 0);
   const ofGames = (count: number) =>
     trackedGames > 0
       ? `${count.toLocaleString()} · ${Math.round((count / trackedGames) * 100)}%`
       : count.toLocaleString();
-
 
   return (
     <CategorySection
@@ -168,14 +151,9 @@ const Boots = ({ boots }: Props) => {
       imageUrl={SECTION_BACKGROUNDS.boots}
       sidebar={
         <>
-          <Dial
-            value={boots.totalBought}
-            label="PAIRS BOUGHT"
-            formatValue={(v) => v.toLocaleString()}
-          />
+          <Dial value={boots.totalBought} label="PAIRS BOUGHT" formatValue={(v) => v.toLocaleString()} />
 
           <div className="mt-auto">
-
             <SidebarStatRows
               size="compact"
               rows={[
@@ -246,9 +224,7 @@ const Boots = ({ boots }: Props) => {
                 onMouseEnter={(d) => setHoveredId(Number(d.id))}
                 onMouseLeave={() => setHoveredId(null)}
                 tooltip={({ datum }) => {
-                  const boot = ranked.find(
-                    (b) => String(b.itemId) === String(datum.id),
-                  );
+                  const boot = ranked.find((b) => String(b.itemId) === String(datum.id));
                   if (!boot) return null;
                   return (
                     <HoverStatCard
@@ -259,17 +235,12 @@ const Boots = ({ boots }: Props) => {
                             alt=""
                             className="size-8 flex-none border border-[rgba(200,170,110,.4)]"
                           />
-                          <span className="whitespace-normal leading-tight">
-                            {boot.itemName}
-                          </span>
+                          <span className="whitespace-normal leading-tight">{boot.itemName}</span>
                         </span>
                       }
                       subtitle={
                         <span className="mt-1.5 block">
-                          {total > 0
-                            ? ((datum.value / total) * 100).toFixed(0)
-                            : 0}
-                          % of pairs {modeNoun.toLowerCase()}
+                          {total > 0 ? ((datum.value / total) * 100).toFixed(0) : 0}% of pairs {modeNoun.toLowerCase()}
                         </span>
                       }
                     >
@@ -353,12 +324,8 @@ const Boots = ({ boots }: Props) => {
                   className="flex items-center gap-3 px-2 py-1.5 transition-colors duration-150"
                   style={{
                     opacity: value > 0 ? 1 : 0.38,
-                    background: isFocused
-                      ? "rgba(200,170,110,.09)"
-                      : "transparent",
-                    boxShadow: isFocused
-                      ? "inset 0 0 0 1px rgba(200,170,110,.45)"
-                      : undefined,
+                    background: isFocused ? "rgba(200,170,110,.09)" : "transparent",
+                    boxShadow: isFocused ? "inset 0 0 0 1px rgba(200,170,110,.45)" : undefined,
                   }}
                 >
                   <img
@@ -374,10 +341,7 @@ const Boots = ({ boots }: Props) => {
                     <div className="truncate text-[12.5px] tracking-[.06em] text-lol-text-secondary">
                       {boot.itemName}
                     </div>
-                    <div
-                      className="mt-1.5 h-1.5 w-full"
-                      style={{ background: "rgba(240,230,210,.05)" }}
-                    >
+                    <div className="mt-1.5 h-1.5 w-full" style={{ background: "rgba(240,230,210,.05)" }}>
                       <div
                         className="h-full transition-[width] duration-300 ease-out"
                         style={{
@@ -392,9 +356,7 @@ const Boots = ({ boots }: Props) => {
                     <div className="font-display text-[19px] leading-none text-lol-gold-50">
                       {value.toLocaleString()}
                     </div>
-                    <div className="mt-1 text-[11px] tracking-[.14em] text-lol-text-muted">
-                      {share.toFixed(0)}%
-                    </div>
+                    <div className="mt-1 text-[11px] tracking-[.14em] text-lol-text-muted">{share.toFixed(0)}%</div>
                   </div>
                 </div>
               );

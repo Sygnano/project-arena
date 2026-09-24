@@ -4,17 +4,9 @@ import type { TeamSlotBreakdown, TeamSlotStats } from "@arena/types";
 import { CategorySection } from "@/components/category-section";
 import { CursorTooltip } from "@/components/cursor-tooltip";
 import { formatSignedPoints } from "@/components/delta-cell";
-import {
-  HoverCardPlacementBars,
-  HoverCardRows,
-  HoverCardSection,
-  HoverStatCard,
-} from "@/components/hover-stat-card";
+import { HoverCardPlacementBars, HoverCardRows, HoverCardSection, HoverStatCard } from "@/components/hover-stat-card";
 import { HextechPanel } from "@/components/hextech-panel";
-import {
-  HextechBarChart,
-  type BarColumn,
-} from "@/components/hextech-bar-chart";
+import { HextechBarChart, type BarColumn } from "@/components/hextech-bar-chart";
 import { useChartHover } from "@/hooks/use-chart-hover";
 import { isLowSample } from "@/lib/sample";
 import { FadingRule } from "@/components/fading-rule";
@@ -85,9 +77,7 @@ const SEGMENT_TIER = {
  * so a sliver-thin segment's number is still reachable.
  */
 function buildTeamSlotColumns(teamSlot: TeamSlotStats): BarColumn[] {
-  const totals = teamSlot.byTeamId.map(
-    (row) => row.top1 + row.top3ExclTop1 + row.remaining,
-  );
+  const totals = teamSlot.byTeamId.map((row) => row.top1 + row.top3ExclTop1 + row.remaining);
   const maxTotal = Math.max(1, ...totals);
   const scale = BAR_MAX_PERCENT / maxTotal;
 
@@ -131,14 +121,7 @@ function buildTeamSlotColumns(teamSlot: TeamSlotStats): BarColumn[] {
             }}
           >
             <div className="font-display -rotate-45 text-[15px] tracking-[.04em] text-lol-gold-50">
-              <img
-                loading="lazy"
-                decoding="async"
-                src={teamIconUrl(slug)}
-                alt=""
-                width={36}
-                height={36}
-              />
+              <img loading="lazy" decoding="async" src={teamIconUrl(slug)} alt="" width={36} height={36} />
             </div>
           </div>
 
@@ -225,9 +208,7 @@ function TeamSlotCard({ row, teamSlot }: { row: TeamSlotBreakdown; teamSlot: Tea
       </HoverCardSection>
       {row.byPlacement ? (
         <HoverCardSection label="FINISHES">
-          <HoverCardPlacementBars
-            counts={placements.map((placement) => row.byPlacement[placement] ?? 0)}
-          />
+          <HoverCardPlacementBars counts={placements.map((placement) => row.byPlacement[placement] ?? 0)} />
         </HoverCardSection>
       ) : null}
     </HoverStatCard>
@@ -256,7 +237,6 @@ const TeamSlot = ({ teamSlot }: Props) => {
   }));
   const hoveredRow = hover ? teamSlot.byTeamId.find((row) => row.teamId === hover.id) : undefined;
 
-
   return (
     <CategorySection
       title="TEAM SLOT"
@@ -266,9 +246,7 @@ const TeamSlot = ({ teamSlot }: Props) => {
       <HextechPanel>
         <div className="mb-3.5 flex flex-wrap items-center gap-x-6 gap-y-3">
           <FadingRule />
-          <div className="text-[11px] tracking-[.28em] text-lol-text-muted">
-            FINISHES BY TEAM SLOT
-          </div>
+          <div className="text-[11px] tracking-[.28em] text-lol-text-muted">FINISHES BY TEAM SLOT</div>
         </div>
 
         <div className="flex min-h-0 flex-1 justify-center">

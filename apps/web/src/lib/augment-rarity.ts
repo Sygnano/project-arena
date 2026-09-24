@@ -20,10 +20,7 @@ const RARITY_TO_FILTER: Record<number, AugmentRarityFilter> = {
 /** Whether an `AugmentStats.rarity` value belongs to `filter` — `"all"`
  * always matches. Shared by `AugmentPicks` and `AugmentHallOfFame` so both
  * panels' rarity filter behave identically. */
-export function matchesRarityFilter(
-  rarity: number,
-  filter: AugmentRarityFilter,
-): boolean {
+export function matchesRarityFilter(rarity: number, filter: AugmentRarityFilter): boolean {
   return filter === "all" || RARITY_TO_FILTER[rarity] === filter;
 }
 

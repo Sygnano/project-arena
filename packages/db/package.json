@@ -16,7 +16,7 @@
     "backfill-compress-matches": "tsx --env-file=.env scripts/backfill-compress-matches.ts",
     "backfill-reparse-participants": "tsx --env-file=.env scripts/backfill-reparse-participants.ts",
     "backfill-rounds": "tsx --env-file=.env scripts/backfill-rounds.ts",
-    "remap-puuids": "tsx --env-file=../../apps/api/.env --env-file=.env scripts/remap-puuids.ts"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@arena/types": "workspace:*",
@@ -24,8 +24,10 @@
     "postgres": "^3.4.5"
   },
   "devDependencies": {
+    "@arena/eslint-config": "workspace:*",
     "@types/node": "^22.10.5",
     "drizzle-kit": "^0.31.6",
+    "eslint": "^10.11.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
   }

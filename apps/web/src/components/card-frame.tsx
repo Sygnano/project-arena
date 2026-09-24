@@ -58,8 +58,7 @@ export const CARD_INNER_INSET = "12px";
  * panel's own 0.62/0.72 stops the art still reads straight through the card.
  * Kept translucent rather than solid so it stays glass in the same visual
  * language as every other surface here. */
-export const CARD_FILL_BACKGROUND =
-  "linear-gradient(155deg, rgba(9,20,40,.86), rgba(3,10,18,.93))";
+export const CARD_FILL_BACKGROUND = "linear-gradient(155deg, rgba(9,20,40,.86), rgba(3,10,18,.93))";
 
 /** Ring thickness scales 1.5px -> 3px as tier climbs, per
  * design_handoff_arena_hof/README.md's "Layout" section (a tier-less
@@ -129,11 +128,7 @@ export function CardFrame({
           }}
         />
       ) : null}
-      <div
-        aria-hidden
-        className={cn("pointer-events-none absolute inset-0", className)}
-        style={style}
-      />
+      <div aria-hidden className={cn("pointer-events-none absolute inset-0", className)} style={style} />
     </>
   );
 }

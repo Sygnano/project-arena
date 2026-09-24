@@ -17,8 +17,7 @@
 
 @theme {
   /* ── Fonts (files loaded via next/font/local in src/fonts/index.ts) ── */
-  --font-display:
-    var(--font-beaufort), "Times New Roman", Times, Baskerville, Georgia, serif;
+  --font-display: var(--font-beaufort), "Times New Roman", Times, Baskerville, Georgia, serif;
   --font-body: var(--font-spiegel), system-ui, "Segoe UI", Roboto, sans-serif;
 
   /* ── Colors: Backgrounds ── */
@@ -124,30 +123,13 @@
   --color-augment-prismatic-green: #9be3c9;
 
   /* ── Box Shadows ── */
-  --shadow-hextech-blue:
-    0 0 10px rgba(10, 200, 185, 0.3), 0 0 24px rgba(3, 151, 171, 0.15);
-  --shadow-hextech-gold:
-    0 0 10px rgba(200, 170, 110, 0.25), 0 0 24px rgba(120, 90, 40, 0.15);
+  --shadow-hextech-blue: 0 0 10px rgba(10, 200, 185, 0.3), 0 0 24px rgba(3, 151, 171, 0.15);
+  --shadow-hextech-gold: 0 0 10px rgba(200, 170, 110, 0.25), 0 0 24px rgba(120, 90, 40, 0.15);
 
   /* ── Background Images ── */
-  --gradient-hextech-blue: linear-gradient(
-    180deg,
-    #0ac8b9 0%,
-    #0397ab 45%,
-    #005a82 100%
-  );
-  --gradient-hextech-gold: linear-gradient(
-    180deg,
-    #c8aa6e 0%,
-    #c89b3c 45%,
-    #785a28 100%
-  );
-  --gradient-hextech-dark: linear-gradient(
-    135deg,
-    #010a13 0%,
-    #091428 55%,
-    #0a323c 100%
-  );
+  --gradient-hextech-blue: linear-gradient(180deg, #0ac8b9 0%, #0397ab 45%, #005a82 100%);
+  --gradient-hextech-gold: linear-gradient(180deg, #c8aa6e 0%, #c89b3c 45%, #785a28 100%);
+  --gradient-hextech-dark: linear-gradient(135deg, #010a13 0%, #091428 55%, #0a323c 100%);
 
   /* Augment rarity border/fill gradients — see the color tokens above for
    * where these come from. `--gradient-augment-prismatic` starts and ends on
@@ -538,15 +520,7 @@
    * size always covers it fully, so no tile edge is ever on screen. */
   background-image:
     var(--tier-bar-shade),
-    linear-gradient(
-      135deg,
-      #d9a3cf 0%,
-      #b99be0 20%,
-      #9fbde8 40%,
-      #a3d6c6 60%,
-      #b99be0 80%,
-      #d9a3cf 100%
-    );
+    linear-gradient(135deg, #d9a3cf 0%, #b99be0 20%, #9fbde8 40%, #a3d6c6 60%, #b99be0 80%, #d9a3cf 100%);
   background-repeat: no-repeat;
   background-size:
     100% 100%,
@@ -555,15 +529,11 @@
 }
 .tier-bar-gold {
   background-color: #c4974a;
-  background-image:
-    var(--tier-bar-shade),
-    linear-gradient(180deg, #d4ab62 0%, #bb8c40 100%);
+  background-image: var(--tier-bar-shade), linear-gradient(180deg, #d4ab62 0%, #bb8c40 100%);
 }
 .tier-bar-silver {
   background-color: #b4bfc3;
-  background-image:
-    var(--tier-bar-shade),
-    linear-gradient(180deg, #cdd5d8 0%, #a5b0b5 100%);
+  background-image: var(--tier-bar-shade), linear-gradient(180deg, #cdd5d8 0%, #a5b0b5 100%);
 }
 @keyframes tier-bar-prismatic-shift {
   from {

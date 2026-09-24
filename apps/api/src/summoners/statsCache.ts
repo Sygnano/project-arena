@@ -28,7 +28,7 @@ interface Entry {
 /** V8 stores a string with only Latin-1 characters at a byte per character
  * and any other at two, so a recap naming a Korean co-player costs double. */
 function sizeInMemory(json: string) {
-  return /[^\u0000-ÿ]/.test(json) ? json.length * 2 : json.length;
+  return /[\u0100-\uffff]/.test(json) ? json.length * 2 : json.length;
 }
 
 /**
@@ -104,7 +104,11 @@ class StatsCache {
         matches: matchCount,
         ms: Math.round(performance.now() - startedAt),
         kb: Math.round(entry.bytes / 1024),
-        cachedAs: !cached ? "not cached (too big)" : fresh ? `fresh, ${Math.round((freshUntil - now) / 60_000)}min` : "recent",
+        cachedAs: !cached
+          ? "not cached (too big)"
+          : fresh
+            ? `fresh, ${Math.round((freshUntil - now) / 60_000)}min`
+            : "recent",
       },
       "recap built",
     );
@@ -142,7 +146,10 @@ class StatsCache {
       if (this.bytes <= this.maxBytes) break;
       if (puuid !== keep) this.remove(puuid);
     }
-    log.warn({ entries: this.entries.size, mb: Math.round(this.bytes / 1024 ** 2) }, "cache over its size limit, evicted the oldest recaps");
+    log.warn(
+      { entries: this.entries.size, mb: Math.round(this.bytes / 1024 ** 2) },
+      "cache over its size limit, evicted the oldest recaps",
+    );
   }
 
   private sweep() {
@@ -155,7 +162,10 @@ class StatsCache {
     this.trim(now);
     const removed = before - this.entries.size;
     if (removed > 0) {
-      log.info({ removed, entries: this.entries.size, mb: +(this.bytes / 1024 ** 2).toFixed(1) }, "idle recaps dropped");
+      log.info(
+        { removed, entries: this.entries.size, mb: +(this.bytes / 1024 ** 2).toFixed(1) },
+        "idle recaps dropped",
+      );
     }
   }
 }

@@ -30,32 +30,19 @@ type Props = {
 type Sort = "picks" | "win" | "top1";
 type SortDir = "asc" | "desc";
 
-const COLUMNS =
-  "36px minmax(140px,220px) minmax(64px,1fr) minmax(130px,190px) minmax(130px,190px)";
+const COLUMNS = "36px minmax(140px,220px) minmax(64px,1fr) minmax(130px,190px) minmax(130px,190px)";
 
-const pct = (count: number, total: number) =>
-  total > 0 ? (count / total) * 100 : 0;
+const pct = (count: number, total: number) => (total > 0 ? (count / total) * 100 : 0);
 
 const itemRate = (item: ItemOutcomeStats, key: "top3" | "top1") =>
   item.timesPicked > 0 ? item[key] / item.timesPicked : 0;
 
 /** A thin 0-100% rate bar with a tick at the summoner's own overall rate,
  * plus the number. */
-function RateBar({
-  value,
-  baseline,
-  color,
-}: {
-  value: number;
-  baseline: number;
-  color: string;
-}) {
+function RateBar({ value, baseline, color }: { value: number; baseline: number; color: string }) {
   return (
     <div className="flex items-center gap-3">
-      <div
-        className="relative h-1.5 flex-1"
-        style={{ background: "rgba(240,230,210,.06)" }}
-      >
+      <div className="relative h-1.5 flex-1" style={{ background: "rgba(240,230,210,.06)" }}>
         <div
           className="absolute inset-y-0 left-0 transition-[width] duration-300"
           style={{
@@ -72,10 +59,7 @@ function RateBar({
       <div
         className="w-11 flex-none text-right font-display text-[16px]"
         style={{
-          color:
-            value >= baseline
-              ? "var(--color-lol-gold-50)"
-              : "var(--color-lol-text-muted)",
+          color: value >= baseline ? "var(--color-lol-gold-50)" : "var(--color-lol-text-muted)",
         }}
       >
         {value.toFixed(0)}%
@@ -91,12 +75,7 @@ function RateBar({
  * how many matches each Legendary was picked in, and the win and
  * top 1 rates of those matches against the summoner's own baseline.
  */
-const Vault = ({
-  economy,
-  legendaryItems,
-  matchesPlayed,
-  top3Finishes,
-}: Props) => {
+const Vault = ({ economy, legendaryItems, matchesPlayed, top3Finishes }: Props) => {
   const [sort, setSort] = useState<Sort>("picks");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   // Rate sorts: rank items under MIN_SAMPLE picks with the rest (still dimmed).
@@ -128,10 +107,7 @@ const Vault = ({
   );
   const perGameTop3 = pct(top3Finishes, matchesPlayed);
 
-  const pickRank = useMemo(
-    () => new Map(legendaryItems.map((item, i) => [item.itemId, i])),
-    [legendaryItems],
-  );
+  const pickRank = useMemo(() => new Map(legendaryItems.map((item, i) => [item.itemId, i])), [legendaryItems]);
   const maxPicks = legendaryItems[0]?.timesPicked ?? 0;
   const rateKey = sort === "win" ? "top3" : "top1";
   // Rate sorts grow the main bar by that rate instead of picks, scaled against
@@ -159,9 +135,7 @@ const Vault = ({
   const rows = useMemo(() => {
     if (sort === "picks") {
       // `legendaryItems` already arrives sorted by picks, descending.
-      return sortDir === "desc"
-        ? legendaryItems
-        : [...legendaryItems].reverse();
+      return sortDir === "desc" ? legendaryItems : [...legendaryItems].reverse();
     }
     const key = sort === "win" ? "top3" : "top1";
     return sortByRate(
@@ -173,13 +147,8 @@ const Vault = ({
     );
   }, [legendaryItems, sort, sortDir, mixLowSample]);
 
-  const [selectedId, setSelectedId] = useState<number | null>(
-    () => legendaryItems[0]?.itemId ?? null,
-  );
-  const selected =
-    legendaryItems.find((item) => item.itemId === selectedId) ??
-    rows[0] ??
-    null;
+  const [selectedId, setSelectedId] = useState<number | null>(() => legendaryItems[0]?.itemId ?? null);
+  const selected = legendaryItems.find((item) => item.itemId === selectedId) ?? rows[0] ?? null;
 
   const modeCaption =
     sort === "picks"
@@ -199,7 +168,6 @@ const Vault = ({
       <SortHeaderLabel label={label} active={sort === key} dir={sortDir} />
     </button>
   );
-
 
   return (
     <CategorySection
@@ -247,13 +215,7 @@ const Vault = ({
         <PanelToolbar
           caption={modeCaption}
           trailing={
-            sort !== "picks" ? (
-              <LowSampleSwitch
-                checked={mixLowSample}
-                onChange={setMixLowSample}
-                unit="PICKS"
-              />
-            ) : null
+            sort !== "picks" ? <LowSampleSwitch checked={mixLowSample} onChange={setMixLowSample} unit="PICKS" /> : null
           }
         >
           <DiamondTabs
@@ -300,12 +262,7 @@ const Vault = ({
                 ["top3", item.top3 - item.top1, TIER_STYLE.gold],
                 ["rest", item.timesPicked - item.top3, TIER_STYLE.silver],
               ] as const
-            ).filter(
-              ([key]) =>
-                sort === "picks" ||
-                key === "1st" ||
-                (sort === "win" && key === "top3"),
-            );
+            ).filter(([key]) => sort === "picks" || key === "1st" || (sort === "win" && key === "top3"));
             const stackCount = stack.reduce((sum, [, value]) => sum + value, 0);
             const isSelected = item.itemId === selected?.itemId;
             const lowSample = sort !== "picks" && isLowSample(item.timesPicked);
@@ -322,12 +279,8 @@ const Vault = ({
                 )}
                 style={{
                   gridTemplateColumns: COLUMNS,
-                  background: isSelected
-                    ? "rgba(200,170,110,.09)"
-                    : "transparent",
-                  boxShadow: isSelected
-                    ? "inset 0 0 0 1px rgba(200,170,110,.45)"
-                    : undefined,
+                  background: isSelected ? "rgba(200,170,110,.09)" : "transparent",
+                  boxShadow: isSelected ? "inset 0 0 0 1px rgba(200,170,110,.45)" : undefined,
                 }}
               >
                 <img
@@ -339,15 +292,10 @@ const Vault = ({
                   height={36}
                   className="h-9 w-9 border border-[rgba(200,170,110,.25)]"
                 />
-                <div className="font-body truncate text-[16px] text-lol-gold-50">
-                  {item.itemName}
-                </div>
+                <div className="font-body truncate text-[16px] text-lol-gold-50">{item.itemName}</div>
 
                 <div className="flex min-w-0 items-center gap-3">
-                  <div
-                    className="relative h-3 min-w-0 flex-1"
-                    style={{ background: "rgba(240,230,210,.05)" }}
-                  >
+                  <div className="relative h-3 min-w-0 flex-1" style={{ background: "rgba(240,230,210,.05)" }}>
                     <div
                       className="flex h-3 transition-[width] duration-500 ease-out"
                       style={{ width: `${barWidth(item)}%` }}
@@ -373,11 +321,7 @@ const Vault = ({
                   </div>
                 </div>
 
-                <RateBar
-                  value={pct(item.top3, item.timesPicked)}
-                  baseline={winBaseline}
-                  color="rgba(10,200,185,.85)"
-                />
+                <RateBar value={pct(item.top3, item.timesPicked)} baseline={winBaseline} color="rgba(10,200,185,.85)" />
                 <RateBar
                   value={pct(item.top1, item.timesPicked)}
                   baseline={top1Baseline}
@@ -389,9 +333,8 @@ const Vault = ({
         </div>
 
         <div className="mt-2 text-[11px] tracking-[.26em] text-lol-text-muted">
-          <span className="text-lol-gold-50">│</span> TICK = YOUR AVERAGE
-          LEGENDARY ({winBaseline.toFixed(0)}% WINRATE). ABOVE YOUR{" "}
-          {perGameTop3.toFixed(0)}% PER GAME: LONGER GAMES BUILD MORE ITEMS.
+          <span className="text-lol-gold-50">│</span> TICK = YOUR AVERAGE LEGENDARY ({winBaseline.toFixed(0)}% WINRATE).
+          ABOVE YOUR {perGameTop3.toFixed(0)}% PER GAME: LONGER GAMES BUILD MORE ITEMS.
         </div>
 
         {selected ? (
@@ -432,9 +375,7 @@ const Vault = ({
               },
               {
                 label: "WINRATE VS AVG ITEM",
-                value: formatSignedPoints(
-                  pct(selected.top3, selected.timesPicked) - winBaseline,
-                ),
+                value: formatSignedPoints(pct(selected.top3, selected.timesPicked) - winBaseline),
                 nowrap: true,
               },
               {
@@ -443,9 +384,7 @@ const Vault = ({
               },
               {
                 label: "1ST VS AVG ITEM",
-                value: formatSignedPoints(
-                  pct(selected.top1, selected.timesPicked) - top1Baseline,
-                ),
+                value: formatSignedPoints(pct(selected.top1, selected.timesPicked) - top1Baseline),
                 nowrap: true,
               },
             ]}

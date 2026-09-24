@@ -3,20 +3,13 @@
 import { useMemo, useState } from "react";
 import { HexComb, type HexCombCell } from "@/components/hex-comb";
 import { tierForBestFinish } from "@/lib/tier-bars";
-import type {
-  AugmentPicksStats,
-  AugmentsStats,
-} from "@arena/types";
+import type { AugmentPicksStats, AugmentsStats } from "@arena/types";
 import { CategorySection } from "@/components/category-section";
 import { HextechPanel } from "@/components/hextech-panel";
 import { HeaderStatStrip, StatCell } from "@/components/header-stat-strip";
 import { RarityFilterTabs } from "@/components/rarity-filter-tabs";
 import { FadingRule } from "@/components/fading-rule";
-import {
-  matchesRarityFilter,
-  RARITY_KICKER,
-  type AugmentRarityFilter,
-} from "@/lib/augment-rarity";
+import { matchesRarityFilter, RARITY_KICKER, type AugmentRarityFilter } from "@/lib/augment-rarity";
 import { SECTION_BACKGROUNDS } from "@/lib/section-backgrounds";
 import { pooledRate } from "@/lib/sample";
 import { CursorTooltip } from "@/components/cursor-tooltip";
@@ -36,10 +29,7 @@ type Props = {
  * summoner's best-ever finish on that augment. Placed right after
  * `AugmentPicks` (which replaced the old catalog-grid `Augments` panel).
  */
-const AugmentHallOfFame = ({
-  augments,
-  augmentPicks,
-}: Props) => {
+const AugmentHallOfFame = ({ augments, augmentPicks }: Props) => {
   const [rarityFilter, setRarityFilter] = useState<AugmentRarityFilter>("all");
 
   const pickByAugmentId = useMemo(
@@ -55,9 +45,7 @@ const AugmentHallOfFame = ({
     [augments, rarityFilter],
   );
 
-  const playedCount = roster.filter((augment) =>
-    pickByAugmentId.has(augment.augmentId),
-  ).length;
+  const playedCount = roster.filter((augment) => pickByAugmentId.has(augment.augmentId)).length;
   const wonWithCount = roster.filter((augment) => {
     const pick = pickByAugmentId.get(augment.augmentId);
     return pick != null && (pick.top1 > 0 || pick.top3ExclTop1 > 0);
@@ -99,7 +87,6 @@ const AugmentHallOfFame = ({
     ? roster.find((augment) => augment.augmentId === hoveredPick.augmentId)
     : undefined;
 
-
   return (
     <CategorySection
       imageUrl={SECTION_BACKGROUNDS.augmentHallOfFame}
@@ -108,17 +95,9 @@ const AugmentHallOfFame = ({
       headerRight={
         <HeaderStatStrip>
           {/* Counted over `roster`, so both sides follow the rarity tab. */}
-          <StatCell
-            label="PLAYED"
-            value={`${playedCount} / ${roster.length}`}
-            bordered={false}
-          />
+          <StatCell label="PLAYED" value={`${playedCount} / ${roster.length}`} bordered={false} />
           <StatCell label="WON WITH" value={`${wonWithCount} / ${roster.length}`} />
-          <StatCell
-            label="1ST PLACE WITH"
-            value={`${firstPlaceCount} / ${roster.length}`}
-            highlight
-          />
+          <StatCell label="1ST PLACE WITH" value={`${firstPlaceCount} / ${roster.length}`} highlight />
         </HeaderStatStrip>
       }
     >

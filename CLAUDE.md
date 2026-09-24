@@ -41,7 +41,10 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   user; the server-side `recapViewedAt` column that fed the old shared list was dropped). Riot
   requests are rate-limited per visitor IP in the refresh route (`apps/api/src/rateLimit.ts`: 30
   Riot lookups or fetches / 10 min, 5 first fetches / hour); following a fetch that's already
-  running costs nothing, but a visitor IP holds at most 4 refresh streams open at once. Limits
+  running costs nothing, and neither does joining a Riot ID lookup already running (everyone
+  searching the same unstored Riot ID at once waits on one lookup, `pendingLookups` in
+  `refreshRoutes.ts`: like a fetch, the queue entry belongs to the summoner, not to each visitor),
+  but a visitor IP holds at most 4 refresh streams open at once. Limits
   shared by every visitor answer `busy`, since a pool of addresses gets past per-IP ones (a 2026-09
   security audit): no new first fetch while 10 wait in the lane, no new refresh while 50 do, at
   most 10 Riot ID lookups running per Account-V1 cluster (they share its Riot budget with match
@@ -64,17 +67,42 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   friend group's refreshes back for hours). EUW, EUNE, TR, RU and ME share the `europe` lane (and budget), OCE, SG, TW and VN
   share `sea`; an NA fetch never waits behind EUW. Queue positions and the "queue full" limit are per lane. In memory
   (a restart drops the queue; pressing again re-queues), with `subscribe()` feeding the streams. A first fetch pulls the
-  full history at ~2.4s per match on a dev key (2 calls per match, 100 calls / 2 min), which is why
-  there's a queue screen at all.
+  full history, 2 Riot calls per match (~2.4s per match on a dev key's 100 calls / 2 min), which is why
+  there's a queue screen at all; its ETA is the pace measured so far in that fetch, not a constant.
+- **Every Riot call goes through the Riot gateway** (`apps/riot-gateway`, see its README; decided
+  with the user 2026-09-24, aiming for a public build with a production key and the crawler running
+  next to the live site). It's the only process holding `RIOT_API_KEY`: it keeps Riot's rate limits
+  per Riot host (routing value) and sends each host's requests strictly by **priority bucket**,
+  `lookup` (a visitor's Riot ID search) > `refresh` > `firstFetch` > `crawler` (the crawler,
+  `check-recaps`, `retry-skipped`): a bucket goes out only once every bucket above it is empty on
+  that host, first come first served within one. A bucket is never full: it holds every request
+  sent to it, and a lower bucket just waits as long as higher ones keep receiving requests
+  (decided with the user; no cap, no refusal, no timeout for waiting). `PRIORITIES` in
+  `packages/riot/src/priority.ts` is the list (a future `vip` bucket is one entry). One route per Riot endpoint, answering a
+  server-sent event stream: `hold` events whenever a waiting request's standing changes (its queue position, or next in line for Riot's rate
+  limit; never sent to the `crawler` bucket), then Riot's body verbatim; callers parse and store it. Callers reach it through
+  `RiotGateway` (`@arena/riot`, `riotGateway.client(priority)` in `apps/api/src/riot.ts`), which
+  keeps the old `riot.match.getMatch(...)` interface. The refresh queue turns a hold of 3s or more
+  into `RefreshProgress.waitingOnRiot`, shown on the page as "waiting on Riot". No parallel
+  fetches (decided with the user: first come first served): a lane and a crawler worker still send
+  one call at a time.
 - **Bulk ingestion is a crawler, a process separate from the API.** There is no background poll
-  loop in the API (removed at the user's request). `apps/api/scripts/crawl.ts` runs one worker
-  per regional cluster (the refresh queue's lanes), each repeatedly refreshing its due summoner
-  with the oldest `lastRefreshedAt` (never-refreshed first; due = older than
-  `CRAWL_REFRESH_AFTER_HOURS`, default 24). By hand: `pnpm --filter @arena/api crawl
-  [--summoners N]`, which ends when nobody is due. Hosted: `pnpm --filter @arena/api
-  crawl:forever`, the Railway `crawler` service (the whole repo, with that as its custom start
-  command in the dashboard; Railway's config-as-code files are deprecated), which never exits: it
-  sleeps when idle and waits out errors.
+  loop in the API (removed at the user's request). Its only goal is discovery: absorb as many
+  matches as possible (decided with the user). Keeping anyone's recap fresh is not its job, so
+  judge any change to it by matches stored per Riot call. `apps/api/scripts/crawl.ts` runs one worker
+  per regional cluster (the refresh queue's lanes), each repeatedly refreshing a never-refreshed
+  summoner. By hand: `pnpm --filter @arena/api crawl [--summoners N]`, which ends when nobody in
+  a lane is left unrefreshed. Hosted: the Railway `crawler` service, running the bundled script
+  `node --enable-source-maps apps/api/dist/scripts/crawl.mjs --forever` (build and start commands
+  in the dashboard, see §3's Railway table; Railway's config-as-code files are deprecated), which
+  never exits: with no never-refreshed
+  summoner left it goes through the lane's refreshed ones, oldest `lastRefreshedAt` first, skipping
+  anyone refreshed in the last 15 minutes (decided with the user: it's switched off by hand once
+  that's all it does, and the 15 minutes keep a lane with a handful of players from refreshing them
+  non-stop). When nobody qualifies it looks again every minute. It waits out errors. It runs next
+  to the live site for good (decided with the user 2026-09-24, replacing "fills the database before
+  launch, then stops"): its calls wait in the gateway's lowest bucket, so it only spends what the
+  site leaves.
   It replaced a single-file Railway Function that hand-copied the ingestion code. A platform
   with no summoner at all is seeded from `scripts/crawl-seeds.ts` (arenasweats.lol's top Arena
   players per region, several per platform in case of renames) and that seed is crawled first
@@ -102,11 +130,18 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   the result right after the match call, before spending the timeline call (decided with the
   user: an aborted lobby sits in up to 16 players' histories and cost 2 calls each time). A
   **failed match** (Riot answers a 4xx other than 429 for it or its timeline, the parser throws,
-  or Postgres rejects its rows) is stored nowhere and **is fetched again** by the next refresh that
-  meets it: `ingestSummoner` logs it in `skipped_matches` (one row per match with the failing
-  stage, Riot status and error, counting repeats, deleted if it stores fine later) and in the
-  process log, and the refresh goes on (so one broken match can't block a summoner forever).
-  Outages (network, 5xx, 429) still fail the refresh. Look there when matches seem to be missing.
+  or Postgres rejects its rows) is stored nowhere and **is fetched again**: `ingestSummoner` logs
+  it in `skipped_matches` (one row per match with the failing stage, Riot status and error,
+  counting repeats, deleted if it stores fine later) and in the process log, and the refresh goes
+  on (so one broken match can't block a summoner forever). A refresh only lists games since the
+  previous one, so it seldom meets that match again; `pnpm --filter @arena/api retry-skipped`
+  (`scripts/retry-skipped.ts`, a Railway cron service decided with the user: the whole repo, its
+  bundle `apps/api/dist/scripts/retry-skipped.mjs` as start command, see §3's Railway table, a
+  cron schedule set in the dashboard) fetches every row again and exits.
+  Outages (network, 5xx, 429) still fail the refresh, and so do 5 matches in a row failing at
+  parse or store with the same error (`FailureBreaker` in `ingestSummoner.ts`: a bug or a Riot
+  format change, which would otherwise stamp every summoner refreshed with none of their matches
+  stored; the retry script stops on it too). Look in `skipped_matches` when matches seem to be missing.
   Since refreshes only look back to the previous one, a gap further back stays until
   `pnpm --filter @arena/api check-recaps` (`scripts/check-recaps.ts`), a one-off run now and then
   in the stack like the crawler: it asks Riot for the whole history of every summoner with a
@@ -230,10 +265,11 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
 - **PUUIDs are encrypted per Riot application.** A PUUID obtained with one app's API key returns
   `400 Bad Request - Exception decrypting ...` under another app's key (a regenerated dev key on
   the same app is fine). Every stored PUUID — `summoners`, `match_participants`, and inside the
-  `raw`/`timeline` blobs — belongs to the app of the key that ingested it. After switching to a key
-  from a different app, run `pnpm --filter @arena/db remap-puuids`: it re-resolves each player by
-  their latest Riot ID via account-v1 (~95 min at dev-key limits, resumable) and rewrites all
-  three. Players renamed since keep their old PUUID and will split from their new matches.
+  `raw`/`timeline` blobs — belongs to the app of the key that ingested it. Switching to a key from
+  a different app (a production key usually means a new app) needs every PUUID remapped. The
+  `remap-puuids` script that did it was deleted (2026-09, decided with the user: sized for ~4,700
+  players, it wouldn't cope with the crawler's database); it's in git history. If it's needed
+  again, remap only summoners with a recap and let the crawler rediscover everyone else.
 - The Match-V5 **timeline** endpoint (`/lol/match/v5/matches/{matchId}/timeline`) is fetched
   alongside match details for every ingested match and stored in `matches.timeline` (nullable —
   matches ingested before this was added won't have one). Confirmed on real Arena data: it returns
@@ -397,8 +433,10 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
     another carries its final value forward when curves are summed or averaged, so the summed
     curve's last point equals the season damage total exactly (verified).
   - **Pings** (14 distinct Riot counters — `allInPings`, `assistMePings`, etc.) are stored as one
-    `pings` jsonb object, not 14 columns — they're informational, never filtered/sorted on
-    individually.
+    `pings` smallint array, not 14 columns — they're informational, never filtered/sorted on
+    individually. Its order is `PING_TYPES` (`packages/db/src/schema.ts`): append new types, never
+    reorder. It was a jsonb object until 2026-09, which repeated the 14 key names on every row
+    (338 bytes vs 49; the whole table went from 48 MB to 37 MB locally).
   - **Not available from Riot's data at all**: a "sorry" emote stat (searched participant fields,
     `challenges`, and `missions` — not present, likely not tracked by the API), and a true
     full-game "damage dealt/received against a specific opponent champion" breakdown (the only
@@ -425,7 +463,7 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
 | Database | Postgres | Relational fits this domain well (matches → teams → participants → augments/items joins, aggregate stat queries). |
 | ORM | Drizzle | Infers TS types straight from table definitions, so `packages/db`'s schema *is* a big part of `packages/types` instead of hand-maintaining two parallel sources of truth. |
 | Local/dev DB hosting | Local Postgres 18 (Windows service `postgresql-x64-18`, port 5432), database `arena` owned by role `arena` | Replaced the earlier Neon free-tier dev branch: a local database has no ~110 ms per-query round trip and no free-tier storage cap for the crawler to hit. Created with UTF8 + C collation (matching Neon). Schema comes from `pnpm --filter @arena/db migrate`. `DATABASE_URL` is just an env var in `apps/api/.env` and `packages/db/.env`, so moving to a hosted Postgres for deployment needs no code change. |
-| Riot API key tier | Personal/dev key for v1 | Friend-group scale fits comfortably inside dev-key rate limits (20 req/1s, 100 req/2min). Revisit only if scope moves toward "public tool." |
+| Riot API key tier | Dev key now, production key targeted | Aiming for a public build with a production key (decided with the user 2026-09-24). Limits are read from Riot's headers, so switching keys needs no code change; a key from another Riot app does need PUUIDs remapped (§2). |
 
 ### Explicitly deferred / open decisions
 
@@ -433,11 +471,10 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   such as Railway/Fly.io/a VPS, vs. something else) — not decided yet. Don't build in
   provider-specific assumptions (e.g. serverless-only patterns in the API) until this is settled,
   since the ingestion worker needs a long-lived process, not a request/response function.
-  The API is ready for a long-lived host as is: `pnpm --filter @arena/api start` runs it
-  through `tsx` (the workspace packages export TypeScript source, so plain `node` on compiled
-  output can't import them; `build` is only a typecheck), applies pending migrations at startup
+  The API is ready for a long-lived host as is: it's deployed as an esbuild bundle (`build`,
+  see "Bundled services" below) run by plain `node`, applies pending migrations at startup
   (`runMigrations` in `packages/db/src/migrate.ts`, drizzle-orm's migrator, so drizzle-kit
-  stays dev-only), listens on `::` (Railway's private network can be IPv6-only), closes cleanly
+  stays dev-only; the build copies the SQL to `dist/drizzle`, where the bundled code finds it), listens on `::` (Railway's private network can be IPv6-only), closes cleanly
   on SIGTERM, and its `/health` fails (503) when the database doesn't answer. It has no CORS: only
   the web app's server calls it, so give it no public domain (Railway: same project, web reaches it
   at `${{api.RAILWAY_PRIVATE_DOMAIN}}`). Wherever the web app lands, it needs `API_URL` (the API's address, server-side
@@ -448,6 +485,35 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   that owns the schema; optional, `DATABASE_URL` is used when it's unset): Railway's default
   `postgres` user is a superuser, so any SQL injection would otherwise reach the whole database
   server.
+  **Bundled services** (decided with the user 2026-09-24, measured: startup ~1-1.5s -> ~0.2s,
+  idle memory ~210-335 MB -> ~55 MB per service). The backend runs as esbuild bundles
+  (`packages/bundle`, `@arena/bundle`: workspace packages and npm dependencies compiled into one
+  minified `.mjs` with a source map; pino stays external, its transports load files by path) under
+  plain `node`, not `tsx`, which compiled TypeScript at every start and kept three Node processes
+  alive (pnpm, the tsx launcher, the app). Three builds: `pnpm --filter @arena/api build` (the
+  server, `dist/index.mjs` + `dist/drizzle`), `pnpm --filter @arena/api build:scripts` (every
+  `scripts/*.ts` no other script imports, `dist/scripts/<name>.mjs`, so a new script needs no
+  listing), `pnpm --filter @arena/riot-gateway build` (`dist/index.mjs`). `typecheck` stays
+  separate. Locally, `dev` and the by-hand script commands (`crawl`, `check-recaps`, ...) still run
+  the source through `tsx`; `start` runs the built bundle. Railway (Railpack builds each service
+  from the whole repo; no Dockerfile), per service:
+
+  | Service | `RAILPACK_INSTALL_CMD` | Build command | Start command |
+  |---|---|---|---|
+  | api | `pnpm install --frozen-lockfile --filter @arena/api...` | `pnpm --filter @arena/api build` | `node --enable-source-maps apps/api/dist/index.mjs` |
+  | crawler | same as api | `pnpm --filter @arena/api build:scripts` | `node --enable-source-maps apps/api/dist/scripts/crawl.mjs --forever` |
+  | retry-skipped (cron) | same as api | `pnpm --filter @arena/api build:scripts` | `node --enable-source-maps apps/api/dist/scripts/retry-skipped.mjs` |
+  | riot-gateway | `pnpm install --frozen-lockfile --filter @arena/riot-gateway...` | `pnpm --filter @arena/riot-gateway build` | `node --enable-source-maps apps/riot-gateway/dist/index.mjs` |
+
+  The filtered install skips the web app's dependencies. Watch paths: `apps/api/**` (or
+  `apps/riot-gateway/**`) plus `packages/**`, `pnpm-lock.yaml`, `package.json`,
+  `pnpm-workspace.yaml`, so a web-only change doesn't redeploy the backend. Pin the Node major with
+  `RAILPACK_NODE_VERSION`: `engines.node` is only `>=22`.
+  The Riot gateway is a separate long-lived service (Railway: `riot-gateway`, the whole repo,
+  built and started as in the table above, no public domain) with `RIOT_API_KEY`,
+  `PORT=3002` and `RIOT_GATEWAY_SECRET` (32+ characters); the API, crawler and cron services get
+  the same `RIOT_GATEWAY_SECRET` and `RIOT_GATEWAY_URL=http://${{riot-gateway.RAILWAY_PRIVATE_DOMAIN}}:3002`
+  (private network: its traffic isn't billed, a public domain would bill every timeline as egress).
 - **Auth** — deferred per §1, revisit if personalization is needed.
 - **CI** — the old prototype has GitHub Actions scaffolding for Copilot; a fresh CI setup
   (typecheck/lint/test on PR via Turborepo) should be added once the app has enough shape to be
@@ -459,9 +525,15 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
 apps/
   web/        → Next.js frontend (App Router). Profile pages, stats pages, leaderboard.
   api/        → Fastify service. REST API for the web app's data needs, plus Riot API ingestion
-                workers (the refresh queue and the hand-run crawler, fetching/parsing match + timeline data,
-                writing into Postgres via packages/db).
+                workers (the refresh queue and the crawler, fetching/parsing match + timeline data
+                through the Riot gateway, writing into Postgres via packages/db).
+  riot-gateway/ → Fastify service, the only process that calls Riot: key, rate limits, priority
+                buckets. Knows nothing about the database; passes Riot's answers on verbatim.
 packages/
+  eslint-config/ → The one ESLint setup (`@arena/eslint-config`): `base` (TypeScript on Node) and
+                `next` (apps/web). Every package's `eslint.config.mjs` imports a profile.
+  riot/       → Shared by the gateway and its callers: routing, queue ids, priority buckets, the
+                gateway's wire protocol and its client (`RiotGateway` / `RiotClient`).
   types/      → Shared TS types not already covered by packages/db's inferred types (e.g. Riot
                 API response shapes, ingestion pipeline DTOs).
   db/         → Drizzle schema + migrations + a small query layer, shared by apps/api and any
@@ -477,12 +549,15 @@ packages/
                 there's a second consumer).
 ```
 
-**Riot API client** (`apps/api/src/riotApi/`, see its README): every Riot call goes through it,
-as `riot.account` / `riot.summoner` / `riot.match`. It rate-limits **per routing value** (each of
-`europe`, `euw1`, ... has its own app budget and per-endpoint method budgets, as Riot enforces
-them), takes limits and counts from Riot's response headers (so a production key or a second
-process on the same key is handled), and logs one line per request (`RIOT_LOG_LEVEL`). Queue ids
-are a parameter (`Queue.ARENA`, ...), never a constant in a call. OC1, SG2, TW2 and VN2 Match-V5 route to `sea`, ME1 to `europe`;
+**Riot gateway** (`apps/riot-gateway`, see its README, and §1): every Riot call goes through it.
+Callers use `RiotGateway` from `packages/riot` (`@arena/riot`), whose `client(priority)` exposes
+`riot.account` / `riot.summoner` / `riot.match`. The gateway rate-limits **per routing value**
+(each of `europe`, `euw1`, ... has its own app budget and per-endpoint method budgets, as Riot
+enforces them), takes limits and counts from Riot's response headers (so a production key needs
+no change), queues per routing value by priority bucket, and logs one line per request with its
+bucket (`RIOT_LOG_LEVEL`). Run exactly one gateway: its limiter state is in memory. `packages/riot`
+also holds routing (platforms, clusters) and queue ids, shared by the gateway, the API and the
+scripts. Queue ids are a parameter (`Queue.ARENA`, ...), never a constant in a call. OC1, SG2, TW2 and VN2 Match-V5 route to `sea`, ME1 to `europe`;
 Account-V1 has no `sea` cluster, so SEA platforms use `asia` there (verified on all four with
 our key, 2026-09).
 
@@ -495,10 +570,12 @@ project's case: the date range varies per summoner). The copy's `computeOrigin` 
 column between adjacent month labels. Only the files `TimeRange` needs are copied, as plain source
 imported from `@/vendor/nivo-calendar`; its `@nivo/core`/`theming`/`legends`/`text`/`tooltip`
 dependencies are direct dependencies of `apps/web`, pinned to the same version as the other
-`@nivo/*` charts (keep them in step). This replaced a fork (`vendor/nivo`, github.com/Sygnano/nivo)
-consumed as a packed `file:*.tgz`, which a fresh clone couldn't install since `vendor/nivo` isn't
-tracked; the old `vendor/nivo` checkout is no longer used by anything. The folder is excluded from
-eslint as third-party code. To change the chart, edit the copy directly; no build step.
+`@nivo/*` charts (keep them in step). This replaced a fork (github.com/Sygnano/nivo) consumed as
+a packed `file:*.tgz`, which a fresh clone couldn't install; its local checkout (`vendor/nivo`)
+was deleted 2026-09-24, and the copy holds the same fix plus the month-legend one. Still needed:
+upstream's latest `@nivo/calendar` is still 0.99.0 (May 2025), without either fix. The folder is
+excluded from eslint as third-party code. To change the chart, edit the copy directly; no build
+step.
 
 ## 5. Design system (carried over from `../project-arena`)
 
@@ -535,6 +612,23 @@ redesigning:
   peer-dependency duplication bug in this workspace (drizzle-orm resolves differently depending on
   whether `postgres` is a sibling dependency, and pnpm mis-links the un-peered copy), which shows
   up as `tsc` failing with "Cannot find module 'drizzle-orm'" even though it's "installed."
+- **Lint per package, format from the root** (Turborepo's recommended layout, decided with the
+  user 2026-09-24). ESLint 10: every package has a short `eslint.config.mjs` importing a profile
+  from `packages/eslint-config` plus `"lint": "eslint ."`, so Turborepo caches lint per package;
+  turbo.json runs `lint` through a `transit` task (parallel, yet re-run when the config package
+  changes). Rules live in the config package, never in a package's own file beyond ignores and
+  documented exceptions. apps/web keeps Next's own presets (`eslint-config-next`), whose react,
+  jsx-a11y and import plugins don't support ESLint 10 yet: `next.js` wraps them in
+  `@eslint/compat`'s `fixupConfigRules` and pnpm-workspace.yaml allows their peer range; drop
+  both once vercel/next.js#91710 ships. `turbo/no-undeclared-env-vars` warns about env vars
+  turbo.json doesn't declare: declare a task's inputs in the package's own `turbo.json`
+  (apps/web's `build`). Prettier is one config at the root (`.prettierrc.json`, 120-character
+  lines, `.prettierignore`), run through Turborepo as root tasks: `pnpm format:check` is `turbo
+  run //#prettier:check` (cached; a root task hashes every file in the repo, so any change
+  re-runs it) and `pnpm format` is `turbo run //#prettier:write` (never cached: it rewrites
+  source). The Prettier commands themselves are the root `prettier:check` / `prettier:write`
+  scripts: a root task runs the root script of its own name, so `format` pointing at itself
+  would loop. ESLint never formats (`eslint-config-prettier` ends both profiles).
 - Don't hardcode Arena team size (see §2) — if you catch yourself writing `teammates: [a, b]` as a
   fixed tuple or a stat query assuming exactly 2 or exactly 3 per team, stop and make it
   data-driven instead.

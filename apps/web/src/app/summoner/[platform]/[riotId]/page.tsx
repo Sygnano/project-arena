@@ -33,7 +33,8 @@ export async function generateMetadata(props: PageProps<"/summoner/[platform]/[r
   const parsed = parseRiotIdSlug(riotId);
   if (!parsed || !isKnownPlatform(platform)) return { title: "Arena Journey" };
   // A preview without the summoner beats no page: the page reports the error.
-  const summoner = (await loadSummonerPage(platform, parsed.gameName, parsed.tagLine).catch(() => null))?.summoner ?? null;
+  const summoner =
+    (await loadSummonerPage(platform, parsed.gameName, parsed.tagLine).catch(() => null))?.summoner ?? null;
   const name = summoner ? `${summoner.gameName}#${summoner.tagLine}` : `${parsed.gameName}#${parsed.tagLine}`;
   const description = describeRecap(summoner, platform);
   // Link previews name only stored summoners: otherwise any URL would put

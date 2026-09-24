@@ -22,7 +22,15 @@ type Props = {
  */
 function SummonerRecap({ platform, gameName, tagLine, summoner, refresh }: Props) {
   if (summoner.matchCount > 0) {
-    return <SummonerStatsView region={platform} gameName={gameName} tagLine={tagLine} summoner={summoner} refresh={refresh} />;
+    return (
+      <SummonerStatsView
+        region={platform}
+        gameName={gameName}
+        tagLine={tagLine}
+        summoner={summoner}
+        refresh={refresh}
+      />
+    );
   }
   return (
     <StatusScreen

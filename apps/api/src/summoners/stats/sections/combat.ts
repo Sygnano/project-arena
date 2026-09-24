@@ -1,23 +1,31 @@
+import { PING_TYPES } from "@arena/db";
 import type { PingBreakdown } from "@arena/types";
 import { countOf, kdaRatio, maxOf, sumOf } from "../aggregate.js";
 import type { OwnGame } from "../loadStatsData.js";
 import { abilityCasts, damageStats, utilityStats } from "./gameTotals.js";
 
-const PING_TYPES = [
-  "allIn", "assistMe", "basic", "command", "danger", "enemyMissing", "enemyVision",
-  "getBack", "hold", "needVision", "onMyWay", "push", "retreat", "visionCleared",
-] as const satisfies readonly (keyof PingBreakdown)[];
-
 function pingStats(games: readonly OwnGame[]) {
   const pings: PingBreakdown = {
-    allIn: 0, assistMe: 0, basic: 0, command: 0, danger: 0, enemyMissing: 0, enemyVision: 0,
-    getBack: 0, hold: 0, needVision: 0, onMyWay: 0, push: 0, retreat: 0, visionCleared: 0,
+    allIn: 0,
+    assistMe: 0,
+    basic: 0,
+    command: 0,
+    danger: 0,
+    enemyMissing: 0,
+    enemyVision: 0,
+    getBack: 0,
+    hold: 0,
+    needVision: 0,
+    onMyWay: 0,
+    push: 0,
+    retreat: 0,
+    visionCleared: 0,
   };
   let total = 0;
   for (const game of games) {
     if (!game.pings) continue;
-    for (const type of PING_TYPES) {
-      const count = game.pings[type] ?? 0;
+    for (const [index, type] of PING_TYPES.entries()) {
+      const count = game.pings[index] ?? 0;
       pings[type] += count;
       total += count;
     }

@@ -2,11 +2,7 @@
 
 import { useMemo } from "react";
 import { tierForBestFinish } from "@/lib/tier-bars";
-import type {
-  ChampionCatalogStats,
-  ChampionPicksStats,
-  ChampionStats,
-} from "@arena/types";
+import type { ChampionCatalogStats, ChampionPicksStats, ChampionStats } from "@arena/types";
 import { CursorTooltip } from "@/components/cursor-tooltip";
 import { useChartHover } from "@/hooks/use-chart-hover";
 import { ChampionResultsCard } from "@/modules/ChampionResultsCard";
@@ -32,11 +28,7 @@ type Props = {
  * per-champion drilldown: the comb itself is the content, beside a PLAYED /
  * WON WITH / FIRST PLACE header stat strip.
  */
-const Champions = ({
-  championCatalog,
-  championPicks,
-  champions,
-}: Props) => {
+const Champions = ({ championCatalog, championPicks, champions }: Props) => {
   const displayName = useChampionName();
 
   const pickByChampionId = useMemo(
@@ -47,9 +39,7 @@ const Champions = ({
   const cells = useMemo<HexCombCell[]>(
     () =>
       [...championCatalog.champions]
-        .sort((a, b) =>
-          displayName(a.championName).localeCompare(displayName(b.championName)),
-        )
+        .sort((a, b) => displayName(a.championName).localeCompare(displayName(b.championName)))
         .map((champion) => ({
           id: champion.championId,
           name: displayName(champion.championName),
@@ -61,16 +51,11 @@ const Champions = ({
   );
 
   const playedCount = cells.filter((cell) => pickByChampionId.has(cell.id)).length;
-  const wonWithCount = championPicks.champions.filter(
-    (pick) => pick.top1 > 0 || pick.top3ExclTop1 > 0,
-  ).length;
-  const firstPlaceCount = championPicks.champions.filter(
-    (pick) => pick.top1 > 0,
-  ).length;
+  const wonWithCount = championPicks.champions.filter((pick) => pick.top1 > 0 || pick.top3ExclTop1 > 0).length;
+  const firstPlaceCount = championPicks.champions.filter((pick) => pick.top1 > 0).length;
 
   const { hover, onHover, containerRef: hoverRef } = useChartHover<number>();
   const hoveredStats = hover ? champions[hover.id] : undefined;
-
 
   return (
     <CategorySection
@@ -79,17 +64,9 @@ const Champions = ({
       imageUrl={SECTION_BACKGROUNDS.champions}
       headerRight={
         <HeaderStatStrip>
-          <StatCell
-            label="PLAYED"
-            value={`${playedCount} / ${cells.length}`}
-            bordered={false}
-          />
+          <StatCell label="PLAYED" value={`${playedCount} / ${cells.length}`} bordered={false} />
           <StatCell label="WON WITH" value={`${wonWithCount} / ${cells.length}`} />
-          <StatCell
-            label="1ST PLACE WITH"
-            value={`${firstPlaceCount} / ${cells.length}`}
-            highlight
-          />
+          <StatCell label="1ST PLACE WITH" value={`${firstPlaceCount} / ${cells.length}`} highlight />
         </HeaderStatStrip>
       }
     >

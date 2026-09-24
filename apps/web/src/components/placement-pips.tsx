@@ -23,7 +23,9 @@ function PlacementPips({
   if (placements.length === 0) return null;
   return (
     <ol
-      aria-label={ariaLabel ?? `Last ${placements.length} placements, newest first: ${placements.map(ordinal).join(", ")}`}
+      aria-label={
+        ariaLabel ?? `Last ${placements.length} placements, newest first: ${placements.map(ordinal).join(", ")}`
+      }
       className={cn("flex flex-wrap items-center justify-center", className)}
     >
       {placements.map((placement, index) => {
@@ -53,10 +55,7 @@ function PlacementPips({
               )}
             >
               <span
-                className={cn(
-                  "-rotate-45 font-display leading-none",
-                  size === "sm" ? "text-[10px]" : "text-[12px]",
-                )}
+                className={cn("-rotate-45 font-display leading-none", size === "sm" ? "text-[10px]" : "text-[12px]")}
               >
                 {placement}
               </span>

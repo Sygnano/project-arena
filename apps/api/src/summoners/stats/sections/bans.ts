@@ -7,10 +7,7 @@ import type { StatsData } from "../loadStatsData.js";
  * match (`matches.bannedChampionIds`, see CLAUDE.md §2), with `-1` for a slot
  * nobody used and the same champion possibly banned twice.
  */
-export function buildBanStats(
-  { games, participantsByMatch }: StatsData,
-  championKey: (championId: number) => string,
-) {
+export function buildBanStats({ games, participantsByMatch }: StatsData, championKey: (championId: number) => string) {
   // Ban rate counts a champion once per match, so it can't pass 100%.
   const matchesBanned = new Map<number, number>();
   // Raw slots, duplicates included, for the "X BANS" figure and the counters.

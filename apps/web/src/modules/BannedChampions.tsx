@@ -75,28 +75,18 @@ const MIN_SWING_SCALE_PP = 10;
 /** "count | pct%" sidebar value — see `ValuePercentRow`. */
 function CountPercentValue({ count, total }: { count: number; total: number }) {
   return (
-    <ValuePercentRow
-      value={count.toLocaleString()}
-      pct={total > 0 ? (count / total) * 100 : 0}
-      valueMinWidth="2.2em"
-    />
+    <ValuePercentRow value={count.toLocaleString()} pct={total > 0 ? (count / total) * 100 : 0} valueMinWidth="2.2em" />
   );
 }
 
-const BannedChampions = ({
-  bannedChampions,
-  top3Finishes,
-  matchesPlayed,
-}: Props) => {
+const BannedChampions = ({ bannedChampions, top3Finishes, matchesPlayed }: Props) => {
   const [sort, setSort] = useState<BanSort>("rate");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
 
   // Clicking the column the list is already sorted by flips it; clicking any
   // other column sorts by it in that column's natural direction.
   function sortBy(next: BanSort) {
-    setDir((current) =>
-      next === sort ? (current === "desc" ? "asc" : "desc") : NATURAL_DIR[next],
-    );
+    setDir((current) => (next === sort ? (current === "desc" ? "asc" : "desc") : NATURAL_DIR[next]));
     setSort(next);
   }
 
@@ -116,25 +106,15 @@ const BannedChampions = ({
   // — it's "ranked by size" (see design_handoff_arena_panels/README.md,
   // "the tier-fill system"), not by whatever order BIGGEST SWING puts rows
   // in.
-  const byBanRate = useMemo(
-    () => [...champions].sort((a, b) => b.banRate - a.banRate),
-    [champions],
-  );
-  const banRateRank = useMemo(
-    () => new Map(byBanRate.map((c, i) => [c.championId, i])),
-    [byBanRate],
-  );
+  const byBanRate = useMemo(() => [...champions].sort((a, b) => b.banRate - a.banRate), [champions]);
+  const banRateRank = useMemo(() => new Map(byBanRate.map((c, i) => [c.championId, i])), [byBanRate]);
 
   // Winrates from a handful of games are noise, so they rank after every
   // champion with enough games behind the number (and render dimmed).
   const sorted = useMemo(() => {
     if (sort === "champion") {
       return [...champions].sort(
-        (a, b) =>
-          (dir === "asc" ? 1 : -1) *
-          displayName(a.championName).localeCompare(
-            displayName(b.championName),
-          ),
+        (a, b) => (dir === "asc" ? 1 : -1) * displayName(a.championName).localeCompare(displayName(b.championName)),
       );
     }
     if (sort === "rate") {
@@ -165,22 +145,12 @@ const BannedChampions = ({
 
   const rows = sorted;
 
-  const [selectedChampionId, setSelectedChampionId] = useState<number | null>(
-    () => rows[0]?.championId ?? null,
-  );
-  const selected =
-    champions.find((c) => c.championId === selectedChampionId) ??
-    rows[0] ??
-    null;
+  const [selectedChampionId, setSelectedChampionId] = useState<number | null>(() => rows[0]?.championId ?? null);
+  const selected = champions.find((c) => c.championId === selectedChampionId) ?? rows[0] ?? null;
 
-  const fullyBanned = champions.filter(
-    (c) => c.winRateWhenNotBanned == null,
-  ).length;
+  const fullyBanned = champions.filter((c) => c.winRateWhenNotBanned == null).length;
 
-  const modeCaption = `SORTED · ${SORT_LABEL[sort]}${
-    isRateSort ? ` · UNDER ${MIN_SAMPLE} GAMES DIMMED` : ""
-  }`;
-
+  const modeCaption = `SORTED · ${SORT_LABEL[sort]}${isRateSort ? ` · UNDER ${MIN_SAMPLE} GAMES DIMMED` : ""}`;
 
   return (
     <CategorySection
@@ -189,14 +159,9 @@ const BannedChampions = ({
       imageUrl={SECTION_BACKGROUNDS.bannedChampions}
       sidebar={
         <>
-          <Dial
-            value={bannedChampions.totalBans}
-            label="TOTAL BANS"
-            formatValue={(v) => v.toLocaleString()}
-          />
+          <Dial value={bannedChampions.totalBans} label="TOTAL BANS" formatValue={(v) => v.toLocaleString()} />
 
           <div className="mt-auto">
-
             <SidebarStatRows
               rows={[
                 {
@@ -211,10 +176,7 @@ const BannedChampions = ({
                 {
                   label: "DUPLICATE BAN",
                   value: (
-                    <CountPercentValue
-                      count={bannedChampions.duplicateBanCount}
-                      total={bannedChampions.totalBans}
-                    />
+                    <CountPercentValue count={bannedChampions.duplicateBanCount} total={bannedChampions.totalBans} />
                   ),
                 },
                 { label: "FULLY BANNED", value: fullyBanned.toLocaleString() },
@@ -225,9 +187,7 @@ const BannedChampions = ({
       }
     >
       <HextechPanel contentMinWidth={640}>
-        <PanelToolbar
-          caption={modeCaption}
-        >
+        <PanelToolbar caption={modeCaption}>
           <DiamondTabs
             tabs={[
               { key: "rate", label: "MOST BANNED" },
@@ -247,18 +207,10 @@ const BannedChampions = ({
           }}
         >
           <div />
-          <SortHeader
-            active={sort === "champion"}
-            dir={dir}
-            onSort={() => sortBy("champion")}
-          >
+          <SortHeader active={sort === "champion"} dir={dir} onSort={() => sortBy("champion")}>
             CHAMPION
           </SortHeader>
-          <SortHeader
-            active={sort === "rate"}
-            dir={dir}
-            onSort={() => sortBy("rate")}
-          >
+          <SortHeader active={sort === "rate"} dir={dir} onSort={() => sortBy("rate")}>
             BAN RATE
           </SortHeader>
           <SortHeader
@@ -275,12 +227,7 @@ const BannedChampions = ({
               <span className="text-lol-blue-300">+{swingScalePp}%</span>
             </span>
           </SortHeader>
-          <SortHeader
-            active={sort === "win"}
-            dir={dir}
-            onSort={() => sortBy("win")}
-            align="right"
-          >
+          <SortHeader active={sort === "win"} dir={dir} onSort={() => sortBy("win")} align="right">
             WIN %
           </SortHeader>
         </div>
@@ -299,11 +246,7 @@ const BannedChampions = ({
            * new champion's value; the icon layer is keyed by championId and
            * FLIPs each portrait to its new rank on top.
            */}
-          <div
-            ref={layersRef}
-            className="relative flex-none"
-            style={{ height: rows.length * SLOT_PITCH - ROW_GAP }}
-          >
+          <div ref={layersRef} className="relative flex-none" style={{ height: rows.length * SLOT_PITCH - ROW_GAP }}>
             {rows.map((champion, index) => {
               const tier = TIER_STYLE[tierForBanRate(champion.banRate)];
               const isSelected = champion.championId === selectedChampionId;
@@ -312,30 +255,15 @@ const BannedChampions = ({
               const dotLeft =
                 delta == null || !grown
                   ? 120
-                  : 120 +
-                    Math.max(
-                      -SWING_CLAMP,
-                      Math.min(
-                        SWING_CLAMP,
-                        (delta / swingScalePp) * SWING_CLAMP,
-                      ),
-                    );
-              const dotColor =
-                delta == null
-                  ? "transparent"
-                  : delta >= 0
-                    ? "#0ae0cf"
-                    : "var(--color-lol-garnet)";
+                  : 120 + Math.max(-SWING_CLAMP, Math.min(SWING_CLAMP, (delta / swingScalePp) * SWING_CLAMP));
+              const dotColor = delta == null ? "transparent" : delta >= 0 ? "#0ae0cf" : "var(--color-lol-garnet)";
 
               return (
                 <div
                   key={index}
-                  {...pressable(
-                    () => setSelectedChampionId(champion.championId),
-                    {
-                      pressed: isSelected,
-                    },
-                  )}
+                  {...pressable(() => setSelectedChampionId(champion.championId), {
+                    pressed: isSelected,
+                  })}
                   aria-label={`${displayName(champion.championName)}: banned in ${champion.banRate.toFixed(0)}% of games${
                     winRate == null
                       ? ""
@@ -343,21 +271,14 @@ const BannedChampions = ({
                   }`}
                   className={cn(
                     "absolute inset-x-0 grid cursor-pointer items-center gap-4 px-1.5 transition-[background,opacity] duration-150",
-                    isRateSort &&
-                      isLowSample(champion.gamesOpenAndPicked) &&
-                      "opacity-45",
+                    isRateSort && isLowSample(champion.gamesOpenAndPicked) && "opacity-45",
                   )}
                   style={{
                     top: index * SLOT_PITCH,
                     height: ROW_HEIGHT,
-                    gridTemplateColumns:
-                      "36px 104px minmax(0,1fr) minmax(160px,240px) 62px",
-                    background: isSelected
-                      ? "rgba(200,170,110,.09)"
-                      : "transparent",
-                    boxShadow: isSelected
-                      ? "inset 0 0 0 1px rgba(200,170,110,.45)"
-                      : undefined,
+                    gridTemplateColumns: "36px 104px minmax(0,1fr) minmax(160px,240px) 62px",
+                    background: isSelected ? "rgba(200,170,110,.09)" : "transparent",
+                    boxShadow: isSelected ? "inset 0 0 0 1px rgba(200,170,110,.45)" : undefined,
                   }}
                 >
                   {/* Icon sits in the layer above — this reserves its column. */}
@@ -368,10 +289,7 @@ const BannedChampions = ({
                   </div>
 
                   <div className="flex min-w-0 items-center gap-3">
-                    <div
-                      className="relative h-3 flex-1 min-w-0"
-                      style={{ background: "rgba(240,230,210,.05)" }}
-                    >
+                    <div className="relative h-3 flex-1 min-w-0" style={{ background: "rgba(240,230,210,.05)" }}>
                       <div
                         className={cn(
                           "h-3 transition-[width] duration-500 ease-out motion-reduce:transition-none",
@@ -432,11 +350,7 @@ const BannedChampions = ({
                   </div>
 
                   <div className="text-right font-display text-[16px] text-lol-text-secondary">
-                    {winRate == null ? (
-                      <span className="text-lol-text-disabled">—</span>
-                    ) : (
-                      `${winRate.toFixed(0)}%`
-                    )}
+                    {winRate == null ? <span className="text-lol-text-disabled">—</span> : `${winRate.toFixed(0)}%`}
                   </div>
                 </div>
               );
@@ -459,9 +373,7 @@ const BannedChampions = ({
                   className={cn(
                     "absolute cursor-pointer overflow-hidden transition-opacity duration-150",
                     // The row's dimming doesn't reach this separate layer.
-                    isRateSort &&
-                      isLowSample(champion.gamesOpenAndPicked) &&
-                      "opacity-45",
+                    isRateSort && isLowSample(champion.gamesOpenAndPicked) && "opacity-45",
                   )}
                   style={{
                     left: ROW_PADDING_X,
@@ -486,9 +398,8 @@ const BannedChampions = ({
         </div>
 
         <div className="mt-2 text-[11px] leading-relaxed text-lol-text-muted tracking-[.26em]">
-          WIN % = YOUR WINRATE IN GAMES WHERE THE CHAMPION WAS NOT BANNED AND
-          SOMEONE PICKED IT. THE RAIL SHOWS HOW FAR THAT SITS FROM YOUR OVERALL{" "}
-          {baseline.toFixed(0)}%.
+          WIN % = YOUR WINRATE IN GAMES WHERE THE CHAMPION WAS NOT BANNED AND SOMEONE PICKED IT. THE RAIL SHOWS HOW FAR
+          THAT SITS FROM YOUR OVERALL {baseline.toFixed(0)}%.
         </div>
 
         {selected ? (
@@ -529,9 +440,7 @@ const BannedChampions = ({
               },
               {
                 label: "TIMES AVAILABLE",
-                value: `${Math.round(
-                  matchesPlayed * (1 - selected.banRate / 100),
-                ).toLocaleString()}`,
+                value: `${Math.round(matchesPlayed * (1 - selected.banRate / 100)).toLocaleString()}`,
                 nowrap: true,
               },
               {
@@ -547,9 +456,7 @@ const BannedChampions = ({
                 value:
                   selected.winRateWhenNotBanned == null
                     ? "—"
-                    : formatSignedPoints(
-                        selected.winRateWhenNotBanned - baseline,
-                      ),
+                    : formatSignedPoints(selected.winRateWhenNotBanned - baseline),
                 nowrap: true,
               },
             ]}

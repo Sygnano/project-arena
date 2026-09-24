@@ -83,19 +83,8 @@ function SplashTitle({ className }: { className?: string }) {
             opacity=".6"
           />
         </g>
-        <path
-          d="M200 16 220 36 200 56 180 36Z"
-          fill="#050e16"
-          stroke="url(#journey-top-frame)"
-          strokeWidth="1.4"
-        />
-        <path
-          d="M200 22 214 36 200 50 186 36Z"
-          fill="none"
-          stroke="#c8aa6e"
-          strokeOpacity=".45"
-          strokeWidth=".7"
-        />
+        <path d="M200 16 220 36 200 56 180 36Z" fill="#050e16" stroke="url(#journey-top-frame)" strokeWidth="1.4" />
+        <path d="M200 22 214 36 200 50 186 36Z" fill="none" stroke="#c8aa6e" strokeOpacity=".45" strokeWidth=".7" />
         <path
           d="M200 28 208 36 200 44 192 36Z"
           fill="url(#journey-core)"
@@ -146,12 +135,7 @@ function SplashTitle({ className }: { className?: string }) {
           strokeWidth="1.4"
           style={CYAN_GLOW}
         />
-        <path
-          d="M90 4Q200 26 310 4"
-          fill="none"
-          stroke="url(#journey-cradle-gold)"
-          strokeWidth=".8"
-        />
+        <path d="M90 4Q200 26 310 4" fill="none" stroke="url(#journey-cradle-gold)" strokeWidth=".8" />
         {[undefined, MIRROR].map((transform) => (
           <path
             key={transform ?? "right"}
@@ -161,12 +145,7 @@ function SplashTitle({ className }: { className?: string }) {
             fill="#d8c28b"
           />
         ))}
-        <path
-          d="M200 12 208 23 200 42 192 23Z"
-          fill="#050e16"
-          stroke="url(#journey-pendant)"
-          strokeWidth="1.2"
-        />
+        <path d="M200 12 208 23 200 42 192 23Z" fill="#050e16" stroke="url(#journey-pendant)" strokeWidth="1.2" />
         <path
           d="M200 18 203.5 23.5 200 33 196.5 23.5Z"
           fill="url(#journey-core)"

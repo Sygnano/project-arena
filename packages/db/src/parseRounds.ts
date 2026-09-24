@@ -92,7 +92,10 @@ export function parseRounds(
       // Deaths with no enemy killer (killerId 0, or a same-team credit)
       // still count toward a wipe below, but can't pair teams.
       if (killerTeam === undefined || killerTeam === victimTeam) continue;
-      for (const [a, b] of [[killerTeam, victimTeam], [victimTeam, killerTeam]] as const) {
+      for (const [a, b] of [
+        [killerTeam, victimTeam],
+        [victimTeam, killerTeam],
+      ] as const) {
         const known = opponentOf.get(a);
         if (known !== undefined && known !== b) ambiguous = true;
         opponentOf.set(a, b);
@@ -110,8 +113,7 @@ export function parseRounds(
       const bWiped = wiped(teamB);
       if (!aWiped && !bWiped) continue;
 
-      const loser =
-        aWiped && bWiped ? duelKills[duelKills.length - 1]!.victimTeam : aWiped ? teamA : teamB;
+      const loser = aWiped && bWiped ? duelKills[duelKills.length - 1]!.victimTeam : aWiped ? teamA : teamB;
       result.push({
         matchId,
         roundNumber: index + 1,

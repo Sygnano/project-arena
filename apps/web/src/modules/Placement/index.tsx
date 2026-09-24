@@ -4,17 +4,10 @@ import { useMemo } from "react";
 import type { PlacementDetail, PlacementStats } from "@arena/types";
 import { CategorySection } from "@/components/category-section";
 import { HextechPanel } from "@/components/hextech-panel";
-import {
-  HextechBarChart,
-  type BarColumn,
-} from "@/components/hextech-bar-chart";
+import { HextechBarChart, type BarColumn } from "@/components/hextech-bar-chart";
 import { useChartHover } from "@/hooks/use-chart-hover";
 import { CursorTooltip } from "@/components/cursor-tooltip";
-import {
-  HoverCardRows,
-  HoverCardSection,
-  HoverStatCard,
-} from "@/components/hover-stat-card";
+import { HoverCardRows, HoverCardSection, HoverStatCard } from "@/components/hover-stat-card";
 import { FadingRule } from "@/components/fading-rule";
 import { Dial } from "@/components/dial";
 import { SidebarStatRows } from "@/components/sidebar-stat-row";
@@ -94,14 +87,8 @@ function PlacementCard({
                     {championName(detail.topChampion.championName)}
                   </div>
                   <div className="text-lol-text-muted">
-                    {detail.topChampion.games} of{" "}
-                    {detail.topChampion.totalGames} games ·{" "}
-                    {Math.round(
-                      (detail.topChampion.games /
-                        detail.topChampion.totalGames) *
-                        100,
-                    )}
-                    %
+                    {detail.topChampion.games} of {detail.topChampion.totalGames} games ·{" "}
+                    {Math.round((detail.topChampion.games / detail.topChampion.totalGames) * 100)}%
                   </div>
                 </div>
               </div>
@@ -121,10 +108,7 @@ function PlacementCard({
  * (and therefore its range of possible placements) has changed before, see
  * CLAUDE.md §2.
  */
-const Placement = ({
-  gamesPlayed,
-  placements,
-}: Props) => {
+const Placement = ({ gamesPlayed, placements }: Props) => {
   const ranked = useMemo(
     () =>
       Object.entries(placements.byPlacement)
@@ -138,13 +122,9 @@ const Placement = ({
   const totalGames = ranked.reduce((sum, row) => sum + row.count, 0);
 
   const { hover, onHover, containerRef: chartRef } = useChartHover<number>();
-  const hovered = hover
-    ? ranked.find((row) => row.order === hover.id)
-    : undefined;
+  const hovered = hover ? ranked.find((row) => row.order === hover.id) : undefined;
   const hoveredCumulative = hovered
-    ? ranked
-        .filter((row) => row.order <= hovered.order)
-        .reduce((sum, row) => sum + row.count, 0)
+    ? ranked.filter((row) => row.order <= hovered.order).reduce((sum, row) => sum + row.count, 0)
     : 0;
 
   const columns: BarColumn[] = ranked.map((row) => {
@@ -152,10 +132,7 @@ const Placement = ({
     // gold, the rest silver — even for a summoner with no 1st places yet
     // (index-based tiering used to paint their 2nd-place bar prismatic).
     const tier = TIER_STYLE[placementTier(row.order)];
-    const height = Math.max(
-      2,
-      Math.round((row.count / maxCount) * BAR_MAX_HEIGHT),
-    );
+    const height = Math.max(2, Math.round((row.count / maxCount) * BAR_MAX_HEIGHT));
     return {
       id: row.order,
       ariaLabel: `${ordinal(row.order)} place, ${row.count} games`,
@@ -199,7 +176,6 @@ const Placement = ({
   const top1Rate = gamesPlayed > 0 ? (placements.top1Finishes / gamesPlayed) * 100 : 0;
   const winRate = gamesPlayed > 0 ? (placements.top3Finishes / gamesPlayed) * 100 : 0;
 
-
   return (
     <CategorySection
       title="PLACEMENT"
@@ -214,7 +190,6 @@ const Placement = ({
           />
 
           <div className="mt-auto">
-
             <SidebarStatRows
               rows={[
                 { label: "GAMES", value: gamesPlayed.toLocaleString() },
@@ -237,9 +212,7 @@ const Placement = ({
       <HextechPanel>
         <div className="mb-3.5 flex flex-wrap items-center gap-x-6 gap-y-3">
           <FadingRule />
-          <div className="text-[11px] tracking-[.28em] text-lol-text-muted">
-            MATCHES BY FINISHING PLACE
-          </div>
+          <div className="text-[11px] tracking-[.28em] text-lol-text-muted">MATCHES BY FINISHING PLACE</div>
         </div>
 
         {ranked.length === 0 ? (
@@ -247,10 +220,7 @@ const Placement = ({
             No tracked matches yet.
           </div>
         ) : (
-          <div
-            ref={chartRef}
-            className="flex min-h-0 min-w-0 w-full flex-1 flex-col"
-          >
+          <div ref={chartRef} className="flex min-h-0 min-w-0 w-full flex-1 flex-col">
             <HextechBarChart
               columns={columns}
               center

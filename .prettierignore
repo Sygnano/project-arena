@@ -1,0 +1,14 @@
+# Generated or third-party: never reformatted.
+node_modules
+dist
+.turbo
+.next
+.next-build
+out
+pnpm-lock.yaml
+**/next-env.d.ts
+packages/db/drizzle
+apps/web/src/vendor
+apps/web/public
+# Hand-wrapped prose and tables.
+*.md

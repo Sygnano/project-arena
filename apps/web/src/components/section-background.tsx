@@ -49,15 +49,13 @@ function SectionBackground({ imageUrl, backgroundPosition = "center 38%" }: Prop
       <div
         className="absolute inset-0"
         style={{
-          background:
-            "radial-gradient(120% 90% at 50% 40%, rgba(5,14,22,.5) 0%, rgba(3,9,16,.85) 62%, #02070c 100%)",
+          background: "radial-gradient(120% 90% at 50% 40%, rgba(5,14,22,.5) 0%, rgba(3,9,16,.85) 62%, #02070c 100%)",
         }}
       />
       <div
         className="absolute inset-0"
         style={{
-          background:
-            "linear-gradient(180deg, rgba(9,20,40,.55), rgba(2,7,12,.2) 40%, rgba(2,7,12,.85))",
+          background: "linear-gradient(180deg, rgba(9,20,40,.55), rgba(2,7,12,.2) 40%, rgba(2,7,12,.85))",
         }}
       />
       <SectionEdgeFade />

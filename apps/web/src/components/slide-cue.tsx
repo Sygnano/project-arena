@@ -35,13 +35,7 @@ function SlideCue({ className, prefix }: { className?: string; prefix?: string }
         {label}
       </span>
       <svg aria-hidden viewBox="0 0 18 8" className="block h-2 w-4.5">
-        <path
-          d="M1 1 L9 7 L17 1"
-          fill="none"
-          stroke="var(--color-lol-gold-300)"
-          strokeWidth="1.4"
-          opacity=".75"
-        />
+        <path d="M1 1 L9 7 L17 1" fill="none" stroke="var(--color-lol-gold-300)" strokeWidth="1.4" opacity=".75" />
       </svg>
     </button>
   );

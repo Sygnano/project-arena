@@ -13,12 +13,7 @@ export function formatSignedPoints(delta: number, digits = 1): string {
  * doesn't rely on color alone.
  */
 export function DeltaCell({ delta, className }: { delta: number; className?: string }) {
-  const tone =
-    Math.abs(delta) < 1
-      ? "text-lol-text-muted"
-      : delta > 0
-        ? "text-[#0ae0cf]"
-        : "text-lol-garnet";
+  const tone = Math.abs(delta) < 1 ? "text-lol-text-muted" : delta > 0 ? "text-[#0ae0cf]" : "text-lol-garnet";
   return (
     <div className={cn("text-right font-display text-[15px] tabular-nums", tone, className)}>
       {formatSignedPoints(delta, 0)}

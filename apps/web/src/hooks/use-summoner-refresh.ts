@@ -82,20 +82,21 @@ export function useSummonerRefresh({ platform, gameName, tagLine, autoStart = fa
           switch (message.event) {
             case "summoner":
               summoner = message.data;
-              setState((current) =>
-                current.status === "running" ? { ...current, summoner: message.data } : current,
-              );
+              setState((current) => (current.status === "running" ? { ...current, summoner: message.data } : current));
               break;
             case "progress":
-              setState((current) =>
-                current.status === "running" ? { ...current, progress: message.data } : current,
-              );
+              setState((current) => (current.status === "running" ? { ...current, progress: message.data } : current));
               break;
             case "stats":
               queryClient.setQueryData(summonerStatsQueryKey(platform, gameName, tagLine), message.data);
               break;
             case "error":
-              setState({ status: "error", code: message.data.code, retryAfterSeconds: message.data.retryAfterSeconds, summoner });
+              setState({
+                status: "error",
+                code: message.data.code,
+                retryAfterSeconds: message.data.retryAfterSeconds,
+                summoner,
+              });
               return;
             case "done":
               if (summoner) setState({ status: "done", summoner });

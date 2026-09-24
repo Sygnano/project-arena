@@ -50,11 +50,7 @@ function pct(share: number): string {
   return `${(share * 100).toFixed(0)}%`;
 }
 
-function sortChampions(
-  rows: VersusChampionStats[],
-  sort: SortMode,
-  mixLowSample: boolean,
-): VersusChampionStats[] {
+function sortChampions(rows: VersusChampionStats[], sort: SortMode, mixLowSample: boolean): VersusChampionStats[] {
   if (sort === "fought") return [...rows].sort((a, b) => duels(b) - duels(a));
   return sortByRate(
     rows,
@@ -81,19 +77,11 @@ const Versus = ({ versus }: Props) => {
   const listRef = useRef<HTMLDivElement>(null);
   useDragScroll(listRef, "y");
 
-  const sorted = useMemo(
-    () => sortChampions(champions, sort, mixLowSample),
-    [champions, sort, mixLowSample],
-  );
+  const sorted = useMemo(() => sortChampions(champions, sort, mixLowSample), [champions, sort, mixLowSample]);
 
-  const [selectedChampionId, setSelectedChampionId] = useState<number | null>(
-    () => sorted[0]?.championId ?? null,
-  );
-  const selected =
-    sorted.find((c) => c.championId === selectedChampionId) ?? sorted[0] ?? null;
-  const selectedRank = selected
-    ? sorted.findIndex((c) => c.championId === selected.championId) + 1
-    : 0;
+  const [selectedChampionId, setSelectedChampionId] = useState<number | null>(() => sorted[0]?.championId ?? null);
+  const selected = sorted.find((c) => c.championId === selectedChampionId) ?? sorted[0] ?? null;
+  const selectedRank = selected ? sorted.findIndex((c) => c.championId === selected.championId) + 1 : 0;
 
   // Bars start empty and grow in once mounted.
   const [grown, setGrown] = useState(false);
@@ -107,7 +95,6 @@ const Versus = ({ versus }: Props) => {
 
   // Duel counts, not rates: every row sets the one scale both sides share.
   const maxSide = Math.max(1, ...champions.map((c) => Math.max(c.duelsWon, c.duelsLost)));
-
 
   const modeCaption =
     sort === "fought"
@@ -152,10 +139,7 @@ const Versus = ({ versus }: Props) => {
                   { label: "GAMES MET", value: selected.gamesFaced.toLocaleString() },
                   {
                     label: "DUELS PER GAME",
-                    value: (selected.gamesFaced > 0
-                      ? duels(selected) / selected.gamesFaced
-                      : 0
-                    ).toFixed(1),
+                    value: (selected.gamesFaced > 0 ? duels(selected) / selected.gamesFaced : 0).toFixed(1),
                   },
                   {
                     label: "DUELS WON",
@@ -176,11 +160,7 @@ const Versus = ({ versus }: Props) => {
       <HextechPanel>
         <PanelToolbar
           caption={`DUELS BY ENEMY CHAMPION · ${modeCaption}`}
-          trailing={
-            sort !== "fought" ? (
-              <LowSampleSwitch checked={mixLowSample} onChange={setMixLowSample} />
-            ) : null
-          }
+          trailing={sort !== "fought" ? <LowSampleSwitch checked={mixLowSample} onChange={setMixLowSample} /> : null}
         >
           <DiamondTabs
             tabs={[
@@ -247,10 +227,7 @@ const Versus = ({ versus }: Props) => {
                     boxShadow: isSelected ? "inset 0 0 0 1px rgba(200,170,110,.45)" : undefined,
                   }}
                 >
-                  <div
-                    className="text-right font-display text-[16px]"
-                    style={{ color: WON_COLOR }}
-                  >
+                  <div className="text-right font-display text-[16px]" style={{ color: WON_COLOR }}>
                     {champion.duelsWon}
                   </div>
 
@@ -296,10 +273,7 @@ const Versus = ({ versus }: Props) => {
                     />
                   </div>
 
-                  <div
-                    className="text-left font-display text-[16px]"
-                    style={{ color: LOST_COLOR }}
-                  >
+                  <div className="text-left font-display text-[16px]" style={{ color: LOST_COLOR }}>
                     {champion.duelsLost}
                   </div>
 

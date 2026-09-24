@@ -3,11 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { cn } from "cn";
 import { motion, useReducedMotion } from "motion/react";
-import type {
-  DamageCurve as Curve,
-  DamageCurveSeries,
-  DamageCurveStats,
-} from "@arena/types";
+import type { DamageCurve as Curve, DamageCurveSeries, DamageCurveStats } from "@arena/types";
 import { CategorySection } from "@/components/category-section";
 import { HextechPanel } from "@/components/hextech-panel";
 import { Dial } from "@/components/dial";
@@ -15,22 +11,14 @@ import { DiamondTabs } from "@/components/diamond-tabs";
 import { PanelToolbar } from "@/components/panel-toolbar";
 import { SidebarStatRows } from "@/components/sidebar-stat-row";
 import { CursorTooltip } from "@/components/cursor-tooltip";
-import {
-  HoverStatCard,
-  HoverCardRows,
-  HoverCardSection,
-} from "@/components/hover-stat-card";
+import { HoverStatCard, HoverCardRows, HoverCardSection } from "@/components/hover-stat-card";
 import { championIconUrl } from "@/lib/riot";
 import { formatCompact, ordinal } from "@/lib/format";
 import { pressable } from "@/lib/a11y";
 import { useChampionName } from "@/lib/champion-names";
 import { isLowSample, MIN_SAMPLE, sortByRate } from "@/lib/sample";
 import { LowSampleSwitch } from "@/components/low-sample-switch";
-import {
-  DAMAGE_TYPE_COLORS,
-  DAMAGE_TYPE_KEYS,
-  DAMAGE_TYPE_LABELS,
-} from "@/lib/damage-types";
+import { DAMAGE_TYPE_COLORS, DAMAGE_TYPE_KEYS, DAMAGE_TYPE_LABELS } from "@/lib/damage-types";
 import { SECTION_BACKGROUNDS } from "@/lib/section-backgrounds";
 import { useChartHover } from "@/hooks/use-chart-hover";
 import { useDragScroll } from "@/hooks/use-drag-scroll";
@@ -81,9 +69,7 @@ function formatDamage(value: number): string {
 function formatMinutes(minutes: number): string {
   const whole = Math.floor(minutes);
   const seconds = Math.round((minutes - whole) * 60);
-  return seconds === 60
-    ? `${whole + 1}:00`
-    : `${whole}:${String(seconds).padStart(2, "0")}`;
+  return seconds === 60 ? `${whole + 1}:00` : `${whole}:${String(seconds).padStart(2, "0")}`;
 }
 
 type Findings = {
@@ -114,8 +100,7 @@ function findings(points: readonly DamageCurvePoint[]): Findings {
     const dealt = totals[i] - totals[i - 1];
     if (dealt > peak.dealt) peak = { minute: i, dealt };
   }
-  const at = (minute: number) =>
-    totals[Math.min(minute, totals.length - 1)] ?? 0;
+  const at = (minute: number) => totals[Math.min(minute, totals.length - 1)] ?? 0;
   return { final, halfMinute, byMinute10: at(10), byMinute20: at(20), peak };
 }
 
@@ -131,8 +116,7 @@ function yAxisTicks(value: number): number[] {
       const step = multiple * scale;
       const count = Math.ceil(value / step);
       if (count < 4 || count > 7) continue;
-      if (!best || step * count < best.step * best.count)
-        best = { step, count };
+      if (!best || step * count < best.step * best.count) best = { step, count };
     }
   }
   const { step, count } = best ?? {
@@ -153,11 +137,7 @@ function useElementSize<T extends HTMLElement>() {
     if (!el) return;
     const observer = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
-      setSize((prev) =>
-        prev.width === width && prev.height === height
-          ? prev
-          : { width, height },
-      );
+      setSize((prev) => (prev.width === width && prev.height === height ? prev : { width, height }));
     });
     observer.observe(el);
     return () => observer.disconnect();
@@ -192,24 +172,15 @@ function CurveChart({
   const lastMinute = Math.max(1, points.length - 1);
   const yTicks = yAxisTicks(Math.max(...points.map(pointTotal), 0));
   const yMax = yTicks[yTicks.length - 1];
-  const x = (minute: number) =>
-    MARGIN.left + (minute / lastMinute) * innerWidth;
-  const y = (value: number) =>
-    MARGIN.top + innerHeight - (value / yMax) * innerHeight;
+  const x = (minute: number) => MARGIN.left + (minute / lastMinute) * innerWidth;
+  const y = (value: number) => MARGIN.top + innerHeight - (value / yMax) * innerHeight;
 
   // Each layer's lower and upper edge per minute (cumulative stack).
   const layers = DAMAGE_TYPE_KEYS.map((key, layerIndex) => {
     const below = (point: DamageCurvePoint) =>
-      DAMAGE_TYPE_KEYS.slice(0, layerIndex).reduce(
-        (sum, k) => sum + point[k],
-        0,
-      );
-    const top = points.map(
-      (point) => [x(point.minute), y(below(point) + point[key])] as const,
-    );
-    const bottom = points.map(
-      (point) => [x(point.minute), y(below(point))] as const,
-    );
+      DAMAGE_TYPE_KEYS.slice(0, layerIndex).reduce((sum, k) => sum + point[k], 0);
+    const top = points.map((point) => [x(point.minute), y(below(point) + point[key])] as const);
+    const bottom = points.map((point) => [x(point.minute), y(below(point))] as const);
     const area =
       `M${top.map(([px, py]) => `${px},${py}`).join("L")}` +
       `L${[...bottom]
@@ -221,17 +192,11 @@ function CurveChart({
   });
 
   const xStep = lastMinute > 30 ? 10 : 5;
-  const xTicks = Array.from(
-    { length: Math.floor(lastMinute / xStep) + 1 },
-    (_, i) => i * xStep,
-  );
+  const xTicks = Array.from({ length: Math.floor(lastMinute / xStep) + 1 }, (_, i) => i * xStep);
 
   const hoveredMinute = hover?.id ?? null;
   const hovered = hoveredMinute !== null ? points[hoveredMinute] : null;
-  const previous =
-    hoveredMinute !== null && hoveredMinute > 0
-      ? points[hoveredMinute - 1]
-      : null;
+  const previous = hoveredMinute !== null && hoveredMinute > 0 ? points[hoveredMinute - 1] : null;
   const final = pointTotal(points[points.length - 1] ?? points[0]);
 
   const onPointer = (event: React.PointerEvent<SVGRectElement>) => {
@@ -256,24 +221,9 @@ function CurveChart({
         <svg width={width} height={height} className="block overflow-visible">
           <defs>
             {layers.map((layer) => (
-              <linearGradient
-                key={layer.key}
-                id={`${clipId}-${layer.key}-fill`}
-                x1="0"
-                x2="0"
-                y1="0"
-                y2="1"
-              >
-                <stop
-                  offset="0%"
-                  stopColor={DAMAGE_TYPE_COLORS[layer.key]}
-                  stopOpacity={0.75}
-                />
-                <stop
-                  offset="100%"
-                  stopColor={DAMAGE_TYPE_COLORS[layer.key]}
-                  stopOpacity={0.3}
-                />
+              <linearGradient key={layer.key} id={`${clipId}-${layer.key}-fill`} x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor={DAMAGE_TYPE_COLORS[layer.key]} stopOpacity={0.75} />
+                <stop offset="100%" stopColor={DAMAGE_TYPE_COLORS[layer.key]} stopOpacity={0.3} />
               </linearGradient>
             ))}
             <clipPath id={`${clipId}-clip`}>
@@ -372,10 +322,7 @@ function CurveChart({
                 stroke="rgba(240,230,210,.45)"
               />
               {DAMAGE_TYPE_KEYS.map((key, layerIndex) => {
-                const stacked = DAMAGE_TYPE_KEYS.slice(
-                  0,
-                  layerIndex + 1,
-                ).reduce((sum, k) => sum + hovered[k], 0);
+                const stacked = DAMAGE_TYPE_KEYS.slice(0, layerIndex + 1).reduce((sum, k) => sum + hovered[k], 0);
                 return (
                   <circle
                     key={key}
@@ -420,11 +367,7 @@ function CurveChart({
               <HoverCardRows
                 rows={DAMAGE_TYPE_KEYS.map((key) => ({
                   label: DAMAGE_TYPE_LABELS[key],
-                  value: (
-                    <span style={{ color: DAMAGE_TYPE_COLORS[key] }}>
-                      {formatDamage(hovered[key])}
-                    </span>
-                  ),
+                  value: <span style={{ color: DAMAGE_TYPE_COLORS[key] }}>{formatDamage(hovered[key])}</span>,
                 }))}
               />
             </HoverCardSection>
@@ -433,16 +376,11 @@ function CurveChart({
                 rows={[
                   {
                     label: "DEALT",
-                    value: formatDamage(
-                      previous ? pointTotal(hovered) - pointTotal(previous) : 0,
-                    ),
+                    value: formatDamage(previous ? pointTotal(hovered) - pointTotal(previous) : 0),
                   },
                   {
                     label: "OF THE FINAL TOTAL",
-                    value:
-                      final > 0
-                        ? `${((pointTotal(hovered) / final) * 100).toFixed(0)}%`
-                        : "—",
+                    value: final > 0 ? `${((pointTotal(hovered) / final) * 100).toFixed(0)}%` : "—",
                   },
                 ]}
               />
@@ -462,8 +400,7 @@ function curveDamage(curve: Curve, mode: Mode): number {
   const series = mode === "best" ? curve.bestGame.series : curve.total;
   const last = series.physical.length - 1;
   if (last < 0) return 0;
-  const total =
-    series.physical[last] + series.magical[last] + series.trueDamage[last];
+  const total = series.physical[last] + series.magical[last] + series.trueDamage[last];
   return mode === "average" ? total / curve.games : total;
 }
 
@@ -497,22 +434,16 @@ const DamageCurve = ({ damageCurves }: Props) => {
             "desc",
             mixLowSample ? "mixed" : "after",
           )
-        : [...champions].sort(
-            (a, b) => curveDamage(b, mode) - curveDamage(a, mode),
-          ),
+        : [...champions].sort((a, b) => curveDamage(b, mode) - curveDamage(a, mode)),
     [champions, mode, mixLowSample],
   );
   // BEST GAME has no "all champions" row (its best game is just the top
   // champion's), so an "all" selection shows the top champion there and
   // comes back when switching to another mode.
   const activeSelection: Selection =
-    mode === "best" && selection === "all"
-      ? (sortedChampions[0]?.championId ?? "all")
-      : selection;
+    mode === "best" && selection === "all" ? (sortedChampions[0]?.championId ?? "all") : selection;
   const selectedChampion =
-    activeSelection === "all"
-      ? null
-      : (champions.find((c) => c.championId === activeSelection) ?? null);
+    activeSelection === "all" ? null : (champions.find((c) => c.championId === activeSelection) ?? null);
   const curve: Curve | null = selectedChampion ?? all;
 
   const points = useMemo(() => {
@@ -525,10 +456,7 @@ const DamageCurve = ({ damageCurves }: Props) => {
 
   if (!curve || points.length === 0) {
     return (
-      <CategorySection
-        title="DMG CURVE"
-        imageUrl={SECTION_BACKGROUNDS.damageCurve}
-      >
+      <CategorySection title="DMG CURVE" imageUrl={SECTION_BACKGROUNDS.damageCurve}>
         <HextechPanel>
           <div className="flex h-full items-center justify-center text-sm text-lol-text-muted">
             No match timelines yet.
@@ -541,25 +469,15 @@ const DamageCurve = ({ damageCurves }: Props) => {
   const best = curve.bestGame;
   const bestLastMinute = best.series.physical.length - 1;
   const outMinute =
-    mode === "best" && best.timePlayedSeconds / 60 < bestLastMinute - 0.5
-      ? best.timePlayedSeconds / 60
-      : null;
+    mode === "best" && best.timePlayedSeconds / 60 < bestLastMinute - 0.5 ? best.timePlayedSeconds / 60 : null;
 
-  const selectionName = selectedChampion
-    ? displayName(selectedChampion.championName).toUpperCase()
-    : "ALL CHAMPIONS";
+  const selectionName = selectedChampion ? displayName(selectedChampion.championName).toUpperCase() : "ALL CHAMPIONS";
   const caption =
     mode === "best"
       ? `BEST GAME · ${displayName(best.championName).toUpperCase()} · ${ordinal(best.placement).toUpperCase()} · ${formatDamage(facts.final)} DMG`
       : `${selectionName} · ${curve.games} GAMES · ENDED GAMES HOLD THEIR FINAL TOTAL`;
 
-  const listRow = (
-    key: Selection,
-    icon: React.ReactNode,
-    name: string,
-    games: number,
-    damage: number,
-  ) => {
+  const listRow = (key: Selection, icon: React.ReactNode, name: string, games: number, damage: number) => {
     const isSelected = activeSelection === key;
     return (
       <div
@@ -568,34 +486,24 @@ const DamageCurve = ({ damageCurves }: Props) => {
         aria-label={`${name}, ${games} games`}
         className={cn(
           "flex h-12 flex-none cursor-pointer items-center gap-2.5 px-1.5 transition-[background,opacity] duration-150 hover:bg-[rgba(200,170,110,.05)]",
-          mode === "average" &&
-            key !== "all" &&
-            isLowSample(games) &&
-            "opacity-45",
+          mode === "average" && key !== "all" && isLowSample(games) && "opacity-45",
         )}
         style={{
           background: isSelected ? "rgba(200,170,110,.09)" : undefined,
-          boxShadow: isSelected
-            ? "inset 0 0 0 1px rgba(200,170,110,.45)"
-            : undefined,
+          boxShadow: isSelected ? "inset 0 0 0 1px rgba(200,170,110,.45)" : undefined,
         }}
       >
         {icon}
         <div className="min-w-0 flex-1">
-          <div className="truncate font-body text-[14px] leading-tight text-lol-gold-50">
-            {name}
-          </div>
+          <div className="truncate font-body text-[14px] leading-tight text-lol-gold-50">{name}</div>
           <div className="mt-0.5 text-[10px] tracking-[.18em] text-lol-text-muted">
             {games} {games === 1 ? "GAME" : "GAMES"}
           </div>
         </div>
-        <div className="flex-none font-display text-[15px] text-lol-gold-100 tabular-nums">
-          {formatDamage(damage)}
-        </div>
+        <div className="flex-none font-display text-[15px] text-lol-gold-100 tabular-nums">{formatDamage(damage)}</div>
       </div>
     );
   };
-
 
   return (
     <CategorySection
@@ -606,19 +514,12 @@ const DamageCurve = ({ damageCurves }: Props) => {
         <>
           <Dial
             value={facts.final}
-            label={
-              mode === "total"
-                ? "TOTAL DMG"
-                : mode === "average"
-                  ? "AVG DMG"
-                  : "BEST GAME DMG"
-            }
+            label={mode === "total" ? "TOTAL DMG" : mode === "average" ? "AVG DMG" : "BEST GAME DMG"}
             labelPosition="bottom"
             formatValue={formatDamage}
           />
 
           <div className="mt-auto">
-
             <SidebarStatRows
               rows={[
                 {
@@ -655,21 +556,12 @@ const DamageCurve = ({ damageCurves }: Props) => {
         <HextechPanel contentMinWidth={720}>
           <PanelToolbar
             caption={
-              mode === "average" &&
-              activeSelection !== "all" &&
-              isLowSample(curve.games)
+              mode === "average" && activeSelection !== "all" && isLowSample(curve.games)
                 ? `${caption} · UNDER ${MIN_SAMPLE} GAMES`
                 : caption
             }
             captionKey={`${mode}-${activeSelection}`}
-            trailing={
-              mode === "average" ? (
-                <LowSampleSwitch
-                  checked={mixLowSample}
-                  onChange={setMixLowSample}
-                />
-              ) : null
-            }
+            trailing={mode === "average" ? <LowSampleSwitch checked={mixLowSample} onChange={setMixLowSample} /> : null}
           >
             <DiamondTabs
               tabs={(["total", "average", "best"] as const).map((key) => ({
@@ -731,20 +623,13 @@ const DamageCurve = ({ damageCurves }: Props) => {
                     key={key}
                     className="flex items-center gap-2 text-[11px] tracking-[.2em] text-lol-text-secondary"
                   >
-                    <span
-                      className="size-2.5 rotate-45"
-                      style={{ background: DAMAGE_TYPE_COLORS[key] }}
-                    />
+                    <span className="size-2.5 rotate-45" style={{ background: DAMAGE_TYPE_COLORS[key] }} />
                     {DAMAGE_TYPE_LABELS[key]}
                   </div>
                 ))}
               </div>
               <div className="min-h-0 flex-1">
-                <CurveChart
-                  points={points}
-                  animationKey={`${mode}-${activeSelection}`}
-                  outMinute={outMinute}
-                />
+                <CurveChart points={points} animationKey={`${mode}-${activeSelection}`} outMinute={outMinute} />
               </div>
             </div>
           </div>

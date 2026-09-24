@@ -51,11 +51,9 @@ async function main() {
       continue;
     }
 
-    const newRaw = rawNeedsWork ? compressJson(JSON.parse(row.raw.toString("utf-8"))) : row.raw;
+    const newRaw = rawNeedsWork ? await compressJson(JSON.parse(row.raw.toString("utf-8"))) : row.raw;
     const newTimeline =
-      timelineNeedsWork && row.timeline
-        ? compressJson(JSON.parse(row.timeline.toString("utf-8")))
-        : row.timeline;
+      timelineNeedsWork && row.timeline ? await compressJson(JSON.parse(row.timeline.toString("utf-8"))) : row.timeline;
 
     await sql`update matches set raw = ${newRaw}, timeline = ${newTimeline} where match_id = ${row.match_id}`;
     recompressed++;

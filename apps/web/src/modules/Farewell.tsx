@@ -74,9 +74,7 @@ const Farewell = ({ totalFistBumps, placements, matchesPlayed }: Props) => {
             />
           </IdentityRing>
 
-          <div className="mt-8 text-[11px] tracking-[.42em] text-lol-gold-300 sm:mt-13">
-            FIST BUMPS GIVEN
-          </div>
+          <div className="mt-8 text-[11px] tracking-[.42em] text-lol-gold-300 sm:mt-13">FIST BUMPS GIVEN</div>
 
           <div className="mt-4" style={{ textShadow: "0 0 48px rgba(200,170,110,.22)" }}>
             <AnimatedNumber
@@ -110,16 +108,12 @@ const Farewell = ({ totalFistBumps, placements, matchesPlayed }: Props) => {
           </div>
 
           <p className="mt-6 max-w-sm text-[15px] leading-relaxed text-lol-text-secondary">
-            That&apos;s every round, every augment and every fist bump. See you back on the
-            Rings of Wrath.
+            That&apos;s every round, every augment and every fist bump. See you back on the Rings of Wrath.
           </p>
 
           <p className="mt-6 flex items-center gap-2 text-[11px] tracking-[.32em] text-lol-gold-100">
             MADE WITH
-            <Heart
-              aria-label="love"
-              className="size-3.5 fill-[rgba(232,64,87,.85)] stroke-[rgba(255,140,150,.9)]"
-            />
+            <Heart aria-label="love" className="size-3.5 fill-[rgba(232,64,87,.85)] stroke-[rgba(255,140,150,.9)]" />
             BY SYGNANO
           </p>
 

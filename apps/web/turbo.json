@@ -1,0 +1,9 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "env": ["NODE_ENV", "NEXT_DIST_DIR", "SITE_URL", "API_URL", "API_PROXY_SECRET"]
+    }
+  }
+}

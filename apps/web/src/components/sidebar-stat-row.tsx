@@ -44,13 +44,7 @@ const SIZE_CLASSES: Record<Size, { row: string; label: string; value: string }> 
  * different sizes the design distinguishes by meaning, not by section — see
  * `size`.
  */
-function SidebarStatRow({
-  label,
-  children,
-  last = false,
-  size = "default",
-  valueColor,
-}: Props) {
+function SidebarStatRow({ label, children, last = false, size = "default", valueColor }: Props) {
   const classes = SIZE_CLASSES[size];
   return (
     <div
@@ -61,19 +55,9 @@ function SidebarStatRow({
       }}
     >
       <div className="h-1.75 w-1.75 flex-none rotate-45 bg-lol-gold-300" />
-      <div
-        className={cn(
-          "flex-1 tracking-[.12em] text-lol-text-secondary",
-          classes.label,
-        )}
-      >
-        {label}
-      </div>
+      <div className={cn("flex-1 tracking-[.12em] text-lol-text-secondary", classes.label)}>{label}</div>
       {typeof children === "string" || typeof children === "number" ? (
-        <div
-          className={cn("font-display", classes.value)}
-          style={{ color: valueColor ?? "var(--color-lol-gold-50)" }}
-        >
+        <div className={cn("font-display", classes.value)} style={{ color: valueColor ?? "var(--color-lol-gold-50)" }}>
           {children}
         </div>
       ) : (

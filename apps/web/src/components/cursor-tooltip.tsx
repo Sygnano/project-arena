@@ -15,13 +15,7 @@ const EDGE_MARGIN = 8;
  * `overflow-hidden` section ancestor can't clip or offset it. Flips to the
  * pointer's other side instead of running off the right or bottom edge.
  */
-function CursorTooltip({
-  point,
-  children,
-}: {
-  point: HoverPoint | null;
-  children: ReactNode;
-}) {
+function CursorTooltip({ point, children }: { point: HoverPoint | null; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
 
@@ -31,9 +25,7 @@ function CursorTooltip({
     if (!el) return;
     const measure = () => {
       const { width, height } = el.getBoundingClientRect();
-      setSize((prev) =>
-        prev.width === width && prev.height === height ? prev : { width, height },
-      );
+      setSize((prev) => (prev.width === width && prev.height === height ? prev : { width, height }));
     };
     measure();
     const observer = new ResizeObserver(measure);

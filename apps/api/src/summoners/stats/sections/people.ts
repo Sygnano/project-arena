@@ -14,7 +14,13 @@ type TeammateTally = PlacementSplit & Rounds & Named & { gamesPlayed: number };
 type OpponentTally = PlacementSplit &
   Rounds &
   Named & { gamesFaced: number; ownTop1: number; ownTop3ExclTop1: number; timesBeat: number; timesBeatenBy: number };
-type VersusTally = { championId: number; championName: string; duelsWon: number; duelsLost: number; matches: Set<string> };
+type VersusTally = {
+  championId: number;
+  championName: string;
+  duelsWon: number;
+  duelsLost: number;
+  matches: Set<string>;
+};
 
 function getOrCreate<K, V>(map: Map<K, V>, key: K, create: () => V): V {
   let value = map.get(key);
@@ -48,15 +54,28 @@ export function buildPeopleStats({ games, participantsByMatch, roundsByMatch }: 
       if (player.puuid === puuid) continue;
       if (player.teamId === game.teamId) {
         const tally = getOrCreate(teammates, player.puuid, () => ({
-          gamesPlayed: 0, roundsWon: 0, roundsLost: 0, riotIdGameName: null, riotIdTagline: null, ...emptySplit(),
+          gamesPlayed: 0,
+          roundsWon: 0,
+          roundsLost: 0,
+          riotIdGameName: null,
+          riotIdTagline: null,
+          ...emptySplit(),
         }));
         tally.gamesPlayed += 1;
         addToSplit(tally, game.placement);
         rememberName(tally, player);
       } else {
         const tally = getOrCreate(opponents, player.puuid, () => ({
-          gamesFaced: 0, ownTop1: 0, ownTop3ExclTop1: 0, timesBeat: 0, timesBeatenBy: 0,
-          roundsWon: 0, roundsLost: 0, riotIdGameName: null, riotIdTagline: null, ...emptySplit(),
+          gamesFaced: 0,
+          ownTop1: 0,
+          ownTop3ExclTop1: 0,
+          timesBeat: 0,
+          timesBeatenBy: 0,
+          roundsWon: 0,
+          roundsLost: 0,
+          riotIdGameName: null,
+          riotIdTagline: null,
+          ...emptySplit(),
         }));
         tally.gamesFaced += 1;
         addToSplit(tally, player.placement);
@@ -82,7 +101,11 @@ export function buildPeopleStats({ games, participantsByMatch, roundsByMatch }: 
         else if (player.teamId === enemyTeamId) {
           tally = opponents.get(player.puuid);
           const champion = getOrCreate(versus, player.championId, () => ({
-            championId: player.championId, championName: player.championName, duelsWon: 0, duelsLost: 0, matches: new Set<string>(),
+            championId: player.championId,
+            championName: player.championName,
+            duelsWon: 0,
+            duelsLost: 0,
+            matches: new Set<string>(),
           }));
           if (won) champion.duelsWon += 1;
           else champion.duelsLost += 1;

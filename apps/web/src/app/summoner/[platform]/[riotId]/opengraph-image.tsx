@@ -48,11 +48,7 @@ async function loadIcon(profileIconId: number | null): Promise<string | null> {
  * generic card: naming it would let any URL put its own text on a card
  * under this site's name (and give every made-up name its own render).
  */
-export default async function Image({
-  params,
-}: {
-  params: Promise<{ platform: string; riotId: string }>;
-}) {
+export default async function Image({ params }: { params: Promise<{ platform: string; riotId: string }> }) {
   const { platform, riotId } = await params;
   const parsed = parseRiotIdSlug(riotId);
   const known = parsed !== null && isKnownPlatform(platform);
@@ -84,82 +80,77 @@ export default async function Image({
     : "LAST UPDATED · NEVER";
 
   const image = new ImageResponse(
-    (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "radial-gradient(70% 80% at 50% 40%, #0a323c 0%, #091428 55%, #010a13 100%)",
+        fontFamily: "Spiegel",
+        color: GOLD_LIGHT,
+        position: "relative",
+      }}
+    >
       <div
         style={{
-          width: "100%",
-          height: "100%",
+          position: "absolute",
+          top: 28,
+          left: 28,
+          right: 28,
+          bottom: 28,
+          border: `1px solid rgba(200,170,110,.35)`,
           display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "radial-gradient(70% 80% at 50% 40%, #0a323c 0%, #091428 55%, #010a13 100%)",
-          fontFamily: "Spiegel",
-          color: GOLD_LIGHT,
-          position: "relative",
         }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            top: 28,
-            left: 28,
-            right: 28,
-            bottom: 28,
-            border: `1px solid rgba(200,170,110,.35)`,
-            display: "flex",
-          }}
-        />
-        <div style={{ display: "flex", fontSize: 22, letterSpacing: 10, color: GOLD }}>
-          ARENA JOURNEY
-        </div>
+      />
+      <div style={{ display: "flex", fontSize: 22, letterSpacing: 10, color: GOLD }}>ARENA JOURNEY</div>
 
-        <div style={{ display: "flex", alignItems: "center", marginTop: 44 }}>
-          {icon ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={icon}
-              alt=""
-              width={150}
-              height={150}
-              style={{ border: `2px solid ${GOLD}`, marginRight: 44 }}
-            />
-          ) : null}
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <div style={{ display: "flex", alignItems: "baseline", fontFamily: "Beaufort" }}>
-              <span style={{ fontSize: 84, lineHeight: 1 }}>{gameName}</span>
-              {tagLine ? (
-                <span style={{ fontSize: 44, color: MUTED, marginLeft: 16 }}>#{tagLine}</span>
-              ) : null}
-            </div>
-            <div style={{ display: "flex", marginTop: 18, fontSize: 24, letterSpacing: 6, color: MUTED }}>
-              {server ? `ARENA SEASON RECAP · ${server}` : "ARENA SEASON RECAP"}
-            </div>
+      <div style={{ display: "flex", alignItems: "center", marginTop: 44 }}>
+        {icon ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={icon} alt="" width={150} height={150} style={{ border: `2px solid ${GOLD}`, marginRight: 44 }} />
+        ) : null}
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", alignItems: "baseline", fontFamily: "Beaufort" }}>
+            <span style={{ fontSize: 84, lineHeight: 1 }}>{gameName}</span>
+            {tagLine ? <span style={{ fontSize: 44, color: MUTED, marginLeft: 16 }}>#{tagLine}</span> : null}
+          </div>
+          <div style={{ display: "flex", marginTop: 18, fontSize: 24, letterSpacing: 6, color: MUTED }}>
+            {server ? `ARENA SEASON RECAP · ${server}` : "ARENA SEASON RECAP"}
           </div>
         </div>
-
-        <div style={{ display: "flex", alignItems: "center", marginTop: 56 }}>
-          <div style={{ width: 120, height: 1, background: `linear-gradient(270deg, ${GOLD}, transparent)` }} />
-          {summoner && summoner.lastRefreshedAt && summoner.matchCount > 0 ? (
-            <div style={{ display: "flex", alignItems: "baseline", margin: "0 28px" }}>
-              <span style={{ fontFamily: "Beaufort", fontSize: 56, color: GOLD_LIGHT }}>
-                {summoner.matchCount.toLocaleString("en-US")}
-              </span>
-              <span style={{ fontSize: 22, letterSpacing: 6, color: MUTED, marginLeft: 14 }}>
-                {summoner.matchCount === 1 ? "ARENA GAME" : "ARENA GAMES"}
-              </span>
-            </div>
-          ) : (
-            <div style={{ display: "flex", margin: "0 28px", width: 10, height: 10, background: CYAN, transform: "rotate(45deg)" }} />
-          )}
-          <div style={{ width: 120, height: 1, background: `linear-gradient(90deg, ${GOLD}, transparent)` }} />
-        </div>
-
-        <div style={{ display: "flex", marginTop: 26, fontSize: 20, letterSpacing: 5, color: CYAN }}>
-          {updated}
-        </div>
       </div>
-    ),
+
+      <div style={{ display: "flex", alignItems: "center", marginTop: 56 }}>
+        <div style={{ width: 120, height: 1, background: `linear-gradient(270deg, ${GOLD}, transparent)` }} />
+        {summoner && summoner.lastRefreshedAt && summoner.matchCount > 0 ? (
+          <div style={{ display: "flex", alignItems: "baseline", margin: "0 28px" }}>
+            <span style={{ fontFamily: "Beaufort", fontSize: 56, color: GOLD_LIGHT }}>
+              {summoner.matchCount.toLocaleString("en-US")}
+            </span>
+            <span style={{ fontSize: 22, letterSpacing: 6, color: MUTED, marginLeft: 14 }}>
+              {summoner.matchCount === 1 ? "ARENA GAME" : "ARENA GAMES"}
+            </span>
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              margin: "0 28px",
+              width: 10,
+              height: 10,
+              background: CYAN,
+              transform: "rotate(45deg)",
+            }}
+          />
+        )}
+        <div style={{ width: 120, height: 1, background: `linear-gradient(90deg, ${GOLD}, transparent)` }} />
+      </div>
+
+      <div style={{ display: "flex", marginTop: 26, fontSize: 20, letterSpacing: 5, color: CYAN }}>{updated}</div>
+    </div>,
     {
       ...size,
       fonts: [

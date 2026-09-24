@@ -2,10 +2,7 @@
 
 import { useMemo } from "react";
 import { tierForBestFinish } from "@/lib/tier-bars";
-import type {
-  PrismaticItemPicksStats,
-  PrismaticItemsStats,
-} from "@arena/types";
+import type { PrismaticItemPicksStats, PrismaticItemsStats } from "@arena/types";
 import { CategorySection } from "@/components/category-section";
 import { HextechPanel } from "@/components/hextech-panel";
 import { HeaderStatStrip, StatCell } from "@/components/header-stat-strip";
@@ -27,26 +24,17 @@ type Props = {
  * fixed alphabetical order, each hexagon rimmed by the summoner's best-ever
  * finish while holding it.
  */
-const PrismaticItemHallOfFame = ({
-  prismaticItems,
-  prismaticItemPicks,
-}: Props) => {
+const PrismaticItemHallOfFame = ({ prismaticItems, prismaticItemPicks }: Props) => {
   const pickByItemId = useMemo(
     () => new Map(prismaticItemPicks.items.map((pick) => [pick.itemId, pick])),
     [prismaticItemPicks],
   );
 
   const roster = useMemo(
-    () =>
-      [...prismaticItems.items].sort((a, b) =>
-        a.itemName.localeCompare(b.itemName),
-      ),
+    () => [...prismaticItems.items].sort((a, b) => a.itemName.localeCompare(b.itemName)),
     [prismaticItems],
   );
-  const catalogById = useMemo(
-    () => new Map(roster.map((item) => [item.itemId, item])),
-    [roster],
-  );
+  const catalogById = useMemo(() => new Map(roster.map((item) => [item.itemId, item])), [roster]);
 
   const cells = useMemo<HexCombCell[]>(
     () =>
@@ -63,15 +51,9 @@ const PrismaticItemHallOfFame = ({
     [roster, pickByItemId],
   );
 
-  const heldCount = roster.filter((item) =>
-    pickByItemId.has(item.itemId),
-  ).length;
-  const wonWithCount = prismaticItemPicks.items.filter(
-    (pick) => pick.top1 > 0 || pick.top3ExclTop1 > 0,
-  ).length;
-  const firstPlaceCount = prismaticItemPicks.items.filter(
-    (pick) => pick.top1 > 0,
-  ).length;
+  const heldCount = roster.filter((item) => pickByItemId.has(item.itemId)).length;
+  const wonWithCount = prismaticItemPicks.items.filter((pick) => pick.top1 > 0 || pick.top3ExclTop1 > 0).length;
+  const firstPlaceCount = prismaticItemPicks.items.filter((pick) => pick.top1 > 0).length;
 
   // Compared with the average held item, like the Prismatic Items chart
   // (see `pooledRate`).
@@ -88,7 +70,6 @@ const PrismaticItemHallOfFame = ({
   const { hover, onHover, containerRef: hoverRef } = useChartHover<number>();
   const hoveredPick = hover ? pickByItemId.get(hover.id) : undefined;
 
-
   return (
     <CategorySection
       imageUrl={SECTION_BACKGROUNDS.prismaticItemHallOfFame}
@@ -96,20 +77,9 @@ const PrismaticItemHallOfFame = ({
       quote="You belong in a museum!"
       headerRight={
         <HeaderStatStrip>
-          <StatCell
-            label="HELD"
-            value={`${heldCount} / ${roster.length}`}
-            bordered={false}
-          />
-          <StatCell
-            label="WON WITH"
-            value={`${wonWithCount} / ${roster.length}`}
-          />
-          <StatCell
-            label="1ST PLACE WITH"
-            value={`${firstPlaceCount} / ${roster.length}`}
-            highlight
-          />
+          <StatCell label="HELD" value={`${heldCount} / ${roster.length}`} bordered={false} />
+          <StatCell label="WON WITH" value={`${wonWithCount} / ${roster.length}`} />
+          <StatCell label="1ST PLACE WITH" value={`${firstPlaceCount} / ${roster.length}`} highlight />
         </HeaderStatStrip>
       }
     >

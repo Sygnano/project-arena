@@ -76,11 +76,7 @@ function lerpChannel(a: number, b: number, t: number): number {
   return Math.round(a + (b - a) * t);
 }
 
-function lerpRgb(
-  from: readonly [number, number, number],
-  to: readonly [number, number, number],
-  t: number,
-): string {
+function lerpRgb(from: readonly [number, number, number], to: readonly [number, number, number], t: number): string {
   const [r, g, b] = [0, 1, 2].map((i) => lerpChannel(from[i], to[i], t));
   return `rgb(${r}, ${g}, ${b})`;
 }
@@ -109,17 +105,9 @@ export function tierGradient(t: number): string {
     return lerpRgb(TIER_SWATCH.silver, TIER_SWATCH.gold, clamped / 0.5);
   }
   if (clamped <= 0.75) {
-    return lerpRgb(
-      TIER_SWATCH.gold,
-      TIER_SWATCH.prismaticPink,
-      (clamped - 0.5) / 0.25,
-    );
+    return lerpRgb(TIER_SWATCH.gold, TIER_SWATCH.prismaticPink, (clamped - 0.5) / 0.25);
   }
-  return lerpRgb(
-    TIER_SWATCH.prismaticPink,
-    TIER_SWATCH.prismatic,
-    (clamped - 0.75) / 0.25,
-  );
+  return lerpRgb(TIER_SWATCH.prismaticPink, TIER_SWATCH.prismatic, (clamped - 0.75) / 0.25);
 }
 
 /** A calendar day's tier by games played: 1+ -> Silver, 3+ -> Gold,
@@ -142,9 +130,7 @@ export function tierForDayBestPlacement(bestPlacement: number): Tier {
 /** A card/ring tier by BEST FINISH: 1st place -> Prismatic, top 3 -> Gold,
  * played without a top 3 -> Silver, never played -> `null`. Shared by every
  * hall-of-fame grid and framed card so a ring means the same thing everywhere. */
-export function tierForBestFinish(
-  outcome: { top1: number; top3ExclTop1: number } | undefined,
-): Tier | null {
+export function tierForBestFinish(outcome: { top1: number; top3ExclTop1: number } | undefined): Tier | null {
   if (!outcome) return null;
   if (outcome.top1 > 0) return "prismatic";
   if (outcome.top3ExclTop1 > 0) return "gold";

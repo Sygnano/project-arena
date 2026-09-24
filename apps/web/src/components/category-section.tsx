@@ -81,14 +81,10 @@ export function CategorySection({
       </h2>
       <div aria-hidden className="mt-3 h-px w-14 bg-[rgba(200,170,110,.6)]" />
       {description ? (
-        <p className="mt-3.5 max-w-xl text-[14px] leading-relaxed text-lol-text-secondary">
-          {description}
-        </p>
+        <p className="mt-3.5 max-w-xl text-[14px] leading-relaxed text-lol-text-secondary">{description}</p>
       ) : null}
       {quote ? (
-        <p className="mt-3 text-base text-lol-text-muted italic deck:min-h-[3em]">
-          &ldquo;{quote}&rdquo;
-        </p>
+        <p className="mt-3 text-base text-lol-text-muted italic deck:min-h-[3em]">&ldquo;{quote}&rdquo;</p>
       ) : null}
     </div>
   );
@@ -116,9 +112,7 @@ export function CategorySection({
         imageUrl && "bg-lol-navy-950",
       )}
     >
-      {imageUrl ? (
-        <SectionBackground imageUrl={imageUrl} backgroundPosition={backgroundPosition} />
-      ) : null}
+      {imageUrl ? <SectionBackground imageUrl={imageUrl} backgroundPosition={backgroundPosition} /> : null}
 
       {/* Caps the frame (not the full-bleed background) at 1920×1080 and
         centers it beyond that, in both layout modes. */}

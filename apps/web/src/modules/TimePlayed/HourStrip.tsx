@@ -44,23 +44,13 @@ function plural(count: number, noun: string) {
  * Silver = everything lower. So both "when do we play" and the exact 1st /
  * top 3 counts per hour read straight off the bars.
  */
-function HourStrip({
-  calendar,
-  gamesByHour,
-  top1ByHour,
-  top3ByHour,
-  selectedHour,
-  onSelectHour,
-}: Props) {
+function HourStrip({ calendar, gamesByHour, top1ByHour, top3ByHour, selectedHour, onSelectHour }: Props) {
   const maxGames = Math.max(0, ...gamesByHour);
 
   const { hover, setHover, containerRef: stripRef } = useChartHover<number>();
 
   return (
-    <div
-      ref={stripRef}
-      className="flex h-full min-h-64 w-full flex-col gap-3 pt-2"
-    >
+    <div ref={stripRef} className="flex h-full min-h-64 w-full flex-col gap-3 pt-2">
       <div className="flex min-h-0 flex-1 items-stretch gap-0.75 sm:gap-1.5">
         {gamesByHour.map((games, hour) => {
           const top1 = top1ByHour[hour] ?? 0;
@@ -150,10 +140,7 @@ function HourStrip({
                   segment.count > 0 ? (
                     <div
                       key={segment.key}
-                      className={cn(
-                        "flex min-h-px items-center justify-center border-t",
-                        segment.tier.fillClass,
-                      )}
+                      className={cn("flex min-h-px items-center justify-center border-t", segment.tier.fillClass)}
                       style={{
                         flexGrow: segment.count,
                         flexBasis: 0,

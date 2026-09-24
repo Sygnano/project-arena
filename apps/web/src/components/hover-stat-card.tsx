@@ -32,9 +32,7 @@ function HoverStatCard({
       style={{ borderColor: edgeColor }}
     >
       <div className="flex items-baseline justify-between gap-3">
-        <div className="font-display text-[15px] tracking-[.06em] whitespace-nowrap text-lol-gold-50">
-          {title}
-        </div>
+        <div className="font-display text-[15px] tracking-[.06em] whitespace-nowrap text-lol-gold-50">{title}</div>
         {meta ? <div className="whitespace-nowrap text-lol-text-muted">{meta}</div> : null}
       </div>
       {subtitle ? <div className="mt-0.5 text-lol-text-muted">{subtitle}</div> : null}
@@ -47,9 +45,7 @@ function HoverCardSection({ label, children }: { label?: string; children: React
   return (
     <>
       <div className="my-2.5 h-px bg-[rgba(200,170,110,.25)]" />
-      {label ? (
-        <div className="mb-1 text-[10px] tracking-[.22em] text-lol-text-muted">{label}</div>
-      ) : null}
+      {label ? <div className="mb-1 text-[10px] tracking-[.22em] text-lol-text-muted">{label}</div> : null}
       {children}
     </>
   );
@@ -91,11 +87,10 @@ function HoverCardChampions<T extends ChampionGames>({
             {championName(champion.championName)}
           </div>
           <div className="text-[10px] text-lol-text-muted">
-            {champion.games} {noun}{champion.games === 1 ? "" : "s"}
+            {champion.games} {noun}
+            {champion.games === 1 ? "" : "s"}
           </div>
-          {detail ? (
-            <div className="text-[10px] tracking-[.08em] text-lol-text-muted">{detail(champion)}</div>
-          ) : null}
+          {detail ? <div className="text-[10px] tracking-[.08em] text-lol-text-muted">{detail(champion)}</div> : null}
         </div>
       ))}
     </div>
@@ -111,8 +106,7 @@ function HoverCardPlacementBars({ counts }: { counts: readonly number[] }) {
     <div className="flex flex-col gap-1">
       {counts.map((count, index) => {
         const placement = index + 1;
-        const tier =
-          placement === 1 ? TIER_STYLE.prismatic : placement <= 3 ? TIER_STYLE.gold : TIER_STYLE.silver;
+        const tier = placement === 1 ? TIER_STYLE.prismatic : placement <= 3 ? TIER_STYLE.gold : TIER_STYLE.silver;
         return (
           <div key={placement} className="flex items-center gap-2">
             <span className="w-7 text-lol-text-muted">{ordinal(placement)}</span>
@@ -127,10 +121,4 @@ function HoverCardPlacementBars({ counts }: { counts: readonly number[] }) {
   );
 }
 
-export {
-  HoverStatCard,
-  HoverCardSection,
-  HoverCardRows,
-  HoverCardChampions,
-  HoverCardPlacementBars,
-};
+export { HoverStatCard, HoverCardSection, HoverCardRows, HoverCardChampions, HoverCardPlacementBars };

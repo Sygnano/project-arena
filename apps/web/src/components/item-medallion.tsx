@@ -27,10 +27,7 @@ function ItemMedallion({ iconUrl, alt, size = 172, glow = 0.16, className }: Pro
   // numbers, so a fluid `size` stays proportional at every viewport.
   const scaled = (px: number) => `calc(${diameter} * ${px / 172})`;
   return (
-    <div
-      className={cn("relative flex-none", className)}
-      style={{ width: diameter, height: diameter }}
-    >
+    <div className={cn("relative flex-none", className)} style={{ width: diameter, height: diameter }}>
       <div className="welcome-spin-slow absolute inset-0 rounded-full border border-dashed border-[rgba(200,170,110,.38)]" />
       <div className="welcome-spin-reverse absolute" style={{ inset: scaled(16) }}>
         <div className="absolute inset-0 rotate-45 border border-[rgba(200,170,110,.45)]" />

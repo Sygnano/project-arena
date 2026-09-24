@@ -48,10 +48,7 @@ function RingFrame({ size = 286, children, className }: RingFrameProps) {
   const metrics = RING_METRICS[size];
   return (
     <div
-      className={cn(
-        "dial-fit relative mx-auto flex flex-none items-center justify-center",
-        className,
-      )}
+      className={cn("dial-fit relative mx-auto flex flex-none items-center justify-center", className)}
       style={{ width: size, height: size }}
     >
       <div
@@ -62,10 +59,7 @@ function RingFrame({ size = 286, children, className }: RingFrameProps) {
         className="absolute rounded-full border border-[rgba(10,200,185,.16)]"
         style={{ inset: metrics.innerInset }}
       />
-      <svg
-        viewBox={`0 0 ${size} ${size}`}
-        className="dial-spin absolute inset-0 h-full w-full"
-      >
+      <svg viewBox={`0 0 ${size} ${size}`} className="dial-spin absolute inset-0 h-full w-full">
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -130,26 +124,15 @@ type IdentityRingProps = {
  * `RingFrame` below, whose two sizes ARE hand-tuned per-size (its
  * double-arc SVG dash patterns don't scale cleanly by a flat ratio).
  */
-function IdentityRing({
-  size = IDENTITY_RING_REFERENCE_SIZE,
-  children,
-  badge,
-  className,
-}: IdentityRingProps) {
+function IdentityRing({ size = IDENTITY_RING_REFERENCE_SIZE, children, badge, className }: IdentityRingProps) {
   const scale = size / IDENTITY_RING_REFERENCE_SIZE;
   const markerSize = 8 * scale;
   const markerOffset = -4 * scale;
 
   return (
-    <div
-      className={cn("relative flex items-center justify-center", className)}
-      style={{ width: size, height: size }}
-    >
+    <div className={cn("relative flex items-center justify-center", className)} style={{ width: size, height: size }}>
       <div className="welcome-spin-slow absolute inset-0 rounded-full border border-dashed border-[rgba(200,170,110,.38)]" />
-      <div
-        className="welcome-spin-reverse absolute"
-        style={{ inset: 20 * scale }}
-      >
+      <div className="welcome-spin-reverse absolute" style={{ inset: 20 * scale }}>
         <div className="absolute inset-0 rotate-45 border border-[rgba(200,170,110,.45)]" />
         <div
           className="absolute left-1/2 -translate-x-1/2 rotate-45 bg-lol-gold-300"
@@ -237,13 +220,7 @@ const LABEL_MAX_WIDTH = 190;
  * run wider than the ring's hairline border, which a short label (e.g.
  * "TOTAL DMG") never approaches — that one stays at `MAX_LABEL_FONT_SIZE`.
  */
-function Dial({
-  value,
-  label,
-  formatValue,
-  className,
-  labelPosition = "bottom",
-}: Props) {
+function Dial({ value, label, formatValue, className, labelPosition = "bottom" }: Props) {
   const text = formatValue ? formatValue(value) : value.toFixed(2);
   const measureRef = useRef<HTMLDivElement>(null);
   const [fontSize, setFontSize] = useState(MAX_VALUE_FONT_SIZE);
@@ -275,10 +252,7 @@ function Dial({
       >
         {label}
       </div>
-      <div
-        className="pl-[.42em] tracking-[.42em] text-lol-blue-300"
-        style={{ fontSize: labelFontSize }}
-      >
+      <div className="pl-[.42em] tracking-[.42em] text-lol-blue-300" style={{ fontSize: labelFontSize }}>
         {label}
       </div>
     </div>
@@ -288,10 +262,7 @@ function Dial({
     <RingFrame size={286} className={cn("mt-11", className)}>
       <div className="text-center">
         {labelPosition === "top" && <div className="mb-1.5">{labelEl}</div>}
-        <div
-          className="relative mx-auto text-center"
-          style={{ width: VALUE_MAX_WIDTH }}
-        >
+        <div className="relative mx-auto text-center" style={{ width: VALUE_MAX_WIDTH }}>
           <div
             ref={measureRef}
             aria-hidden

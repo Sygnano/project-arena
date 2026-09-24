@@ -1,8 +1,8 @@
 /**
- * Helpers shared by the ingestion scripts (`crawl.ts`, `check-recaps.ts`).
+ * Helpers shared by the ingestion scripts (`crawl.ts`, `check-recaps.ts`, `retry-skipped.ts`).
  */
+import { RiotApiError } from "@arena/riot";
 import type { IngestProgress } from "../src/ingestion/ingestSummoner.js";
-import { RiotApiError } from "../src/riotApi/index.js";
 
 /** The innermost cause's message: for a database error, the driver's reason
  * rather than Drizzle's wrapper, which only quotes the failed query. */
@@ -14,8 +14,8 @@ export function errorMessage(err: unknown) {
 
 /** Errors that will fail every summoner the same way. */
 export function isFatal(err: unknown) {
-  // 401/403: missing or expired key. 400 "decrypting": PUUIDs from another
-  // Riot app (see CLAUDE.md §2, remap-puuids).
+  // 401/403: missing or expired key (or the wrong gateway secret). 400
+  // "decrypting": PUUIDs from another Riot app (see CLAUDE.md §2).
   return err instanceof RiotApiError && err.fatal;
 }
 

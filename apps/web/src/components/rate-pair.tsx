@@ -29,11 +29,8 @@ const SIZES = {
 } as const;
 
 function RateDelta({ delta, lowSample }: { delta: number; lowSample: boolean }) {
-  const tone = lowSample || Math.abs(delta) < 1
-    ? "text-lol-text-muted"
-    : delta > 0
-      ? "text-[#0ae0cf]"
-      : "text-lol-garnet";
+  const tone =
+    lowSample || Math.abs(delta) < 1 ? "text-lol-text-muted" : delta > 0 ? "text-[#0ae0cf]" : "text-lol-garnet";
   return (
     <div className={cn("mt-1 text-[11px] tracking-[.12em] tabular-nums", tone)}>
       {lowSample ? "FEW GAMES" : `${formatSignedPoints(delta, 0)} VS AVG`}
@@ -53,16 +50,12 @@ function RateCell({ rate, size }: { rate: Rate; size: "lg" | "md" }) {
       >
         {rate.value == null ? "—" : `${rate.value.toFixed(0)}%`}
       </div>
-      <div
-        className={cn(
-          "mt-2 pl-[.24em] tracking-[.24em] whitespace-nowrap text-lol-text-muted",
-          SIZES[size].label,
-        )}
-      >
+      <div className={cn("mt-2 pl-[.24em] tracking-[.24em] whitespace-nowrap text-lol-text-muted", SIZES[size].label)}>
         {rate.label}
       </div>
       {rate.baseline !== undefined && rate.value != null ? (
-        <RateDelta delta={rate.value - rate.baseline} 
+        <RateDelta
+          delta={rate.value - rate.baseline}
           lowSample={rate.sample !== undefined && isLowSample(rate.sample)}
         />
       ) : null}
@@ -80,8 +73,7 @@ function RatePair({ left, right, size = "lg", className }: Props) {
         <div
           className="absolute inset-0"
           style={{
-            background:
-              "linear-gradient(180deg, transparent, rgba(200,170,110,.55), transparent)",
+            background: "linear-gradient(180deg, transparent, rgba(200,170,110,.55), transparent)",
           }}
         />
         <div className="absolute top-1/2 left-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-lol-gold-300" />

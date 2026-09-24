@@ -1,7 +1,15 @@
 import { ARENA_BOOT_ITEM_IDS } from "@arena/db";
 import type { BootsStats } from "@arena/types";
 import { SHARDBLADE_ITEM_ID, SPECIAL_ITEM_IDS, type ItemCatalog } from "../../../leagueData/index.js";
-import { addToSplit, addToTally, emptySplit, emptyTally, increment, type PlacementSplit, type WinTally } from "../aggregate.js";
+import {
+  addToSplit,
+  addToTally,
+  emptySplit,
+  emptyTally,
+  increment,
+  type PlacementSplit,
+  type WinTally,
+} from "../aggregate.js";
 import type { OwnGame } from "../loadStatsData.js";
 
 const bootIds = new Set(ARENA_BOOT_ITEM_IDS);

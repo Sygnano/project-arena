@@ -213,9 +213,7 @@ const SummonerStatsView = ({ region, gameName, tagLine, summoner, refresh }: Pro
       id: "picks",
       label: "PICKS",
       chapter: "CHAMPIONS",
-      render: () => (
-        <ChampionPicks championPicks={championPicks} champions={champions} />
-      ),
+      render: () => <ChampionPicks championPicks={championPicks} champions={champions} />,
     },
     {
       id: "collection",
@@ -227,13 +225,7 @@ const SummonerStatsView = ({ region, gameName, tagLine, summoner, refresh }: Pro
       id: "arena-god",
       label: "ARENA GOD",
       chapter: "CHAMPIONS",
-      render: () => (
-        <Champions
-          championCatalog={championCatalog}
-          championPicks={championPicks}
-          champions={champions}
-        />
-      ),
+      render: () => <Champions championCatalog={championCatalog} championPicks={championPicks} champions={champions} />,
     },
     {
       id: "bans",
@@ -311,23 +303,13 @@ const SummonerStatsView = ({ region, gameName, tagLine, summoner, refresh }: Pro
       id: "prismatic-items",
       label: "PRISMATICS",
       chapter: "ITEMS",
-      render: () => (
-        <PrismaticItemPicks
-          prismaticItems={prismaticItems}
-          prismaticItemPicks={prismaticItemPicks}
-        />
-      ),
+      render: () => <PrismaticItemPicks prismaticItems={prismaticItems} prismaticItemPicks={prismaticItemPicks} />,
     },
     {
       id: "prismatic-god",
       label: "PRISMATIC GOD",
       chapter: "ITEMS",
-      render: () => (
-        <PrismaticItemHallOfFame
-          prismaticItems={prismaticItems}
-          prismaticItemPicks={prismaticItemPicks}
-        />
-      ),
+      render: () => <PrismaticItemHallOfFame prismaticItems={prismaticItems} prismaticItemPicks={prismaticItemPicks} />,
     },
     {
       id: "anvils",
@@ -396,8 +378,7 @@ const SummonerStatsView = ({ region, gameName, tagLine, summoner, refresh }: Pro
       chapter: "PEOPLE",
       render: () => {
         const teams = Math.max(1, ...Object.keys(placements.byPlacement).map(Number));
-        const expected =
-          matchesPlayed > 0 && teams > 1 ? ((placements.avgPlacement - 1) / (teams - 1)) * 100 : 0;
+        const expected = matchesPlayed > 0 && teams > 1 ? ((placements.avgPlacement - 1) / (teams - 1)) * 100 : 0;
         return <Nemesis {...nemesis} expectedBeatenByRate={expected} />;
       },
     },
@@ -412,11 +393,7 @@ const SummonerStatsView = ({ region, gameName, tagLine, summoner, refresh }: Pro
       label: "FAREWELL",
       chapter: "WRAP-UP",
       render: () => (
-        <Farewell
-          totalFistBumps={fun.totalFistBumps}
-          placements={placements}
-          matchesPlayed={matchesPlayed}
-        />
+        <Farewell totalFistBumps={fun.totalFistBumps} placements={placements} matchesPlayed={matchesPlayed} />
       ),
     },
   ];

@@ -1,8 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { desc, isNotNull, sql, summoners } from "@arena/db";
+import { isPlatform, matchRegion, toPlatform } from "@arena/riot";
 import type { DevSummonerList } from "@arena/types";
 import { db } from "../db.js";
-import { isPlatform, matchRegion, toPlatform } from "../riotApi/routing.js";
 
 // The crawler refreshes thousands of summoners; the page is for checking
 // recent ones, so it shows the latest this many.
@@ -31,7 +31,10 @@ export async function devRoutes(app: FastifyInstance) {
         .where(isNotNull(summoners.lastRefreshedAt))
         .orderBy(desc(summoners.lastRefreshedAt))
         .limit(MAX_ROWS),
-      db.select({ total: sql<number>`count(*)::int` }).from(summoners).where(isNotNull(summoners.lastRefreshedAt)),
+      db
+        .select({ total: sql<number>`count(*)::int` })
+        .from(summoners)
+        .where(isNotNull(summoners.lastRefreshedAt)),
     ]);
     return {
       total,

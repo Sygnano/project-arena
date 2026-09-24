@@ -8,7 +8,11 @@ import type { OwnGame } from "../loadStatsData.js";
 const [LEGENDARY_ANVIL_ITEM_ID] = LEGENDARY_ANVIL_ITEM_IDS;
 
 /** Gold, purchases and anvils. `shardblade` comes from the item section. */
-export function buildEconomyStats(games: readonly OwnGame[], catalog: ItemCatalog, shardblade: SummonerStatsPayload["economy"]["shardblade"]) {
+export function buildEconomyStats(
+  games: readonly OwnGame[],
+  catalog: ItemCatalog,
+  shardblade: SummonerStatsPayload["economy"]["shardblade"],
+) {
   const anvils = {
     stat: sumOf(games, (game) => game.statAnvilsBought),
     legendary: sumOf(games, (game) => game.legendaryAnvilsBought),

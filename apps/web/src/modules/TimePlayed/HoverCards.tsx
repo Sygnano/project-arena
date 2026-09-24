@@ -1,12 +1,7 @@
 "use client";
 
 import type { CalendarDayStats, CalendarStats } from "@arena/types";
-import {
-  HoverCardChampions,
-  HoverCardRows,
-  HoverCardSection,
-  HoverStatCard,
-} from "@/components/hover-stat-card";
+import { HoverCardChampions, HoverCardRows, HoverCardSection, HoverStatCard } from "@/components/hover-stat-card";
 import { PlacementPips } from "@/components/placement-pips";
 import { formatDuration, ordinal } from "@/lib/format";
 import { TIER_STYLE } from "@/lib/tier-bars";

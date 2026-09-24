@@ -10,14 +10,21 @@
       "cache": false,
       "persistent": true
     },
+    "transit": {
+      "dependsOn": ["^transit"]
+    },
     "lint": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["transit"]
     },
     "typecheck": {
       "dependsOn": ["^build"]
     },
     "test": {
       "dependsOn": ["^build"]
+    },
+    "//#prettier:check": {},
+    "//#prettier:write": {
+      "cache": false
     }
   }
 }

@@ -41,25 +41,12 @@ const ALIGN = {
  * replaces — the active column goes gold and grows a caret, so the header row
  * itself says what the list is ordered by.
  */
-function SortHeader({
-  children,
-  active,
-  dir,
-  onSort,
-  align = "left",
-  fill = false,
-  caret = true,
-  className,
-}: Props) {
+function SortHeader({ children, active, dir, onSort, align = "left", fill = false, caret = true, className }: Props) {
   return (
     <button
       type="button"
       onClick={onSort}
-      aria-label={
-        typeof children === "string"
-          ? `Sort by ${children.toLowerCase()}`
-          : undefined
-      }
+      aria-label={typeof children === "string" ? `Sort by ${children.toLowerCase()}` : undefined}
       className={cn(
         "group flex cursor-pointer items-center gap-1.5 text-[11px] tracking-[.22em] transition-colors duration-150",
         ALIGN[align],
@@ -86,15 +73,7 @@ function SortHeader({
 /** The gold triangle marking the sorted column. Inactive columns keep it in
  * the layout at zero opacity (revealed on hover) so a header doesn't shift
  * sideways when it becomes the sort. */
-function Caret({
-  active,
-  dir,
-  fill = false,
-}: {
-  active: boolean;
-  dir: "asc" | "desc";
-  fill?: boolean;
-}) {
+function Caret({ active, dir, fill = false }: { active: boolean; dir: "asc" | "desc"; fill?: boolean }) {
   return (
     <span
       aria-hidden
@@ -108,9 +87,7 @@ function Caret({
         height: 0,
         borderLeft: "3.5px solid transparent",
         borderRight: "3.5px solid transparent",
-        ...(dir === "desc"
-          ? { borderTop: "4px solid currentColor" }
-          : { borderBottom: "4px solid currentColor" }),
+        ...(dir === "desc" ? { borderTop: "4px solid currentColor" } : { borderBottom: "4px solid currentColor" }),
       }}
     />
   );

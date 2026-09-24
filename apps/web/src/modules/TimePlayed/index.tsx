@@ -47,10 +47,7 @@ type Props = {
 function CountStat({ value, unit }: { value: number; unit: string }) {
   return (
     <div className="flex items-baseline justify-self-end gap-1">
-      <AnimatedNumber
-        value={value}
-        className="font-display text-2xl font-semibold text-lol-gold-50"
-      />
+      <AnimatedNumber value={value} className="font-display text-2xl font-semibold text-lol-gold-50" />
       <span className="font-display text-sm text-lol-text-muted">{unit}</span>
     </div>
   );
@@ -70,20 +67,10 @@ function DurationStat({
 }) {
   return (
     <div className="flex items-baseline justify-self-end gap-1">
-      <AnimatedNumber
-        value={major}
-        className="font-display text-2xl font-semibold text-lol-gold-50"
-      />
-      <span className="font-display text-sm text-lol-text-muted">
-        {majorUnit}
-      </span>
-      <AnimatedNumber
-        value={minor}
-        className="font-display text-2xl font-semibold text-lol-gold-50"
-      />
-      <span className="font-display text-sm text-lol-text-muted">
-        {minorUnit}
-      </span>
+      <AnimatedNumber value={major} className="font-display text-2xl font-semibold text-lol-gold-50" />
+      <span className="font-display text-sm text-lol-text-muted">{majorUnit}</span>
+      <AnimatedNumber value={minor} className="font-display text-2xl font-semibold text-lol-gold-50" />
+      <span className="font-display text-sm text-lol-text-muted">{minorUnit}</span>
     </div>
   );
 }
@@ -111,10 +98,7 @@ const TimePlayed = ({ timePlayed, calendar }: Props) => {
   const totalHours = +(timePlayed.timePlayedSeconds / 3600).toFixed(1);
 
   const selectedDay = useMemo(
-    () =>
-      selectedDate
-        ? (calendar.days.find((day) => day.date === selectedDate) ?? null)
-        : null,
+    () => (selectedDate ? (calendar.days.find((day) => day.date === selectedDate) ?? null) : null),
     [calendar.days, selectedDate],
   );
 
@@ -123,22 +107,16 @@ const TimePlayed = ({ timePlayed, calendar }: Props) => {
       <span className="text-[12px] tracking-[.24em] text-lol-text-muted uppercase">
         {MONTH_ABBREV.format(new Date(`${selectedDay.date}T00:00:00Z`))}
       </span>
-      <span className="mt-1.5 text-[30px] text-lol-gold-50">
-        {Number(selectedDay.date.slice(-2))}
-      </span>
+      <span className="mt-1.5 text-[30px] text-lol-gold-50">{Number(selectedDay.date.slice(-2))}</span>
     </div>
   ) : (
-    <span className="text-[15px] tracking-[.14em] text-lol-text-muted">
-      SELECT A DATE
-    </span>
+    <span className="text-[15px] tracking-[.14em] text-lol-text-muted">SELECT A DATE</span>
   );
 
   const detailStats = [
     {
       label: "TIME PLAYED",
-      value: selectedDay
-        ? `${(selectedDay.timePlayedSeconds / 3600).toFixed(1)}h`
-        : "—",
+      value: selectedDay ? `${(selectedDay.timePlayedSeconds / 3600).toFixed(1)}h` : "—",
       highlight: true,
       bordered: false,
     },
@@ -152,7 +130,6 @@ const TimePlayed = ({ timePlayed, calendar }: Props) => {
     },
   ];
 
-
   return (
     <CategorySection
       title="TIME"
@@ -160,30 +137,15 @@ const TimePlayed = ({ timePlayed, calendar }: Props) => {
       imageUrl={SECTION_BACKGROUNDS.timePlayed}
       sidebar={
         <>
-          <Dial
-            value={totalHours}
-            label="HOURS PLAYED"
-            formatValue={(v) => v.toFixed(1)}
-          />
+          <Dial value={totalHours} label="HOURS PLAYED" formatValue={(v) => v.toFixed(1)} />
 
           <div className="mt-auto flex flex-col gap-0.5">
-
             <SidebarStatRow label="AVG GAME TIME">
-              <DurationStat
-                major={avgMinutes}
-                majorUnit="m"
-                minor={avgSeconds}
-                minorUnit="s"
-              />
+              <DurationStat major={avgMinutes} majorUnit="m" minor={avgSeconds} minorUnit="s" />
             </SidebarStatRow>
 
             <SidebarStatRow label="LONGEST GAME">
-              <DurationStat
-                major={longestMinutes}
-                majorUnit="m"
-                minor={longestSeconds}
-                minorUnit="s"
-              />
+              <DurationStat major={longestMinutes} majorUnit="m" minor={longestSeconds} minorUnit="s" />
             </SidebarStatRow>
 
             <SidebarStatRow label="LONGEST DAY STREAK">
@@ -208,14 +170,8 @@ const TimePlayed = ({ timePlayed, calendar }: Props) => {
       }
     >
       <HextechPanel>
-        <PanelToolbar
-          caption={MODE_CAPTION[sortMode]}
-        >
-          <DiamondTabs
-            tabs={SORT_MODES}
-            active={sortMode}
-            onChange={setSortMode}
-          />
+        <PanelToolbar caption={MODE_CAPTION[sortMode]}>
+          <DiamondTabs tabs={SORT_MODES} active={sortMode} onChange={setSortMode} />
         </PanelToolbar>
 
         {sortMode === "hour" ? (
@@ -272,11 +228,7 @@ const TimePlayed = ({ timePlayed, calendar }: Props) => {
           </>
         ) : (
           <>
-            <Calendar
-              calendar={calendar}
-              mode={sortMode}
-              onSelectDate={setSelectedDate}
-            />
+            <Calendar calendar={calendar} mode={sortMode} onSelectDate={setSelectedDate} />
             <DetailBand
               icon={
                 <div

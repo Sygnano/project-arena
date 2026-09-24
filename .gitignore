@@ -7,9 +7,6 @@ out/
 .env.*
 !.env.example
 *.log
-# Progress file of packages/db/scripts/remap-puuids.ts.
+# Leftover progress file of the deleted remap-puuids script: PUUIDs, never commit.
 .puuid-remap.json
 .DS_Store
-
-# Its own separate git repo/workspace (see CLAUDE.md) — not tracked here.
-/vendor/nivo/

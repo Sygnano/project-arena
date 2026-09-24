@@ -36,6 +36,7 @@ function progressLabel(progress: RefreshProgress | null) {
   if (progress?.state === "queued") {
     return progress.position === 0 ? "UPDATING · NEXT IN QUEUE" : `UPDATING · ${progress.position} AHEAD IN QUEUE`;
   }
+  if (progress?.state === "running" && progress.waitingOnRiot) return "UPDATING · WAITING ON RIOT";
   if (progress?.state === "running" && progress.phase === "matches" && progress.total > 0) {
     return `UPDATING · MATCH ${progress.done} OF ${progress.total}`;
   }
@@ -68,7 +69,10 @@ function RecapRefresh({ platform, gameName, tagLine, summoner, refresh }: Props)
 
   if (state.status === "running") {
     return (
-      <p aria-live="polite" className="flex min-h-[30px] items-center gap-2 text-[11px] tracking-[.26em] text-lol-blue-200 tabular-nums">
+      <p
+        aria-live="polite"
+        className="flex min-h-[30px] items-center gap-2 text-[11px] tracking-[.26em] text-lol-blue-200 tabular-nums"
+      >
         <RefreshCw aria-hidden className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" />
         {progressLabel(state.progress)}
       </p>
@@ -81,7 +85,10 @@ function RecapRefresh({ platform, gameName, tagLine, summoner, refresh }: Props)
         ? `TOO MANY REQUESTS · TRY AGAIN ${formatRetryAfter(state.retryAfterSeconds ?? 60).toUpperCase()}`
         : "UPDATE FAILED";
     return (
-      <div role="alert" className="flex min-h-[30px] flex-wrap items-center justify-center gap-3 text-[11px] tracking-[.26em]">
+      <div
+        role="alert"
+        className="flex min-h-[30px] flex-wrap items-center justify-center gap-3 text-[11px] tracking-[.26em]"
+      >
         <span className="text-[#f08a98]">{message}</span>
         <button type="button" onClick={start} className={buttonClass}>
           <RefreshCw aria-hidden className="h-3.5 w-3.5" />

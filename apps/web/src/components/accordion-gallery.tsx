@@ -99,16 +99,12 @@ export function AccordionGallery({
   const rootRef = useRef<HTMLDivElement>(null);
   const [rootWidth, setRootWidth] = useState(0);
   const count = items.length;
-  const [active, setActive] = useState(() =>
-    Math.min(Math.max(defaultIndex, 0), Math.max(0, count - 1)),
-  );
+  const [active, setActive] = useState(() => Math.min(Math.max(defaultIndex, 0), Math.max(0, count - 1)));
 
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
-    const observer = new ResizeObserver(([entry]) =>
-      setRootWidth(entry.contentRect.width),
-    );
+    const observer = new ResizeObserver(([entry]) => setRootWidth(entry.contentRect.width));
     observer.observe(root);
     return () => observer.disconnect();
   }, []);
@@ -121,10 +117,7 @@ export function AccordionGallery({
 
   const usableWidth = Math.max(0, rootWidth - gap * (count - 1));
   const expandedWidth = usableWidth * ratio;
-  const mediaWidth = Math.max(
-    MIN_MEDIA_WIDTH_PX,
-    expandedWidth * MEDIA_OVERSCAN,
-  );
+  const mediaWidth = Math.max(MIN_MEDIA_WIDTH_PX, expandedWidth * MEDIA_OVERSCAN);
 
   return (
     <div
@@ -196,9 +189,7 @@ export function AccordionGallery({
                 // Both ends declare the same filter function list, in the same
                 // order — Motion can only interpolate a filter when the two
                 // sides match function-for-function.
-                filter: isActive
-                  ? "grayscale(0) brightness(1)"
-                  : "grayscale(1) brightness(0.62)",
+                filter: isActive ? "grayscale(0) brightness(1)" : "grayscale(1) brightness(0.62)",
               }}
               transition={{ duration: DURATION, ease: EASE }}
             >

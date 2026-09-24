@@ -12,6 +12,27 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
+/** Riot's 14 ping counters, in the order `matchParticipants.pings` stores
+ * them (`<type>Pings` on the participant DTO). Append new types at the end:
+ * the order is the column's meaning. */
+export const PING_TYPES = [
+  "allIn",
+  "assistMe",
+  "basic",
+  "command",
+  "danger",
+  "enemyMissing",
+  "enemyVision",
+  "getBack",
+  "hold",
+  "needVision",
+  "onMyWay",
+  "push",
+  "retreat",
+  "visionCleared",
+] as const;
+export type PingType = (typeof PING_TYPES)[number];
+
 // Drizzle's pg-core has no built-in `bytea` helper — postgres.js already
 // marshals bytea <-> Buffer natively, so this just tells Drizzle the SQL
 // type name. Used for compressed JSON blobs (see compression.ts) — plain
@@ -28,27 +49,31 @@ const bytea = customType<{ data: Buffer }>({
  * ingested match. The crawler refreshes whoever has the oldest
  * `lastRefreshedAt` (never-refreshed rows first).
  */
-export const summoners = pgTable("summoners", {
-  puuid: text("puuid").primaryKey(),
-  riotIdGameName: text("riot_id_game_name").notNull(),
-  riotIdTagline: text("riot_id_tagline").notNull(),
-  /** The Riot ID's lookup key (`riotIdKey()` in riotId.ts): what a summoner
-   * page is found by. Null only on rows from before the column, which the
-   * API fills at startup (`backfillRiotIdKeys`). */
-  riotIdKey: text("riot_id_key"),
-  region: text("region").notNull(),
-  profileIconId: integer("profile_icon_id"),
-  summonerLevel: integer("summoner_level"),
-  /** When ingestion last finished pulling this summoner's matches from Riot.
-   * Null until the first refresh completes, which is the state of every
-   * summoner the crawler discovers. */
-  lastRefreshedAt: timestamp("last_refreshed_at", { withTimezone: true }),
-}, (table) => [
-  // The crawler's "who's next" lookup: oldest refresh first, nulls first.
-  index("summoners_last_refreshed_at_idx").on(table.lastRefreshedAt.asc().nullsFirst()),
-  // Every summoner page's lookup (`findSummonerByRiotId`).
-  index("summoners_riot_id_idx").on(table.region, table.riotIdKey),
-]);
+export const summoners = pgTable(
+  "summoners",
+  {
+    puuid: text("puuid").primaryKey(),
+    riotIdGameName: text("riot_id_game_name").notNull(),
+    riotIdTagline: text("riot_id_tagline").notNull(),
+    /** The Riot ID's lookup key (`riotIdKey()` in riotId.ts): what a summoner
+     * page is found by. Null only on rows from before the column, which the
+     * API fills at startup (`backfillRiotIdKeys`). */
+    riotIdKey: text("riot_id_key"),
+    region: text("region").notNull(),
+    profileIconId: integer("profile_icon_id"),
+    summonerLevel: integer("summoner_level"),
+    /** When ingestion last finished pulling this summoner's matches from Riot.
+     * Null until the first refresh completes, which is the state of every
+     * summoner the crawler discovers. */
+    lastRefreshedAt: timestamp("last_refreshed_at", { withTimezone: true }),
+  },
+  (table) => [
+    // The crawler's "who's next" lookup: oldest refresh first, nulls first.
+    index("summoners_last_refreshed_at_idx").on(table.lastRefreshedAt.asc().nullsFirst()),
+    // Every summoner page's lookup (`findSummonerByRiotId`).
+    index("summoners_riot_id_idx").on(table.region, table.riotIdKey),
+  ],
+);
 
 /**
  * One Arena match. `raw` keeps the full Riot Match-V5 payload so the parser
@@ -165,24 +190,12 @@ export const matchParticipants = pgTable(
     summonerSpell1Id: integer("summoner_spell_1_id"),
     summonerSpell2Id: integer("summoner_spell_2_id"),
 
-    // All 13 ping types as one object rather than 13 columns — these are
-    // informational/fun stats, never filtered/sorted on individually.
-    pings: jsonb("pings").$type<{
-      allIn: number;
-      assistMe: number;
-      basic: number;
-      command: number;
-      danger: number;
-      enemyMissing: number;
-      enemyVision: number;
-      getBack: number;
-      hold: number;
-      needVision: number;
-      onMyWay: number;
-      push: number;
-      retreat: number;
-      visionCleared: number;
-    }>(),
+    /** All 14 ping counters in one column rather than 14 (informational,
+     * never filtered or sorted on individually): one count per `PING_TYPES`
+     * entry, in that order. A smallint array, not a jsonb object, which
+     * repeated all 14 key names on every row: ~52 bytes instead of ~338
+     * (the highest count seen is 50). */
+    pings: smallint("pings").array(),
 
     // Anvil purchases (ITEM_PURCHASED events from `timeline`), split by type
     // rather than one total — confirmed via Data Dragon's item descriptions

@@ -282,9 +282,9 @@ export interface FunStats {
   bestSkillshotsDodged: number;
 }
 
-/** All 14 of Riot's ping counters (see CLAUDE.md §2 — stored as one jsonb
- * object on match_participants, not 13 columns), summed across every
- * tracked match. */
+/** All 14 of Riot's ping counters (see CLAUDE.md §2 — stored as one
+ * smallint array on match_participants, not 14 columns), summed across
+ * every tracked match. */
 export interface PingBreakdown {
   allIn: number;
   assistMe: number;

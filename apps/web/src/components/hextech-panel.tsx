@@ -56,8 +56,7 @@ function HextechPanel({ title, children, className, bodyClassName, contentMinWid
       <div
         className="absolute inset-0 border"
         style={{
-          background:
-            "linear-gradient(155deg, rgba(9,20,40,.62), rgba(3,10,18,.72))",
+          background: "linear-gradient(155deg, rgba(9,20,40,.62), rgba(3,10,18,.72))",
           backdropFilter: "blur(3px)",
           borderColor: "rgba(200,170,110,.3)",
         }}
@@ -73,36 +72,20 @@ function HextechPanel({ title, children, className, bodyClassName, contentMinWid
       {CORNER_DIAMOND_POSITIONS.map((position) => (
         <div
           key={position}
-          className={cn(
-            "absolute h-3.25 w-3.25 rotate-45 border bg-lol-navy-950",
-            position,
-          )}
+          className={cn("absolute h-3.25 w-3.25 rotate-45 border bg-lol-navy-950", position)}
           style={{ borderColor: "rgba(200,170,110,.75)" }}
         />
       ))}
 
       {title ? (
         <div className="absolute -top-6.25 left-1/2 flex -translate-x-1/2 items-center gap-4 bg-[#040c14] px-5.5">
-          <div
-            className="h-2.25 w-2.25 rotate-45 border"
-            style={{ borderColor: "rgba(200,170,110,.6)" }}
-          />
-          <div className="font-display pl-[.2em] text-[27px] tracking-[.2em] text-lol-gold-50">
-            {title}
-          </div>
-          <div
-            className="h-2.25 w-2.25 rotate-45 border"
-            style={{ borderColor: "rgba(200,170,110,.6)" }}
-          />
+          <div className="h-2.25 w-2.25 rotate-45 border" style={{ borderColor: "rgba(200,170,110,.6)" }} />
+          <div className="font-display pl-[.2em] text-[27px] tracking-[.2em] text-lol-gold-50">{title}</div>
+          <div className="h-2.25 w-2.25 rotate-45 border" style={{ borderColor: "rgba(200,170,110,.6)" }} />
         </div>
       ) : null}
 
-      <div
-        className={cn(
-          "relative box-border flex h-full min-w-0 flex-col px-9 pt-11 pb-6.5",
-          bodyClassName,
-        )}
-      >
+      <div className={cn("relative box-border flex h-full min-w-0 flex-col px-9 pt-11 pb-6.5", bodyClassName)}>
         {contentMinWidth ? (
           <div
             ref={scrollerRef}

@@ -31,7 +31,10 @@ export async function POST(request: Request, { params }: RouteContext<"/api/summ
     return Response.json({ error: "unavailable" }, { status: 502 });
   }
   if (!upstream.ok || !upstream.body) {
-    return Response.json({ error: upstream.status === 400 ? "invalid" : "unavailable" }, { status: upstream.status === 400 ? 400 : 502 });
+    return Response.json(
+      { error: upstream.status === 400 ? "invalid" : "unavailable" },
+      { status: upstream.status === 400 ? 400 : 502 },
+    );
   }
   return new Response(upstream.body, {
     headers: {

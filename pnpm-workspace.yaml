@@ -4,3 +4,11 @@ packages:
 allowBuilds:
   esbuild: true
   unrs-resolver: true
+# eslint-config-next's react, jsx-a11y and import plugins don't declare
+# ESLint 10 yet: packages/eslint-config/next.js runs them through
+# @eslint/compat. Remove these with that wrapper.
+peerDependencyRules:
+  allowedVersions:
+    eslint-plugin-react>eslint: "10"
+    eslint-plugin-jsx-a11y>eslint: "10"
+    eslint-plugin-import>eslint: "10"

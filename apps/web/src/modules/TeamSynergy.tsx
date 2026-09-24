@@ -2,20 +2,12 @@
 
 import { useMemo, useRef, useState } from "react";
 import { ResponsiveChord } from "@nivo/chord";
-import type {
-  ArcTooltipComponentProps,
-  RibbonTooltipComponentProps,
-} from "@nivo/chord";
+import type { ArcTooltipComponentProps, RibbonTooltipComponentProps } from "@nivo/chord";
 import type { TeammateChampionStats, TeamSynergyStats } from "@arena/types";
 import { DiamondTabs } from "@/components/diamond-tabs";
 import { PanelToolbar, ToolbarDivider } from "@/components/panel-toolbar";
 import { DeltaCell, formatSignedPoints } from "@/components/delta-cell";
-import {
-  HoverCardChampions,
-  HoverCardRows,
-  HoverCardSection,
-  HoverStatCard,
-} from "@/components/hover-stat-card";
+import { HoverCardChampions, HoverCardRows, HoverCardSection, HoverStatCard } from "@/components/hover-stat-card";
 import { MIN_SAMPLE, isLowSample, sortByRate } from "@/lib/sample";
 import { CategorySection } from "@/components/category-section";
 import { HextechPanel } from "@/components/hextech-panel";
@@ -66,13 +58,7 @@ function TeammatePicks({
   const sorted =
     sort === "games"
       ? rows
-      : sortByRate(
-          rows,
-          top3RateOf,
-          (row) => row.games,
-          "desc",
-          mixLowSample ? "mixed" : "after",
-        );
+      : sortByRate(rows, top3RateOf, (row) => row.games, "desc", mixLowSample ? "mixed" : "after");
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -84,10 +70,7 @@ function TeammatePicks({
         <div>TEAMMATE CHAMPION</div>
         <div className="text-right">GAMES</div>
         <div className="text-right">WINRATE</div>
-        <div
-          className="text-right"
-          title="Your winrate in these games minus your overall winrate"
-        >
+        <div className="text-right" title="Your winrate in these games minus your overall winrate">
           VS AVG
         </div>
       </div>
@@ -115,19 +98,13 @@ function TeammatePicks({
                 height={28}
                 className="border border-[rgba(200,170,110,.45)]"
               />
-              <div className="truncate text-sm text-lol-text-secondary">
-                {displayName(row.championName)}
-              </div>
-              <div className="font-display text-right text-[15px] text-lol-gold-50 tabular-nums">
-                {row.games}
-              </div>
+              <div className="truncate text-sm text-lol-text-secondary">{displayName(row.championName)}</div>
+              <div className="font-display text-right text-[15px] text-lol-gold-50 tabular-nums">{row.games}</div>
               <div className="font-display text-right text-[15px] text-lol-gold-50 tabular-nums">
                 {rate.toFixed(0)}%
               </div>
               {low ? (
-                <div className="text-right text-[11px] text-lol-text-muted">
-                  —
-                </div>
+                <div className="text-right text-[11px] text-lol-text-muted">—</div>
               ) : (
                 <DeltaCell delta={rate - baselineTop3Rate} />
               )}
@@ -171,13 +148,9 @@ const TeamSynergy = ({
   // Teammate Picks' sort lives here so its tabs share the panel's toolbar row.
   const [pickSort, setPickSort] = useState<PickSort>("games");
   const [mixLowSample, setMixLowSample] = useState(false);
-  const [selectedChampionId, setSelectedChampionId] = useState<number | null>(
-    () => champions[0]?.championId ?? null,
-  );
+  const [selectedChampionId, setSelectedChampionId] = useState<number | null>(() => champions[0]?.championId ?? null);
 
-  const selectedIndex = champions.findIndex(
-    (c) => c.championId === selectedChampionId,
-  );
+  const selectedIndex = champions.findIndex((c) => c.championId === selectedChampionId);
   const selected = selectedIndex >= 0 ? champions[selectedIndex] : null;
 
   // The selected champion's most-played partner — the highest cell in that
@@ -189,25 +162,16 @@ const TeamSynergy = ({
     let bestGames = 0;
     matrix[selectedIndex].forEach((games, index) => {
       // The aggregate "Other" node isn't a partner anyone can act on.
-      if (
-        index !== selectedIndex &&
-        champions[index].championCount === 1 &&
-        games > bestGames
-      ) {
+      if (index !== selectedIndex && champions[index].championCount === 1 && games > bestGames) {
         bestGames = games;
         bestIndex = index;
       }
     });
-    return bestIndex >= 0
-      ? { champion: champions[bestIndex], games: bestGames }
-      : null;
+    return bestIndex >= 0 ? { champion: champions[bestIndex], games: bestGames } : null;
   }, [selectedIndex, matrix, champions]);
 
   const displayName = useChampionName();
-  const championByName = useMemo(
-    () => new Map(champions.map((c) => [c.championName, c])),
-    [champions],
-  );
+  const championByName = useMemo(() => new Map(champions.map((c) => [c.championName, c])), [champions]);
 
   // `gamesTierPosition` was tuned for a single DAY's game count (prismatic
   // at 10+) — reused as-is here, every arc in a well-tracked account
@@ -225,9 +189,7 @@ const TeamSynergy = ({
   const otherNode = champions.find((c) => c.championCount > 1);
   const namedChampionCount = champions.length - (otherNode ? 1 : 0);
 
-  const indexByName = new Map(
-    champions.map((c, index) => [c.championName, index]),
-  );
+  const indexByName = new Map(champions.map((c, index) => [c.championName, index]));
 
   /** Win/1st rows for a set of shared games, against the summoner's overall
    * winrate — the question this chart answers is "better or worse with". */
@@ -240,9 +202,7 @@ const TeamSynergy = ({
           <>
             {winRate.toFixed(0)}%
             <span className="ml-1.5 text-[11px] text-lol-text-muted">
-              {isLowSample(games)
-                ? "few games"
-                : formatSignedPoints(winRate - baselineTop3Rate)}
+              {isLowSample(games) ? "few games" : formatSignedPoints(winRate - baselineTop3Rate)}
             </span>
           </>
         ),
@@ -255,13 +215,7 @@ const TeamSynergy = ({
   }
 
   function championIcon(name: string) {
-    return (
-      <img
-        src={championIconUrl(name)}
-        alt=""
-        className="size-8 flex-none border border-[rgba(200,170,110,.4)]"
-      />
-    );
+    return <img src={championIconUrl(name)} alt="" className="size-8 flex-none border border-[rgba(200,170,110,.4)]" />;
   }
 
   function ArcTooltip({ arc }: ArcTooltipComponentProps) {
@@ -271,11 +225,7 @@ const TeamSynergy = ({
     const isOther = node.championCount > 1;
     let partnerIndex = -1;
     matrix[index].forEach((games, other) => {
-      if (
-        other !== index &&
-        champions[other].championCount === 1 &&
-        games > (matrix[index][partnerIndex] ?? 0)
-      ) {
+      if (other !== index && champions[other].championCount === 1 && games > (matrix[index][partnerIndex] ?? 0)) {
         partnerIndex = other;
       }
     });
@@ -285,22 +235,14 @@ const TeamSynergy = ({
         title={
           <span className="flex items-center gap-2.5">
             {isOther ? null : championIcon(node.championName)}
-            {isOther
-              ? `OTHER · ${node.championCount} CHAMPIONS`
-              : displayName(node.championName)}
+            {isOther ? `OTHER · ${node.championCount} CHAMPIONS` : displayName(node.championName)}
           </span>
         }
         meta={`${node.gamesOnTeam.toLocaleString()} game${node.gamesOnTeam === 1 ? "" : "s"}`}
         subtitle="On your team, you included"
       >
         <HoverCardSection>
-          <HoverCardRows
-            rows={outcomeRows(
-              node.gamesOnTeam,
-              node.top3OnTeam ?? 0,
-              node.top1OnTeam ?? 0,
-            )}
-          />
+          <HoverCardRows rows={outcomeRows(node.gamesOnTeam, node.top3OnTeam ?? 0, node.top1OnTeam ?? 0)} />
         </HoverCardSection>
         {partner ? (
           <HoverCardSection label="MOST OFTEN WITH">
@@ -314,9 +256,7 @@ const TeamSynergy = ({
             />
           </HoverCardSection>
         ) : null}
-        <div className="mt-2.5 text-[10px] tracking-[.2em] text-lol-text-muted/70">
-          CLICK TO PIN BELOW
-        </div>
+        <div className="mt-2.5 text-[10px] tracking-[.2em] text-lol-text-muted/70">CLICK TO PIN BELOW</div>
       </HoverStatCard>
     );
   }
@@ -327,37 +267,24 @@ const TeamSynergy = ({
     if (i === -1 || j === -1) return null;
     const games = matrix[i][j];
     const nameOf = (index: number) =>
-      champions[index].championCount > 1
-        ? "Other"
-        : displayName(champions[index].championName);
+      champions[index].championCount > 1 ? "Other" : displayName(champions[index].championName);
     return (
       <HoverStatCard
         title={
           <span className="flex items-center gap-1.5">
-            {champions[i].championCount === 1
-              ? championIcon(champions[i].championName)
-              : null}
-            {champions[j].championCount === 1
-              ? championIcon(champions[j].championName)
-              : null}
+            {champions[i].championCount === 1 ? championIcon(champions[i].championName) : null}
+            {champions[j].championCount === 1 ? championIcon(champions[j].championName) : null}
           </span>
         }
         meta={`${games.toLocaleString()} game${games === 1 ? "" : "s"} together`}
         subtitle={`${nameOf(i)} + ${nameOf(j)}`}
       >
         <HoverCardSection>
-          <HoverCardRows
-            rows={outcomeRows(
-              games,
-              matrixTop3?.[i]?.[j] ?? 0,
-              matrixTop1?.[i]?.[j] ?? 0,
-            )}
-          />
+          <HoverCardRows rows={outcomeRows(games, matrixTop3?.[i]?.[j] ?? 0, matrixTop1?.[i]?.[j] ?? 0)} />
         </HoverCardSection>
       </HoverStatCard>
     );
   }
-
 
   return (
     <CategorySection
@@ -373,7 +300,6 @@ const TeamSynergy = ({
           />
 
           <div className="mt-auto">
-
             <SidebarStatRows
               rows={[
                 {
@@ -414,10 +340,7 @@ const TeamSynergy = ({
           }
           trailing={
             view === "picks" && pickSort !== "games" ? (
-              <LowSampleSwitch
-                checked={mixLowSample}
-                onChange={setMixLowSample}
-              />
+              <LowSampleSwitch checked={mixLowSample} onChange={setMixLowSample} />
             ) : null
           }
         >
@@ -484,11 +407,7 @@ const TeamSynergy = ({
                 from: "color",
                 modifiers: [["darker", 0.6]],
               }}
-              colors={(d) =>
-                tierGradient(
-                  (championByName.get(d.id)?.gamesOnTeam ?? 0) / maxGamesOnTeam,
-                )
-              }
+              colors={(d) => tierGradient((championByName.get(d.id)?.gamesOnTeam ?? 0) / maxGamesOnTeam)}
               labelRotation={-90}
               labelOffset={14}
               enableLabel
@@ -540,11 +459,7 @@ const TeamSynergy = ({
                 />
               </div>
             }
-            title={
-              selected.championCount > 1
-                ? "OTHER CHAMPIONS"
-                : displayName(selected.championName)
-            }
+            title={selected.championCount > 1 ? "OTHER CHAMPIONS" : displayName(selected.championName)}
             subtitle={
               selected.championCount > 1
                 ? `${selected.championCount} CHAMPIONS · ${selected.gamesOnTeam.toLocaleString()} GAMES`
@@ -553,9 +468,7 @@ const TeamSynergy = ({
             stats={[
               {
                 label: "TOP PARTNER",
-                value: topPartner
-                  ? displayName(topPartner.champion.championName)
-                  : "—",
+                value: topPartner ? displayName(topPartner.champion.championName) : "—",
                 highlight: true,
                 bordered: false,
               },

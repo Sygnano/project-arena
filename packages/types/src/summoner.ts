@@ -35,8 +35,13 @@ export interface RefreshProgress {
   phase: "matchIds" | "matches" | null;
   done: number;
   total: number;
-  /** Rough seconds left while fetching matches, null otherwise. */
+  /** Rough seconds left while fetching matches, at the pace measured so far;
+   * null before a few matches are in, and outside that phase. */
   etaSeconds: number | null;
+  /** The fetch's current Riot call has been held at the Riot gateway for a
+   * few seconds: behind higher-priority requests, or waiting for Riot's rate
+   * limit. False while queued (`position` covers that) or finished. */
+  waitingOnRiot: boolean;
   // Why a fetch failed stays in the API's log: the error's message can name
   // internal hosts, the Riot key's state or PUUIDs.
 }

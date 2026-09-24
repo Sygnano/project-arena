@@ -36,8 +36,7 @@ export function CompositionDonut({ slices, format, caption }: Props) {
 
   const total = slices.reduce((sum, slice) => sum + slice.value, 0);
   const hovered = slices.find((slice) => slice.key === hoveredKey) ?? null;
-  const share = (value: number) =>
-    total > 0 ? `${Math.round((value / total) * 100)}%` : "0%";
+  const share = (value: number) => (total > 0 ? `${Math.round((value / total) * 100)}%` : "0%");
 
   return (
     // The legend rides beside the ring once its column is wide enough
@@ -113,17 +112,9 @@ export function CompositionDonut({ slices, format, caption }: Props) {
                   opacity: slice.value > 0 ? 1 : 0.4,
                 }}
               >
-                <div
-                  className="h-1.75 w-1.75 flex-none rotate-45"
-                  style={{ background: slice.color }}
-                />
-                <span className="flex-1 truncate text-[11px] tracking-[.14em] text-lol-text-muted">
-                  {slice.label}
-                </span>
-                <span
-                  className="font-display text-[14px] tabular-nums"
-                  style={{ color: slice.color }}
-                >
+                <div className="h-1.75 w-1.75 flex-none rotate-45" style={{ background: slice.color }} />
+                <span className="flex-1 truncate text-[11px] tracking-[.14em] text-lol-text-muted">{slice.label}</span>
+                <span className="font-display text-[14px] tabular-nums" style={{ color: slice.color }}>
                   {format(slice.value)}
                 </span>
                 <span className="w-8 text-right text-[11px] text-lol-text-muted tabular-nums">

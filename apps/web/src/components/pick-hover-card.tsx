@@ -2,11 +2,7 @@
 
 import type { ReactNode } from "react";
 import { formatSignedPoints } from "@/components/delta-cell";
-import {
-  HoverCardRows,
-  HoverCardSection,
-  HoverStatCard,
-} from "@/components/hover-stat-card";
+import { HoverCardRows, HoverCardSection, HoverStatCard } from "@/components/hover-stat-card";
 import { isLowSample } from "@/lib/sample";
 import { TIER_STYLE } from "@/lib/tier-bars";
 
@@ -94,9 +90,7 @@ function PickHoverCard({
           <span className="min-w-0 whitespace-normal leading-tight">
             {name}
             {kicker ? (
-              <span className="mt-0.5 block font-body text-[10px] tracking-[.2em] text-lol-text-muted">
-                {kicker}
-              </span>
+              <span className="mt-0.5 block font-body text-[10px] tracking-[.2em] text-lol-text-muted">{kicker}</span>
             ) : null}
           </span>
         </span>
@@ -133,9 +127,7 @@ function PickHoverCard({
                   ? [
                       {
                         label: `VS ${averageLabel}`,
-                        value: lowSample
-                          ? "—"
-                          : formatSignedPoints(winRate - averageWinRate, 0),
+                        value: lowSample ? "—" : formatSignedPoints(winRate - averageWinRate, 0),
                       },
                     ]
                   : []),
@@ -157,10 +149,7 @@ function PickHoverCard({
             <div className="mt-1.5 flex justify-between text-[10px] tracking-[.14em] text-lol-text-muted">
               {segments.map((segment) => (
                 <span key={segment.key}>
-                  {segment.label}{" "}
-                  <span className="font-display text-lol-gold-50">
-                    {segment.count}
-                  </span>
+                  {segment.label} <span className="font-display text-lol-gold-50">{segment.count}</span>
                 </span>
               ))}
             </div>
@@ -168,9 +157,7 @@ function PickHoverCard({
         </>
       )}
       {pinHint ? (
-        <div className="mt-2.5 text-[10px] tracking-[.2em] text-lol-text-muted/70">
-          CLICK TO PIN IN THE SIDEBAR
-        </div>
+        <div className="mt-2.5 text-[10px] tracking-[.2em] text-lol-text-muted/70">CLICK TO PIN IN THE SIDEBAR</div>
       ) : null}
     </HoverStatCard>
   );

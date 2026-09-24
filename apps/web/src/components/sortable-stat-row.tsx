@@ -46,25 +46,13 @@ function ValuePercentRow({
  * touches the column's right edge, aligned with the value below it. Shared
  * by Damage/DamageTaken and Ability's champion tables.
  */
-function SortHeaderLabel({
-  label,
-  active,
-  dir,
-}: {
-  label: string;
-  active: boolean;
-  dir: "asc" | "desc";
-}) {
+function SortHeaderLabel({ label, active, dir }: { label: string; active: boolean; dir: "asc" | "desc" }) {
   return (
     <span className="inline-flex items-center gap-1 text-[11px]">
       <span className="tracking-[.22em]" style={{ marginRight: "-.22em" }}>
         {label}
       </span>
-      {active && (
-        <span className="text-[7px] leading-none">
-          {dir === "desc" ? "▼" : "▲"}
-        </span>
-      )}
+      {active && <span className="text-[7px] leading-none">{dir === "desc" ? "▼" : "▲"}</span>}
     </span>
   );
 }

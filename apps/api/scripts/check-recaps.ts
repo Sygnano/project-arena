@@ -24,12 +24,16 @@
  * Usage: pnpm --filter @arena/api check-recaps
  */
 import { asc, sql, summoners, type Summoner } from "@arena/db";
+import { isPlatform, matchRegion, toPlatform, type Region } from "@arena/riot";
 import { db } from "../src/db.js";
 import { ingestSummoner } from "../src/ingestion/ingestSummoner.js";
-import { riotIdLabel } from "../src/logger.js";
-import { isPlatform, riot, type Region } from "../src/riotApi/index.js";
-import { matchRegion, toPlatform } from "../src/riotApi/routing.js";
+import { logger, riotIdLabel } from "../src/logger.js";
+import { riotGateway } from "../src/riot.js";
 import { errorMessage, isFatal, progressLogger } from "./script-helpers.js";
+
+const scriptLog = logger.child({ module: "check-recaps" });
+// Upkeep, like the crawler: whatever Riot budget the site leaves.
+const riot = riotGateway.client("crawler");
 
 const LANES: Region[] = ["europe", "americas", "asia", "sea"];
 const MAX_CONSECUTIVE_FAILURES = 5;
@@ -39,7 +43,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {
     if (stopRequested) process.exit(130);
     stopRequested = true;
-    console.log(`\n[check] ${signal}: stopping after the current match (again to quit now)`);
+    scriptLog.info(`${signal}: stopping after the current match (again to quit now)`);
   });
 }
 
@@ -65,7 +69,8 @@ async function loadSummoners(): Promise<CheckTarget[]> {
 
 /** Checks one regional cluster's summoners, one after another. Throws on a fatal Riot error or an outage. */
 async function checkLane(lane: Region, list: CheckTarget[]) {
-  const log = (message: string) => console.log(`[check:${lane}] ${message}`);
+  const laneLog = scriptLog.child({ lane });
+  const log = (message: string) => laneLog.info(message);
   if (list.length === 0) return;
   log(`${list.length} summoner(s) to check`);
   let consecutiveFailures = 0;
@@ -90,10 +95,12 @@ async function checkLane(lane: Region, list: CheckTarget[]) {
           shouldStop: () => stopRequested,
           onSkip: (skip) => {
             const status = skip.riotStatus ? ` ${skip.riotStatus}` : "";
-            console.warn(`[check:${lane}]   ${name}: match ${skip.matchId} failed, skipped (${skip.stage}${status}): ${skip.error}`);
+            laneLog.warn(`  ${name}: match ${skip.matchId} failed, skipped (${skip.stage}${status}): ${skip.error}`);
           },
           onBadMatch: (badMatch) => {
-            console.log(`[check:${lane}]   ${name}: bad match ${badMatch.matchId} (${badMatch.endOfGameResult}), won't be fetched again`);
+            laneLog.info(
+              `  ${name}: bad match ${badMatch.matchId} (${badMatch.endOfGameResult}), won't be fetched again`,
+            );
           },
         },
       );
@@ -121,10 +128,11 @@ async function checkLane(lane: Region, list: CheckTarget[]) {
       if (isFatal(err)) throw err;
       totals.failed += 1;
       consecutiveFailures += 1;
-      console.error(`[check:${lane}] ${position} ${name} failed, moving on: ${errorMessage(err)}`);
+      laneLog.error(`${position} ${name} failed, moving on: ${errorMessage(err)}`);
       if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
         throw new Error(
           `${consecutiveFailures} summoners failed in a row, looks like an outage (network, database or Riot); nothing was half-written. Rerun when it's back.`,
+          { cause: err },
         );
       }
     }
@@ -137,13 +145,13 @@ async function main() {
   const byLane = new Map<Region, CheckTarget[]>(LANES.map((lane) => [lane, []]));
   for (const summoner of all) {
     if (!isPlatform(summoner.region)) {
-      console.warn(`[check] ${riotIdLabel(summoner)}: unknown platform "${summoner.region}", skipped`);
+      scriptLog.warn(`${riotIdLabel(summoner)}: unknown platform "${summoner.region}", skipped`);
       continue;
     }
     byLane.get(matchRegion(toPlatform(summoner.region)))!.push(summoner);
   }
-  console.log(
-    `[check] starting: ${all.length} summoner(s) with a recap, ` +
+  scriptLog.info(
+    `starting: ${all.length} summoner(s) with a recap, ` +
       LANES.map((lane) => `${lane} ${byLane.get(lane)!.length}`).join(", "),
   );
 
@@ -158,8 +166,8 @@ async function main() {
   );
 
   const minutes = ((Date.now() - startedAt) / 60_000).toFixed(1);
-  console.log(
-    `[check] ${stopRequested ? "stopped" : "done"} in ${minutes} min: ${totals.checked}/${all.length} summoner(s) checked, ` +
+  scriptLog.info(
+    `${stopRequested ? "stopped" : "done"} in ${minutes} min: ${totals.checked}/${all.length} summoner(s) checked, ` +
       `${totals.complete} complete, ${totals.withGaps} with missing matches (${totals.stored} match(es) stored, ` +
       `${totals.skipped} failed match(es) skipped, ${totals.bad} bad), ${totals.discovered} new player(s), ${totals.failed} failed`,
   );
@@ -169,7 +177,7 @@ async function main() {
 }
 
 main().catch(async (err) => {
-  console.error("[check] aborted:", errorMessage(err));
+  scriptLog.error(`aborted: ${errorMessage(err)}`);
   await db.$client.end().catch(() => {});
   process.exit(1);
 });

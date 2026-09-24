@@ -84,13 +84,8 @@ const Pings = ({ pings, totalPings }: Props) => {
     .filter((tile) => tile.count > 0)
     .sort((a, b) => b.count - a.count);
 
-
   return (
-    <CategorySection
-      title="PINGS"
-      quote="Embrace the darkness."
-      imageUrl={SECTION_BACKGROUNDS.pings}
-    >
+    <CategorySection title="PINGS" quote="Embrace the darkness." imageUrl={SECTION_BACKGROUNDS.pings}>
       <HextechPanel bodyClassName="p-8">
         <div className="mb-4 flex flex-none flex-wrap items-center gap-x-6 gap-y-3">
           <div className="text-[11px] tracking-[.28em] text-lol-text-muted">
@@ -133,9 +128,7 @@ const Pings = ({ pings, totalPings }: Props) => {
                   <AnimatedNumber
                     value={count}
                     className={
-                      unused
-                        ? "font-display text-3xl text-lol-text-muted"
-                        : "font-display text-3xl text-lol-gold-50"
+                      unused ? "font-display text-3xl text-lol-text-muted" : "font-display text-3xl text-lol-gold-50"
                     }
                   />
                   <div className="text-center text-xs tracking-[.16em] text-lol-text-muted uppercase">

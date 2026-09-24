@@ -1,4 +1,4 @@
-import type { Platform } from "../src/riotApi/index.js";
+import type { Platform } from "@arena/riot";
 
 /**
  * Where the crawler starts on a platform it has no summoner on yet: the top

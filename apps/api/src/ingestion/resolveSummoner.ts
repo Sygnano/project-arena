@@ -1,6 +1,6 @@
 import type { Summoner } from "@arena/db";
+import { RiotApiError, type RiotClient } from "@arena/riot";
 import { logger, riotIdLabel } from "../logger.js";
-import { riot, RiotApiError } from "../riotApi/index.js";
 import { saveSummonerFromRiot } from "../summoners/summonerRepository.js";
 
 const log = logger.child({ module: "resolve" });
@@ -11,6 +11,7 @@ const log = logger.child({ module: "resolve" });
  * calls) and store the result through `saveSummonerFromRiot`, the one writer
  * of Riot-sourced profile fields. Match data never overwrites them (see
  * `ingestSummoner`): account-v1 is the only source of a current Riot ID.
+ * The caller's `riot` client decides the gateway bucket the calls wait in.
  */
 
 /**
@@ -18,7 +19,12 @@ const log = logger.child({ module: "resolve" });
  * know them: no such Riot ID, or one that never played League on this
  * platform.
  */
-export async function resolveSummonerByRiotId(region: string, gameName: string, tagLine: string): Promise<Summoner | null> {
+export async function resolveSummonerByRiotId(
+  riot: RiotClient,
+  region: string,
+  gameName: string,
+  tagLine: string,
+): Promise<Summoner | null> {
   try {
     const account = await riot.account.getAccountByRiotId(gameName, tagLine, region);
     const profile = await riot.summoner.getSummonerByPuuid(account.puuid, region);
@@ -47,6 +53,7 @@ export async function resolveSummonerByRiotId(region: string, gameName: string, 
  * Throws on any Riot error, 404 included.
  */
 export async function refreshSummonerProfile(
+  riot: RiotClient,
   summoner: Pick<Summoner, "puuid" | "region" | "riotIdGameName" | "riotIdTagline">,
 ): Promise<Summoner> {
   const account = await riot.account.getAccountByPuuid(summoner.puuid, summoner.region);
@@ -54,7 +61,11 @@ export async function refreshSummonerProfile(
   return saveSummonerFromRiot(
     summoner.region,
     // An account without a Riot ID keeps the one we have.
-    { ...account, gameName: account.gameName ?? summoner.riotIdGameName, tagLine: account.tagLine ?? summoner.riotIdTagline },
+    {
+      ...account,
+      gameName: account.gameName ?? summoner.riotIdGameName,
+      tagLine: account.tagLine ?? summoner.riotIdTagline,
+    },
     profile,
   );
 }

@@ -1,17 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type {
-  PrismaticItemPickBreakdown,
-  PrismaticItemPicksStats,
-  PrismaticItemsStats,
-} from "@arena/types";
+import type { PrismaticItemPickBreakdown, PrismaticItemPicksStats, PrismaticItemsStats } from "@arena/types";
 import { CategorySection } from "@/components/category-section";
 import { HextechPanel } from "@/components/hextech-panel";
-import {
-  HextechBarChart,
-  type BarColumn,
-} from "@/components/hextech-bar-chart";
+import { HextechBarChart, type BarColumn } from "@/components/hextech-bar-chart";
 import { RingFrame } from "@/components/dial";
 import { DiamondTabs } from "@/components/diamond-tabs";
 import { PanelToolbar } from "@/components/panel-toolbar";
@@ -52,10 +45,7 @@ function rankLabel(rank: number, total: number): string {
 }
 
 /** Share of games that count toward the active rate sort. */
-function pickRate(
-  row: PrismaticItemPickBreakdown,
-  sort: Exclude<SortMode, "held">,
-): number {
+function pickRate(row: PrismaticItemPickBreakdown, sort: Exclude<SortMode, "held">): number {
   const hits = sort === "top3" ? row.top1 + row.top3ExclTop1 : row.top1;
   return row.timesHeld > 0 ? hits / row.timesHeld : 0;
 }
@@ -68,8 +58,7 @@ function sortItems(
   sort: SortMode,
   mixLowSample = false,
 ): PrismaticItemPickBreakdown[] {
-  if (sort === "held")
-    return [...rows].sort((a, b) => b.timesHeld - a.timesHeld);
+  if (sort === "held") return [...rows].sort((a, b) => b.timesHeld - a.timesHeld);
   // Rates only rank rows with enough games; the rest follow, dimmed (see
   // lib/sample.ts). A 1-for-1 pick used to top "BY 1ST RATE" at 100%.
   return sortByRate(
@@ -95,20 +84,12 @@ const PrismaticItemPicks = ({ prismaticItems, prismaticItemPicks }: Props) => {
   // Rate sorts: rank rows under MIN_SAMPLE with the rest (still dimmed).
   const [mixLowSample, setMixLowSample] = useState(false);
 
-  const catalogById = useMemo(
-    () => new Map(prismaticItems.items.map((item) => [item.itemId, item])),
-    [prismaticItems],
-  );
+  const catalogById = useMemo(() => new Map(prismaticItems.items.map((item) => [item.itemId, item])), [prismaticItems]);
 
   const items = prismaticItemPicks.items;
-  const sorted = useMemo(
-    () => sortItems(items, sort, mixLowSample),
-    [items, sort, mixLowSample],
-  );
+  const sorted = useMemo(() => sortItems(items, sort, mixLowSample), [items, sort, mixLowSample]);
 
-  const [selectedItemId, setSelectedItemId] = useState<number | null>(
-    () => sorted[0]?.itemId ?? null,
-  );
+  const [selectedItemId, setSelectedItemId] = useState<number | null>(() => sorted[0]?.itemId ?? null);
 
   const maxHeld = Math.max(1, ...items.map((item) => item.timesHeld));
   // Rate sorts scale against the best rate among rows with enough games, so a
@@ -119,9 +100,7 @@ const PrismaticItemPicks = ({ prismaticItems, prismaticItemPicks }: Props) => {
       ? 0
       : Math.max(
           0,
-          ...items
-            .filter((row) => mixLowSample || !isLowSample(row.timesHeld))
-            .map((row) => pickRate(row, sort)),
+          ...items.filter((row) => mixLowSample || !isLowSample(row.timesHeld)).map((row) => pickRate(row, sort)),
         );
 
   // Compared with the average pick, not the per-game rate: longer games
@@ -131,17 +110,12 @@ const PrismaticItemPicks = ({ prismaticItems, prismaticItemPicks }: Props) => {
     (row) => row.top1 + row.top3ExclTop1,
     (row) => row.timesHeld,
   );
-  const selected =
-    sorted.find((item) => item.itemId === selectedItemId) ?? sorted[0] ?? null;
-  const selectedRank = selected
-    ? sorted.findIndex((item) => item.itemId === selected.itemId) + 1
-    : 0;
+  const selected = sorted.find((item) => item.itemId === selectedItemId) ?? sorted[0] ?? null;
+  const selectedRank = selected ? sorted.findIndex((item) => item.itemId === selected.itemId) + 1 : 0;
   const selectedIcon = selected ? catalogById.get(selected.itemId) : null;
 
   const { hover, onHover, containerRef: hoverRef } = useChartHover<number>();
-  const hoveredIndex = hover
-    ? sorted.findIndex((i) => i.itemId === hover.id)
-    : -1;
+  const hoveredIndex = hover ? sorted.findIndex((i) => i.itemId === hover.id) : -1;
   const hovered = hoveredIndex === -1 ? null : sorted[hoveredIndex];
 
   const columns: BarColumn[] = sorted.map((item) => {
@@ -156,30 +130,19 @@ const PrismaticItemPicks = ({ prismaticItems, prismaticItemPicks }: Props) => {
         ["top3", item.top3ExclTop1, TIER_STYLE.gold],
         ["rest", item.remaining, TIER_STYLE.silver],
       ] as const
-    ).filter(
-      ([key]) =>
-        sort === "held" || key === "1st" || (sort === "top3" && key === "top3"),
-    );
+    ).filter(([key]) => sort === "held" || key === "1st" || (sort === "top3" && key === "top3"));
     const stackCount = stack.reduce((sum, [, value]) => sum + value, 0);
     const total =
       sort === "held"
         ? barHeight(item.timesHeld, maxHeld, BAR_MAX_HEIGHT, BAR_MIN_HEIGHT)
-        : barHeight(
-            pickRate(item, sort),
-            maxRate,
-            BAR_MAX_HEIGHT,
-            BAR_MIN_HEIGHT,
-          );
+        : barHeight(pickRate(item, sort), maxRate, BAR_MAX_HEIGHT, BAR_MIN_HEIGHT);
 
     // Segment heights are proportional shares of `total` (not independently
     // scaled), so a stack always sums back to its own bar total.
     const scale = stackCount > 0 ? total / stackCount : 0;
     const segments = stack.map(([key, value, tier]) => ({
       key,
-      height:
-        key === "1st"
-          ? Math.max(value > 0 ? 1 : 0, value * scale)
-          : value * scale,
+      height: key === "1st" ? Math.max(value > 0 ? 1 : 0, value * scale) : value * scale,
       label: value > 0 ? String(value) : undefined,
       fillClassName: tier.fillClass,
       borderColor: tier.edge,
@@ -188,10 +151,7 @@ const PrismaticItemPicks = ({ prismaticItems, prismaticItemPicks }: Props) => {
 
     return {
       id: item.itemId,
-      topLabel:
-        sort === "held"
-          ? item.timesHeld.toLocaleString()
-          : `${(pickRate(item, sort) * 100).toFixed(0)}%`,
+      topLabel: sort === "held" ? item.timesHeld.toLocaleString() : `${(pickRate(item, sort) * 100).toFixed(0)}%`,
       isSelected,
       dimmed: sort !== "held" && isLowSample(item.timesHeld),
       ariaLabel: `${item.itemName}: ${item.timesHeld} games, ${item.top1 + item.top3ExclTop1} wins, ${item.top1} first`,
@@ -216,7 +176,6 @@ const PrismaticItemPicks = ({ prismaticItems, prismaticItemPicks }: Props) => {
       ? "SORTED · BY TIMES HELD"
       : `SORTED · BY ${sort === "top3" ? "WINRATE" : "1ST-PLACE RATE"} · UNDER ${MIN_SAMPLE} DIMMED`;
 
-
   return (
     <CategorySection
       imageUrl={SECTION_BACKGROUNDS.prismaticItemPicks}
@@ -240,16 +199,13 @@ const PrismaticItemPicks = ({ prismaticItems, prismaticItemPicks }: Props) => {
             </RingFrame>
 
             <div className="mt-5.5 text-center">
-              <div className="font-display text-[30px] tracking-[.1em] text-lol-gold-50">
-                {selected.itemName}
-              </div>
+              <div className="font-display text-[30px] tracking-[.1em] text-lol-gold-50">{selected.itemName}</div>
               <div className="mt-1.75 text-[13px] tracking-[.26em] text-lol-blue-300">
                 {rankLabel(selectedRank, sorted.length)}
               </div>
             </div>
 
             <div className="mt-auto">
-
               <SidebarStatRows
                 size="compact"
                 rows={[
@@ -272,10 +228,7 @@ const PrismaticItemPicks = ({ prismaticItems, prismaticItemPicks }: Props) => {
                     value: isLowSample(selected.timesHeld)
                       ? "FEW GAMES"
                       : formatSignedPoints(
-                          ((selected.top1 + selected.top3ExclTop1) /
-                            selected.timesHeld) *
-                            100 -
-                            averageTop3,
+                          ((selected.top1 + selected.top3ExclTop1) / selected.timesHeld) * 100 - averageTop3,
                           0,
                         ),
                   },
@@ -289,14 +242,7 @@ const PrismaticItemPicks = ({ prismaticItems, prismaticItemPicks }: Props) => {
       <HextechPanel>
         <PanelToolbar
           caption={`GAMES BY ITEM · ${modeCaption}`}
-          trailing={
-            sort !== "held" ? (
-              <LowSampleSwitch
-                checked={mixLowSample}
-                onChange={setMixLowSample}
-              />
-            ) : null
-          }
+          trailing={sort !== "held" ? <LowSampleSwitch checked={mixLowSample} onChange={setMixLowSample} /> : null}
         >
           <DiamondTabs
             tabs={[
@@ -314,10 +260,7 @@ const PrismaticItemPicks = ({ prismaticItems, prismaticItemPicks }: Props) => {
             No tracked matches yet.
           </div>
         ) : (
-          <div
-            ref={hoverRef}
-            className="flex min-h-0 min-w-0 w-full flex-1 flex-col"
-          >
+          <div ref={hoverRef} className="flex min-h-0 min-w-0 w-full flex-1 flex-col">
             <HextechBarChart
               columns={columns}
               onSelect={(id) => setSelectedItemId(id as number)}
@@ -325,9 +268,7 @@ const PrismaticItemPicks = ({ prismaticItems, prismaticItemPicks }: Props) => {
               highlightedId={hover?.id ?? null}
               gap={15}
               center
-              topLabelColor={(column) =>
-                column.isSelected ? "#f0e6d2" : "#8a8578"
-              }
+              topLabelColor={(column) => (column.isSelected ? "#f0e6d2" : "#8a8578")}
               heightUnit="percent"
             />
             <CursorTooltip point={hovered ? hover!.point : null}>

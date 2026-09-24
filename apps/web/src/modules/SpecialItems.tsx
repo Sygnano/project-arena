@@ -30,18 +30,10 @@ const EYEBROWS: { match: RegExp; text: string }[] = [
   { match: /void immolation/i, text: "Icathia's fall" },
 ];
 
-function ItemCard({
-  item,
-  baseline,
-}: {
-  item: ItemOutcomeStats;
-  baseline: Baseline;
-}) {
-  const eyebrow =
-    EYEBROWS.find((e) => e.match.test(item.itemName))?.text ?? null;
+function ItemCard({ item, baseline }: { item: ItemOutcomeStats; baseline: Baseline }) {
+  const eyebrow = EYEBROWS.find((e) => e.match.test(item.itemName))?.text ?? null;
   const name = item.itemName.replace(/^The\s+/i, "");
-  const rate = (count: number) =>
-    item.timesPicked > 0 ? (count / item.timesPicked) * 100 : null;
+  const rate = (count: number) => (item.timesPicked > 0 ? (count / item.timesPicked) * 100 : null);
 
   return (
     <div className="relative min-h-0 min-w-0">
@@ -51,8 +43,7 @@ function ItemCard({
         className="absolute inset-0 overflow-hidden border"
         style={{
           borderColor: "rgba(200,170,110,.55)",
-          background:
-            "linear-gradient(180deg, rgba(9,20,40,.72), rgba(3,10,18,.88))",
+          background: "linear-gradient(180deg, rgba(9,20,40,.72), rgba(3,10,18,.88))",
           boxShadow: "0 0 50px rgba(200,170,110,.08)",
         }}
       >
@@ -106,9 +97,7 @@ function ItemCard({
             value={item.timesPicked}
             className="font-display mt-[clamp(10px,1.6vh,16px)] text-[clamp(40px,6vh,60px)] leading-none text-lol-gold-50 [text-shadow:0_0_30px_rgba(200,170,110,.35)]"
           />
-          <div className="mt-2 pl-[.24em] text-[11px] tracking-[.24em] text-lol-text-muted">
-            OBTAINED
-          </div>
+          <div className="mt-2 pl-[.24em] text-[11px] tracking-[.24em] text-lol-text-muted">OBTAINED</div>
         </div>
 
         <RatePair
@@ -137,7 +126,6 @@ function ItemCard({
  * each, and how those matches finished.
  */
 const SpecialItems = ({ specialItems, baseline }: Props) => {
-
   return (
     <CategorySection
       title="SPECIAL ITEMS"

@@ -4,12 +4,7 @@ import type { ReactNode } from "react";
 import type { ChampionStats } from "@arena/types";
 import { championIconUrl } from "@/lib/riot";
 import { useChampionName } from "@/lib/champion-names";
-import {
-  HoverCardPlacementBars,
-  HoverCardRows,
-  HoverCardSection,
-  HoverStatCard,
-} from "@/components/hover-stat-card";
+import { HoverCardPlacementBars, HoverCardRows, HoverCardSection, HoverStatCard } from "@/components/hover-stat-card";
 
 /** Hover card showing how one champion's games FINISHED: win rate, 1st
  * rate, average placement and the per-placement bars. Shared by KDA's chart

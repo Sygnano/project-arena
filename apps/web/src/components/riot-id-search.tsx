@@ -58,11 +58,7 @@ function RiotIdSearch({ variant, autoFocus, onNavigate, className }: Props) {
 
   // The last server searched, remembered per browser; the server render
   // (and a blocked storage) falls back to the default.
-  const storedPlatform = useSyncExternalStore(
-    subscribeToStorage,
-    readStoredPlatform,
-    () => DEFAULT_SEARCH_PLATFORM,
-  );
+  const storedPlatform = useSyncExternalStore(subscribeToStorage, readStoredPlatform, () => DEFAULT_SEARCH_PLATFORM);
   const [chosenPlatform, setChosenPlatform] = useState<string | null>(null);
   const platform = chosenPlatform ?? storedPlatform;
   const [gameName, setGameName] = useState("");
@@ -110,13 +106,7 @@ function RiotIdSearch({ variant, autoFocus, onNavigate, className }: Props) {
   };
 
   return (
-    <form
-      role="search"
-      aria-label="Find a summoner"
-      noValidate
-      onSubmit={submit}
-      className={cn("relative", className)}
-    >
+    <form role="search" aria-label="Find a summoner" noValidate onSubmit={submit} className={cn("relative", className)}>
       <div
         className={cn(
           "group/field relative flex items-stretch border bg-[rgba(5,14,22,.82)] transition-[border-color,box-shadow] duration-300",
@@ -150,17 +140,16 @@ function RiotIdSearch({ variant, autoFocus, onNavigate, className }: Props) {
             aria-describedby={error ? errorId : undefined}
             className={cn(
               "h-full w-full min-w-0 bg-transparent text-lol-gold-50 outline-none focus-visible:shadow-none focus-visible:outline-none placeholder:text-lol-text-muted",
-              hero ? "px-4 text-[13px] tracking-[.18em] placeholder:uppercase sm:px-5" : "px-2.5 text-[11px] tracking-[.18em] placeholder:uppercase",
+              hero
+                ? "px-4 text-[13px] tracking-[.18em] placeholder:uppercase sm:px-5"
+                : "px-2.5 text-[11px] tracking-[.18em] placeholder:uppercase",
             )}
           />
         </label>
 
         <span
           aria-hidden
-          className={cn(
-            "flex flex-none items-center text-lol-gold-300",
-            hero ? "text-[13px]" : "text-[11px]",
-          )}
+          className={cn("flex flex-none items-center text-lol-gold-300", hero ? "text-[13px]" : "text-[11px]")}
         >
           #
         </span>
@@ -188,7 +177,9 @@ function RiotIdSearch({ variant, autoFocus, onNavigate, className }: Props) {
             aria-describedby={error ? errorId : undefined}
             className={cn(
               "h-full bg-transparent text-lol-gold-100 uppercase outline-none focus-visible:shadow-none focus-visible:outline-none placeholder:text-lol-text-muted",
-              hero ? "w-[6em] pr-2 pl-1.5 text-[13px] tracking-[.18em]" : "w-[5.5em] pr-1 pl-1 text-[11px] tracking-[.18em]",
+              hero
+                ? "w-[6em] pr-2 pl-1.5 text-[13px] tracking-[.18em]"
+                : "w-[5.5em] pr-1 pl-1 text-[11px] tracking-[.18em]",
             )}
           />
         </label>
@@ -200,7 +191,9 @@ function RiotIdSearch({ variant, autoFocus, onNavigate, className }: Props) {
               "h-full! flex-none gap-2 rounded-none border-0 bg-transparent! text-lol-gold-100 shadow-none! ring-0!",
               "tracking-[.18em] hover:text-lol-gold-50 focus-visible:text-lol-gold-50 data-[state=open]:text-lol-gold-50",
               "[&_svg]:text-lol-gold-300! [&_svg]:transition-transform data-[state=open]:[&_svg]:rotate-180",
-              hero ? "min-w-[5.5rem] pr-4 pl-3 text-[13px] sm:min-w-[6.5rem] sm:pr-5" : "min-w-[4.25rem] pr-2 pl-2 text-[11px]",
+              hero
+                ? "min-w-[5.5rem] pr-4 pl-3 text-[13px] sm:min-w-[6.5rem] sm:pr-5"
+                : "min-w-[4.25rem] pr-2 pl-2 text-[11px]",
             )}
           >
             <SelectValue>{platformLabel(platform)}</SelectValue>

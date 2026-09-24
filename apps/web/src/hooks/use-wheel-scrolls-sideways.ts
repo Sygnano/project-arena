@@ -62,11 +62,7 @@ export function useWheelScrollsSideways(scrollId: string, enabled: boolean) {
       const px = wheelDeltaToPixels(event.deltaY, event.deltaMode);
       if (px === 0) return;
 
-      for (
-        let el = event.target instanceof Element ? event.target : null;
-        el && el !== root;
-        el = el.parentElement
-      ) {
+      for (let el = event.target instanceof Element ? event.target : null; el && el !== root; el = el.parentElement) {
         if (canScrollY(el, px)) {
           // Native scroll; still counts as the gesture that owns the wheel.
           lastConsumedAt = event.timeStamp;

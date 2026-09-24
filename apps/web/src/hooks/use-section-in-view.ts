@@ -30,10 +30,10 @@ export function useSectionInView<T extends Element>() {
     const el = ref.current;
     if (!el) return;
     const root = document.getElementById("summoner-scroll");
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsIntersecting(entry.isIntersecting),
-      { root, rootMargin: "-20% 0px -20% 0px" },
-    );
+    const observer = new IntersectionObserver(([entry]) => setIsIntersecting(entry.isIntersecting), {
+      root,
+      rootMargin: "-20% 0px -20% 0px",
+    });
     observer.observe(el);
     return () => observer.disconnect();
   }, [reduceMotion]);

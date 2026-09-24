@@ -4,10 +4,7 @@ import { useMemo, useState } from "react";
 import type { ChampionPickBreakdown, ChampionPicksStats, ChampionStats } from "@arena/types";
 import { CategorySection } from "@/components/category-section";
 import { HextechPanel } from "@/components/hextech-panel";
-import {
-  HextechBarChart,
-  type BarColumn,
-} from "@/components/hextech-bar-chart";
+import { HextechBarChart, type BarColumn } from "@/components/hextech-bar-chart";
 import { RingFrame } from "@/components/dial";
 import { DiamondTabs } from "@/components/diamond-tabs";
 import { PanelToolbar } from "@/components/panel-toolbar";
@@ -19,11 +16,7 @@ import { barHeight } from "@/lib/bar-scale";
 import { useChampionName } from "@/lib/champion-names";
 import { DossierLink } from "@/lib/champion-dossier";
 import { CursorTooltip } from "@/components/cursor-tooltip";
-import {
-  HoverCardRows,
-  HoverCardSection,
-  HoverStatCard,
-} from "@/components/hover-stat-card";
+import { HoverCardRows, HoverCardSection, HoverStatCard } from "@/components/hover-stat-card";
 import { formatCompact, formatDuration } from "@/lib/format";
 import { useChartHover } from "@/hooks/use-chart-hover";
 import { SECTION_BACKGROUNDS } from "@/lib/section-backgrounds";
@@ -76,11 +69,7 @@ function championRate(row: ChampionPickBreakdown, sort: Exclude<SortMode, "picks
  * Ranks champions by the active sort mode. Bar HEIGHT follows the sort: total
  * picks under "BY PICKS", the rate itself under the two rate sorts.
  */
-function sortChampions(
-  rows: ChampionPickBreakdown[],
-  sort: SortMode,
-  mixLowSample = false,
-): ChampionPickBreakdown[] {
+function sortChampions(rows: ChampionPickBreakdown[], sort: SortMode, mixLowSample = false): ChampionPickBreakdown[] {
   if (sort === "picks") return [...rows].sort((a, b) => b.timesPicked - a.timesPicked);
   // Rates only rank rows with enough games; the rest follow, dimmed (see
   // lib/sample.ts). A 1-for-1 pick used to top "BY 1ST RATE" at 100%.
@@ -113,9 +102,7 @@ function PicksHoverCard({
   const games = pick.timesPicked;
   const perGame = (value: number) => (games > 0 ? value / games : 0);
   const kda = stats?.kda;
-  const damage = stats
-    ? stats.damage.total.physical + stats.damage.total.magical + stats.damage.total.trueDamage
-    : 0;
+  const damage = stats ? stats.damage.total.physical + stats.damage.total.magical + stats.damage.total.trueDamage : 0;
   return (
     <HoverStatCard
       title={
@@ -154,30 +141,20 @@ function PicksHoverCard({
           />
         </HoverCardSection>
       ) : null}
-      <div className="mt-2.5 text-[10px] tracking-[.2em] text-lol-text-muted/70">
-        CLICK TO PIN IN THE SIDEBAR
-      </div>
+      <div className="mt-2.5 text-[10px] tracking-[.2em] text-lol-text-muted/70">CLICK TO PIN IN THE SIDEBAR</div>
     </HoverStatCard>
   );
 }
 
-const ChampionPicks = ({
-  championPicks,
-  champions: championStats,
-}: Props) => {
+const ChampionPicks = ({ championPicks, champions: championStats }: Props) => {
   const [sort, setSort] = useState<SortMode>("picks");
   // Rate sorts: rank rows under MIN_SAMPLE with the rest (still dimmed).
   const [mixLowSample, setMixLowSample] = useState(false);
   const champions = championPicks.champions;
 
-  const sorted = useMemo(
-    () => sortChampions(champions, sort, mixLowSample),
-    [champions, sort, mixLowSample],
-  );
+  const sorted = useMemo(() => sortChampions(champions, sort, mixLowSample), [champions, sort, mixLowSample]);
 
-  const [selectedChampionId, setSelectedChampionId] = useState<number | null>(
-    () => sorted[0]?.championId ?? null,
-  );
+  const [selectedChampionId, setSelectedChampionId] = useState<number | null>(() => sorted[0]?.championId ?? null);
 
   const maxPicks = Math.max(1, ...champions.map((c) => c.timesPicked));
   // Rate sorts scale against the best rate among rows with enough games, so a
@@ -188,19 +165,12 @@ const ChampionPicks = ({
       ? 0
       : Math.max(
           0,
-          ...champions
-            .filter((c) => mixLowSample || !isLowSample(c.timesPicked))
-            .map((c) => championRate(c, sort)),
+          ...champions.filter((c) => mixLowSample || !isLowSample(c.timesPicked)).map((c) => championRate(c, sort)),
         );
 
   const displayName = useChampionName();
-  const selected =
-    sorted.find((c) => c.championId === selectedChampionId) ??
-    sorted[0] ??
-    null;
-  const selectedRank = selected
-    ? sorted.findIndex((c) => c.championId === selected.championId) + 1
-    : 0;
+  const selected = sorted.find((c) => c.championId === selectedChampionId) ?? sorted[0] ?? null;
+  const selectedRank = selected ? sorted.findIndex((c) => c.championId === selected.championId) + 1 : 0;
 
   const { hover, onHover, containerRef: hoverRef } = useChartHover<number>();
   const hoveredIndex = hover ? sorted.findIndex((c) => c.championId === hover.id) : -1;
@@ -218,10 +188,7 @@ const ChampionPicks = ({
         ["top3", champion.top3ExclTop1, TIER_STYLE.gold],
         ["rest", champion.remaining, TIER_STYLE.silver],
       ] as const
-    ).filter(
-      ([key]) =>
-        sort === "picks" || key === "1st" || (sort === "top3" && key === "top3"),
-    );
+    ).filter(([key]) => sort === "picks" || key === "1st" || (sort === "top3" && key === "top3"));
     const stackCount = stack.reduce((sum, [, value]) => sum + value, 0);
     const total =
       sort === "picks"
@@ -271,7 +238,6 @@ const ChampionPicks = ({
       ? "SORTED · BY TIMES PICKED"
       : `SORTED · BY ${sort === "top3" ? "WINRATE" : "1ST-PLACE RATE"} · UNDER ${MIN_SAMPLE} DIMMED`;
 
-
   return (
     <CategorySection
       title="PICKS"
@@ -307,7 +273,6 @@ const ChampionPicks = ({
             </div>
 
             <div className="mt-auto">
-
               <SidebarStatRows
                 size="compact"
                 rows={[
@@ -335,14 +300,7 @@ const ChampionPicks = ({
       <HextechPanel>
         <PanelToolbar
           caption={`GAMES BY CHAMPION · ${modeCaption}`}
-          trailing={
-            sort !== "picks" ? (
-              <LowSampleSwitch
-                checked={mixLowSample}
-                onChange={setMixLowSample}
-              />
-            ) : null
-          }
+          trailing={sort !== "picks" ? <LowSampleSwitch checked={mixLowSample} onChange={setMixLowSample} /> : null}
         >
           <DiamondTabs
             tabs={[
@@ -368,9 +326,7 @@ const ChampionPicks = ({
               highlightedId={hover?.id ?? null}
               gap={15}
               center
-              topLabelColor={(column) =>
-                column.isSelected ? "#f0e6d2" : "#8a8578"
-              }
+              topLabelColor={(column) => (column.isSelected ? "#f0e6d2" : "#8a8578")}
               heightUnit="percent"
             />
             <CursorTooltip point={hovered ? hover!.point : null}>

@@ -25,11 +25,7 @@ export const DAMAGE_TYPE_LABELS: Record<keyof DamageBreakdown, string> = {
 
 /** Draw/read order for the three types — physical, magical, then true,
  * matching the order the in-client scoreboard lists them. */
-export const DAMAGE_TYPE_KEYS = [
-  "physical",
-  "magical",
-  "trueDamage",
-] as const;
+export const DAMAGE_TYPE_KEYS = ["physical", "magical", "trueDamage"] as const;
 
 export function sumDamageBreakdown(breakdown: DamageBreakdown): number {
   return breakdown.physical + breakdown.magical + breakdown.trueDamage;

@@ -98,11 +98,20 @@ function RefreshView({ platform, gameName, tagLine, initial }: Props) {
   useEffect(() => {
     if (!summoner) return;
     const canonical = summonerPath(summoner.region, summoner.gameName, summoner.tagLine);
-    if (decodeURIComponent(canonical) !== decodeURIComponent(pathname)) window.history.replaceState(null, "", canonical);
+    if (decodeURIComponent(canonical) !== decodeURIComponent(pathname))
+      window.history.replaceState(null, "", canonical);
   }, [summoner, pathname]);
 
   if (state.status === "done") {
-    return <SummonerRecap platform={platform} gameName={gameName} tagLine={tagLine} summoner={state.summoner} refresh={null} />;
+    return (
+      <SummonerRecap
+        platform={platform}
+        gameName={gameName}
+        tagLine={tagLine}
+        summoner={state.summoner}
+        refresh={null}
+      />
+    );
   }
 
   const title = (
@@ -199,6 +208,12 @@ function RefreshView({ platform, gameName, tagLine, initial }: Props) {
       progress.position === 0
         ? "You're next."
         : `${progress.position} ${progress.position === 1 ? "summoner" : "summoners"} ahead of you.`;
+  } else if (progress?.state === "running" && progress.waitingOnRiot) {
+    // Held at the Riot gateway: behind other requests, or out of Riot budget.
+    eyebrow = "WAITING ON RIOT";
+    detail = fetching
+      ? `Match ${progress.done} of ${progress.total} · Riot is busy, the fetch resumes as soon as it lets us through`
+      : "Riot is busy. The fetch resumes as soon as it lets us through…";
   } else if (progress?.state === "running" && !fetching) {
     eyebrow = "SCOUTING MATCH HISTORY";
     detail = "Reading the list of Arena matches from Riot…";
@@ -228,8 +243,8 @@ function RefreshView({ platform, gameName, tagLine, initial }: Props) {
         </div>
       ) : null}
       <p className="mt-6 text-sm text-lol-text-muted">
-        Riot lets us fetch about 50 matches every two minutes, so a first visit can take a while. Keep this tab open,
-        or share the link: it shows the recap once it&apos;s ready.
+        Riot limits how fast matches can be fetched, so a first visit can take a while. Keep this tab open, or share the
+        link: it shows the recap once it&apos;s ready.
       </p>
     </StatusScreen>
   );

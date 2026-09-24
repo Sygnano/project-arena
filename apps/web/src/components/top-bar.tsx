@@ -30,8 +30,7 @@ function TopBar() {
     let lastTop = 0;
     const onScroll = (event: Event) => {
       const target = event.target;
-      const top =
-        target instanceof HTMLElement ? target.scrollTop : document.scrollingElement?.scrollTop ?? 0;
+      const top = target instanceof HTMLElement ? target.scrollTop : (document.scrollingElement?.scrollTop ?? 0);
       const delta = top - lastTop;
       lastTop = top;
       if (barRef.current?.contains(document.activeElement)) return;

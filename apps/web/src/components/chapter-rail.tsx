@@ -69,27 +69,22 @@ function ChapterRail({ slides }: { slides: readonly RailSlide[] }) {
       const rootTop = root.getBoundingClientRect().top;
       const tops = slides.map((slide) => {
         const el = document.getElementById(slide.id);
-        return el
-          ? el.getBoundingClientRect().top - rootTop + root.scrollTop
-          : Infinity;
+        return el ? el.getBoundingClientRect().top - rootTop + root.scrollTop : Infinity;
       });
-      const atBottom =
-        root.scrollTop >= root.scrollHeight - root.clientHeight - 1;
+      const atBottom = root.scrollTop >= root.scrollHeight - root.clientHeight - 1;
       // Fractional section position: 2.4 = 40% of the way from section 3 to 4.
       let progress = slides.length - 1;
       if (!atBottom) {
         for (let i = 0; i < tops.length - 1; i++) {
           if (root.scrollTop < tops[i + 1]) {
             const span = tops[i + 1] - tops[i];
-            progress =
-              i + (span > 0 ? Math.max(0, root.scrollTop - tops[i]) / span : 0);
+            progress = i + (span > 0 ? Math.max(0, root.scrollTop - tops[i]) / span : 0);
             break;
           }
         }
       }
       fillRefs.current.forEach((fill, i) => {
-        if (fill)
-          fill.style.transform = `scaleY(${Math.min(1, Math.max(0, progress - i))})`;
+        if (fill) fill.style.transform = `scaleY(${Math.min(1, Math.max(0, progress - i))})`;
       });
       setPassedIndex(Math.floor(progress + 0.001));
     };
@@ -152,10 +147,7 @@ function ChapterRail({ slides }: { slides: readonly RailSlide[] }) {
     >
       <ol ref={listRef} className="relative flex flex-col items-end gap-0.5">
         {/* Hover target: a narrow strip over the diamonds opens the rail. */}
-        <li
-          aria-hidden
-          className="pointer-events-auto absolute inset-y-0 -right-1 w-6"
-        />
+        <li aria-hidden className="pointer-events-auto absolute inset-y-0 -right-1 w-6" />
         {centers.slice(0, -1).map((top, i) => (
           <li
             key={`line-${slides[i]?.id}`}
@@ -177,10 +169,7 @@ function ChapterRail({ slides }: { slides: readonly RailSlide[] }) {
           const isPassed = index <= passedIndex;
           const startsChapter = slide.chapter !== slides[index - 1]?.chapter;
           return (
-            <li
-              key={slide.id}
-              className={cn("relative", startsChapter && index > 0 && "mt-2.5")}
-            >
+            <li key={slide.id} className={cn("relative", startsChapter && index > 0 && "mt-2.5")}>
               <a
                 href={`#${slide.id}`}
                 aria-current={isActive ? "location" : undefined}
@@ -195,9 +184,7 @@ function ChapterRail({ slides }: { slides: readonly RailSlide[] }) {
                   className={cn(
                     "pointer-events-none text-[11px] tracking-[.22em] whitespace-nowrap transition-opacity duration-150",
                     "opacity-0 group-focus-within/rail:opacity-100 group-data-open/rail:opacity-100",
-                    isActive
-                      ? "text-lol-gold-50"
-                      : "text-lol-text-muted group-hover/item:text-lol-gold-100",
+                    isActive ? "text-lol-gold-50" : "text-lol-text-muted group-hover/item:text-lol-gold-100",
                   )}
                   style={{ textShadow: "0 1px 6px rgba(0,0,0,.9)" }}
                 >
@@ -205,9 +192,7 @@ function ChapterRail({ slides }: { slides: readonly RailSlide[] }) {
                     <span
                       className={cn(
                         "mr-2 text-[11px]",
-                        slide.chapter === activeChapter
-                          ? "text-lol-gold-300"
-                          : "text-lol-text-muted",
+                        slide.chapter === activeChapter ? "text-lol-gold-300" : "text-lol-text-muted",
                       )}
                     >
                       {slide.chapter} ·

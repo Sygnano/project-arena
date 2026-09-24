@@ -1,12 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { cn } from "cn";
 import { tierForBestFinish, type Tier } from "@/lib/tier-bars";
-import {
-  CARD_ASPECT_RATIO,
-  CardFrame,
-  RING_WIDTH,
-  frameRingClassName,
-} from "@/components/card-frame";
+import { CARD_ASPECT_RATIO, CardFrame, RING_WIDTH, frameRingClassName } from "@/components/card-frame";
 
 /**
  * The "framed augment-offer card" look — Riot's own in-game augment-offer
@@ -33,9 +28,7 @@ export interface AugmentFramedCardStats {
  * Honor lines, augment-crafting picks) have no Silver/Gold/Prismatic rarity
  * of their own (Community Dragon lists every one as `rarity: 4`), so the
  * card border is entirely about how well the summoner has done with it. */
-export function tierForAugmentCard(
-  augment: AugmentFramedCardStats,
-): Tier | null {
+export function tierForAugmentCard(augment: AugmentFramedCardStats): Tier | null {
   return augment.timesPicked === 0 ? null : tierForBestFinish(augment);
 }
 
@@ -51,9 +44,7 @@ export { RING_WIDTH };
 function AugmentStatBlock({ value, label }: { value: number; label: string }) {
   return (
     <div className="flex flex-col items-center">
-      <div className="font-display text-[max(15px,9cqw)] leading-none text-lol-gold-50 tabular-nums">
-        {value}
-      </div>
+      <div className="font-display text-[max(15px,9cqw)] leading-none text-lol-gold-50 tabular-nums">{value}</div>
       <div className="font-body mt-[1.5cqw] text-[max(10px,4.4cqw)] tracking-[.12em] whitespace-nowrap text-lol-text-muted">
         {label}
       </div>
@@ -61,11 +52,7 @@ function AugmentStatBlock({ value, label }: { value: number; label: string }) {
   );
 }
 
-export function AugmentStatsRow({
-  augment,
-}: {
-  augment: AugmentFramedCardStats;
-}) {
+export function AugmentStatsRow({ augment }: { augment: AugmentFramedCardStats }) {
   const wonCount = augment.top1 + augment.top3ExclTop1;
   const divider = "h-[15cqw] w-px bg-[rgba(200,170,110,.3)]";
   return (
@@ -114,9 +101,7 @@ export function AugmentFramedCard({
       className={cn("relative h-full shrink-0 @container", className)}
       style={{
         aspectRatio: CARD_ASPECT_RATIO,
-        ...(tier
-          ? undefined
-          : { filter: "grayscale(1) brightness(.55) opacity(.75)" }),
+        ...(tier ? undefined : { filter: "grayscale(1) brightness(.55) opacity(.75)" }),
       }}
     >
       <CardFrame tier={tier} filled />
@@ -138,10 +123,7 @@ export function AugmentFramedCard({
               borderColor: tier ? undefined : "rgba(126,138,150,.3)",
             } as CSSProperties
           }
-          className={cn(
-            "aspect-square w-[36cqw] rounded-full object-cover",
-            augmentFrameClassName(tier),
-          )}
+          className={cn("aspect-square w-[36cqw] rounded-full object-cover", augmentFrameClassName(tier))}
         />
         <div className="font-display mt-[2cqw] text-[9cqw] leading-tight tracking-[.04em] text-balance text-lol-gold-50">
           {augment.augmentName}

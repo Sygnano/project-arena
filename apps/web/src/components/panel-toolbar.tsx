@@ -56,10 +56,7 @@ function PanelToolbar({ children, trailing, caption, captionKey, className }: Pr
       </div>
       {caption ? (
         <div className="flex min-h-4 items-center gap-2 pl-0.5 text-[11px] tracking-[.28em] text-lol-text-muted">
-          <span
-            aria-hidden
-            className="h-1.5 w-1.5 flex-none rotate-45 border border-lol-gold-300/55"
-          />
+          <span aria-hidden className="h-1.5 w-1.5 flex-none rotate-45 border border-lol-gold-300/55" />
           <AnimatePresence mode="wait" initial={false}>
             <motion.span
               key={key}
@@ -89,10 +86,7 @@ function ToolbarDivider({ alignWith = "md" }: DividerProps) {
   return (
     <div
       aria-hidden
-      className={cn(
-        "h-4 w-px flex-none bg-[rgba(200,170,110,.25)]",
-        alignWith === "md" ? "mb-2" : "mb-1.25",
-      )}
+      className={cn("h-4 w-px flex-none bg-[rgba(200,170,110,.25)]", alignWith === "md" ? "mb-2" : "mb-1.25")}
     />
   );
 }

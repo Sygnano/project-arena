@@ -57,7 +57,9 @@ if (env.API_PROXY_SECRET) {
     }
   });
 } else {
-  app.log.warn("API_PROXY_SECRET is not set: any caller can reach every route and choose its rate-limit key (fine in local dev only)");
+  app.log.warn(
+    "API_PROXY_SECRET is not set: any caller can reach every route and choose its rate-limit key (fine in local dev only)",
+  );
 }
 
 // Fastify's default reply to a thrown error carries its message, which for a

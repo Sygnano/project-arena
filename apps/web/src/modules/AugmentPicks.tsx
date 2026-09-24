@@ -1,17 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type {
-  AugmentPickBreakdown,
-  AugmentPicksStats,
-  AugmentsStats,
-} from "@arena/types";
+import type { AugmentPickBreakdown, AugmentPicksStats, AugmentsStats } from "@arena/types";
 import { CategorySection } from "@/components/category-section";
 import { HextechPanel } from "@/components/hextech-panel";
-import {
-  HextechBarChart,
-  type BarColumn,
-} from "@/components/hextech-bar-chart";
+import { HextechBarChart, type BarColumn } from "@/components/hextech-bar-chart";
 import { RingFrame } from "@/components/dial";
 import { DiamondTabs } from "@/components/diamond-tabs";
 import { PanelToolbar, ToolbarDivider } from "@/components/panel-toolbar";
@@ -20,21 +13,13 @@ import { LowSampleSwitch } from "@/components/low-sample-switch";
 import { SidebarStatRows } from "@/components/sidebar-stat-row";
 import { TIER_STYLE } from "@/lib/tier-bars";
 import { barHeight } from "@/lib/bar-scale";
-import {
-  matchesRarityFilter,
-  RARITY_KICKER,
-  type AugmentRarityFilter,
-} from "@/lib/augment-rarity";
+import { matchesRarityFilter, RARITY_KICKER, type AugmentRarityFilter } from "@/lib/augment-rarity";
 import { SECTION_BACKGROUNDS } from "@/lib/section-backgrounds";
 import { MIN_SAMPLE, isLowSample, pooledRate, sortByRate } from "@/lib/sample";
 import { formatSignedPoints } from "@/components/delta-cell";
 import { CursorTooltip } from "@/components/cursor-tooltip";
 import { PickHoverCard } from "@/components/pick-hover-card";
-import {
-  HoverCardChampions,
-  HoverCardRows,
-  HoverCardSection,
-} from "@/components/hover-stat-card";
+import { HoverCardChampions, HoverCardRows, HoverCardSection } from "@/components/hover-stat-card";
 import { useChartHover } from "@/hooks/use-chart-hover";
 
 type Props = {
@@ -73,11 +58,7 @@ function pickRate(row: AugmentPickBreakdown, sort: Exclude<SortMode, "picks">): 
 /** Same split as `ChampionPicks`' own `sortChampions` — bar HEIGHT follows the
  * sort: total picks under "BY PICKS", the rate itself under the two rate
  * sorts, so a rate sort reads highest-to-lowest left to right. */
-function sortAugments(
-  rows: AugmentPickBreakdown[],
-  sort: SortMode,
-  mixLowSample = false,
-): AugmentPickBreakdown[] {
+function sortAugments(rows: AugmentPickBreakdown[], sort: SortMode, mixLowSample = false): AugmentPickBreakdown[] {
   if (sort === "picks") return [...rows].sort((a, b) => b.timesPicked - a.timesPicked);
   // Rates only rank rows with enough games; the rest follow, dimmed (see
   // lib/sample.ts). A 1-for-1 pick used to top "BY 1ST RATE" at 100%.
@@ -101,18 +82,14 @@ function sortAugments(
  * below track the latter), so it gets its own filter rather than folding
  * into the existing sort tabs.
  */
-const AugmentPicks = ({
-  augments,
-  augmentPicks,
-}: Props) => {
+const AugmentPicks = ({ augments, augmentPicks }: Props) => {
   const [sort, setSort] = useState<SortMode>("picks");
   // Rate sorts: rank rows under MIN_SAMPLE with the rest (still dimmed).
   const [mixLowSample, setMixLowSample] = useState(false);
   const [rarityFilter, setRarityFilter] = useState<AugmentRarityFilter>("all");
 
   const catalogById = useMemo(
-    () =>
-      new Map(augments.augments.map((augment) => [augment.augmentId, augment])),
+    () => new Map(augments.augments.map((augment) => [augment.augmentId, augment])),
     [augments],
   );
 
@@ -120,23 +97,16 @@ const AugmentPicks = ({
     () =>
       augmentPicks.augments.filter((augment) => {
         const rarity = catalogById.get(augment.augmentId)?.rarity;
-        return (
-          rarity !== undefined && matchesRarityFilter(rarity, rarityFilter)
-        );
+        return rarity !== undefined && matchesRarityFilter(rarity, rarityFilter);
       }),
     [augmentPicks, catalogById, rarityFilter],
   );
 
   const sorted = useMemo(() => sortAugments(filtered, sort, mixLowSample), [filtered, sort, mixLowSample]);
 
-  const [selectedAugmentId, setSelectedAugmentId] = useState<number | null>(
-    () => sorted[0]?.augmentId ?? null,
-  );
+  const [selectedAugmentId, setSelectedAugmentId] = useState<number | null>(() => sorted[0]?.augmentId ?? null);
 
-  const maxPicks = Math.max(
-    1,
-    ...filtered.map((augment) => augment.timesPicked),
-  );
+  const maxPicks = Math.max(1, ...filtered.map((augment) => augment.timesPicked));
   // Rate sorts scale against the best rate among rows with enough games, so a
   // 1-for-1 outlier can't flatten every real bar; mixed in, every row counts
   // (see lib/sample.ts). Outliers above the max clamp to the leader's height.
@@ -145,9 +115,7 @@ const AugmentPicks = ({
       ? 0
       : Math.max(
           0,
-          ...filtered
-            .filter((row) => mixLowSample || !isLowSample(row.timesPicked))
-            .map((row) => pickRate(row, sort)),
+          ...filtered.filter((row) => mixLowSample || !isLowSample(row.timesPicked)).map((row) => pickRate(row, sort)),
         );
 
   // Ranked off `selected` itself (not the raw `selectedAugmentId` state)
@@ -165,14 +133,8 @@ const AugmentPicks = ({
     (row) => row.top1 + row.top3ExclTop1,
     (row) => row.timesPicked,
   );
-  const selected =
-    sorted.find((augment) => augment.augmentId === selectedAugmentId) ??
-    sorted[0] ??
-    null;
-  const selectedRank = selected
-    ? sorted.findIndex((augment) => augment.augmentId === selected.augmentId) +
-      1
-    : 0;
+  const selected = sorted.find((augment) => augment.augmentId === selectedAugmentId) ?? sorted[0] ?? null;
+  const selectedRank = selected ? sorted.findIndex((augment) => augment.augmentId === selected.augmentId) + 1 : 0;
   const selectedIcon = selected ? catalogById.get(selected.augmentId) : null;
 
   const { hover, onHover, containerRef: hoverRef } = useChartHover<number>();
@@ -191,10 +153,7 @@ const AugmentPicks = ({
         ["top3", augment.top3ExclTop1, TIER_STYLE.gold],
         ["rest", augment.remaining, TIER_STYLE.silver],
       ] as const
-    ).filter(
-      ([key]) =>
-        sort === "picks" || key === "1st" || (sort === "top3" && key === "top3"),
-    );
+    ).filter(([key]) => sort === "picks" || key === "1st" || (sort === "top3" && key === "top3"));
     const stackCount = stack.reduce((sum, [, value]) => sum + value, 0);
     const total =
       sort === "picks"
@@ -216,9 +175,7 @@ const AugmentPicks = ({
     return {
       id: augment.augmentId,
       topLabel:
-        sort === "picks"
-          ? augment.timesPicked.toLocaleString()
-          : `${(pickRate(augment, sort) * 100).toFixed(0)}%`,
+        sort === "picks" ? augment.timesPicked.toLocaleString() : `${(pickRate(augment, sort) * 100).toFixed(0)}%`,
       isSelected,
       dimmed: sort !== "picks" && isLowSample(augment.timesPicked),
       ariaLabel: `${augment.augmentName}: ${augment.timesPicked} games, ${augment.top1 + augment.top3ExclTop1} wins, ${augment.top1} first`,
@@ -243,7 +200,6 @@ const AugmentPicks = ({
       ? "SORTED · BY TIMES PICKED"
       : `SORTED · BY ${sort === "top3" ? "WINRATE" : "1ST-PLACE RATE"} · UNDER ${MIN_SAMPLE} DIMMED`;
 
-
   return (
     <CategorySection
       imageUrl={SECTION_BACKGROUNDS.augmentPicks}
@@ -267,16 +223,13 @@ const AugmentPicks = ({
             </RingFrame>
 
             <div className="mt-5.5 text-center">
-              <div className="font-display text-[30px] tracking-[.1em] text-lol-gold-50">
-                {selected.augmentName}
-              </div>
+              <div className="font-display text-[30px] tracking-[.1em] text-lol-gold-50">{selected.augmentName}</div>
               <div className="mt-1.75 text-[13px] tracking-[.26em] text-lol-blue-300">
                 {rankLabel(selectedRank, sorted.length)}
               </div>
             </div>
 
             <div className="mt-auto">
-
               <SidebarStatRows
                 size="compact"
                 rows={[
@@ -314,9 +267,7 @@ const AugmentPicks = ({
         <PanelToolbar
           caption={`GAMES BY AUGMENT · ${modeCaption}`}
           trailing={
-            sort !== "picks" ? (
-              <LowSampleSwitch checked={mixLowSample} onChange={setMixLowSample} unit="PICKS" />
-            ) : null
+            sort !== "picks" ? <LowSampleSwitch checked={mixLowSample} onChange={setMixLowSample} unit="PICKS" /> : null
           }
         >
           <DiamondTabs
@@ -345,9 +296,7 @@ const AugmentPicks = ({
               highlightedId={hover?.id ?? null}
               gap={15}
               center
-              topLabelColor={(column) =>
-                column.isSelected ? "#f0e6d2" : "#8a8578"
-              }
+              topLabelColor={(column) => (column.isSelected ? "#f0e6d2" : "#8a8578")}
               heightUnit="percent"
             />
             <CursorTooltip point={hovered ? hover!.point : null}>

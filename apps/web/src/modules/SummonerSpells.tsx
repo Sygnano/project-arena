@@ -12,10 +12,7 @@ import { PanelToolbar, ToolbarDivider } from "@/components/panel-toolbar";
 import { LowSampleSwitch } from "@/components/low-sample-switch";
 import { DetailBand } from "@/components/detail-band";
 import { SidebarStatRows } from "@/components/sidebar-stat-row";
-import {
-  ValuePercentRow,
-  SortHeaderLabel,
-} from "@/components/sortable-stat-row";
+import { ValuePercentRow, SortHeaderLabel } from "@/components/sortable-stat-row";
 import { championIconUrl } from "@/lib/riot";
 import { formatCompact } from "@/lib/format";
 import { pressable } from "@/lib/a11y";
@@ -49,17 +46,11 @@ const ICON_SIZE = 36;
 const ROW_PADDING_X = 6;
 const SPELL_COLUMN_WIDTH = 72;
 
-function sumCasts(
-  casts: SummonerSpellCasts,
-  spellIds: readonly number[],
-): number {
+function sumCasts(casts: SummonerSpellCasts, spellIds: readonly number[]): number {
   return spellIds.reduce((sum, id) => sum + (casts[id] ?? 0), 0);
 }
 
-function perGameCasts(
-  casts: SummonerSpellCasts,
-  games: number,
-): SummonerSpellCasts {
+function perGameCasts(casts: SummonerSpellCasts, games: number): SummonerSpellCasts {
   const result: SummonerSpellCasts = {};
   for (const [id, count] of Object.entries(casts)) {
     result[Number(id)] = games > 0 ? count / games : 0;
@@ -90,13 +81,9 @@ type Row = {
  */
 const SummonerSpells = ({ summonerSpells }: Props) => {
   const { spells, champions } = summonerSpells;
-  const spellIds = useMemo(
-    () => spells.map((spell) => spell.spellId),
-    [spells],
-  );
+  const spellIds = useMemo(() => spells.map((spell) => spell.spellId), [spells]);
   const colorOf = (spellId: number) =>
-    SPELL_COLORS[spellId] ??
-    FALLBACK_COLORS[spellIds.indexOf(spellId) % FALLBACK_COLORS.length];
+    SPELL_COLORS[spellId] ?? FALLBACK_COLORS[spellIds.indexOf(spellId) % FALLBACK_COLORS.length];
 
   const [mode, setMode] = useState<Mode>("total");
   const displayName = useChampionName();
@@ -116,9 +103,7 @@ const SummonerSpells = ({ summonerSpells }: Props) => {
   };
 
   const columnValue = (row: Row, m: Metric) =>
-    m === "total"
-      ? sumCasts(row.active, spellIds)
-      : (row.active[Number(m)] ?? 0);
+    m === "total" ? sumCasts(row.active, spellIds) : (row.active[Number(m)] ?? 0);
 
   const roster = useMemo<Row[]>(
     () =>
@@ -140,38 +125,19 @@ const SummonerSpells = ({ summonerSpells }: Props) => {
 
   const rows = useMemo(() => {
     const value = (row: Row) =>
-      metric === "total"
-        ? sumCasts(row.active, spellIds)
-        : (row.active[Number(metric)] ?? 0);
+      metric === "total" ? sumCasts(row.active, spellIds) : (row.active[Number(metric)] ?? 0);
     if (mode === "perGame") {
-      return sortByRate(
-        roster,
-        value,
-        (row) => row.matchesPlayed,
-        sortDir,
-        mixLowSample ? "mixed" : "after",
-      );
+      return sortByRate(roster, value, (row) => row.matchesPlayed, sortDir, mixLowSample ? "mixed" : "after");
     }
     const dirSign = sortDir === "desc" ? 1 : -1;
     return [...roster].sort((a, b) => dirSign * (value(b) - value(a)));
   }, [roster, metric, sortDir, mode, mixLowSample, spellIds]);
 
-  const [selectedChampionId, setSelectedChampionId] = useState<number | null>(
-    () => rows[0]?.championId ?? null,
-  );
-  const selected =
-    roster.find((r) => r.championId === selectedChampionId) ?? rows[0] ?? null;
+  const [selectedChampionId, setSelectedChampionId] = useState<number | null>(() => rows[0]?.championId ?? null);
+  const selected = roster.find((r) => r.championId === selectedChampionId) ?? rows[0] ?? null;
 
-  const scaleRows =
-    mode === "perGame" && !mixLowSample
-      ? rows.filter((r) => !isLowSample(r.matchesPlayed))
-      : rows;
-  const maxMetricValue = Math.max(
-    1,
-    ...(scaleRows.length > 0 ? scaleRows : rows).map((r) =>
-      columnValue(r, metric),
-    ),
-  );
+  const scaleRows = mode === "perGame" && !mixLowSample ? rows.filter((r) => !isLowSample(r.matchesPlayed)) : rows;
+  const maxMetricValue = Math.max(1, ...(scaleRows.length > 0 ? scaleRows : rows).map((r) => columnValue(r, metric)));
 
   const totalGames = champions.reduce((sum, c) => sum + c.matchesPlayed, 0);
   const sidebarCasts =
@@ -191,9 +157,7 @@ const SummonerSpells = ({ summonerSpells }: Props) => {
     first && second && secondTotal > 0
       ? {
           label: `${first.name.toUpperCase()} PER ${second.name.toUpperCase()}`,
-          value: (
-            (summonerSpells.total[first.spellId] ?? 0) / secondTotal
-          ).toFixed(1),
+          value: ((summonerSpells.total[first.spellId] ?? 0) / secondTotal).toFixed(1),
         }
       : null;
 
@@ -204,14 +168,9 @@ const SummonerSpells = ({ summonerSpells }: Props) => {
         ? "ALL GAMES"
         : "BEST SINGLE GAME";
   const metricLabel =
-    metric === "total"
-      ? "TOTAL"
-      : (spells.find((s) => String(s.spellId) === metric)?.name.toUpperCase() ??
-        "");
-  const modeWord =
-    mode === "perGame" ? "PER GAME" : mode === "total" ? "TOTAL" : "BEST";
+    metric === "total" ? "TOTAL" : (spells.find((s) => String(s.spellId) === metric)?.name.toUpperCase() ?? "");
+  const modeWord = mode === "perGame" ? "PER GAME" : mode === "total" ? "TOTAL" : "BEST";
   const gridTemplateColumns = `36px 104px minmax(0,1fr) ${spellIds.map(() => `${SPELL_COLUMN_WIDTH}px`).join(" ")}`;
-
 
   return (
     <CategorySection
@@ -228,7 +187,6 @@ const SummonerSpells = ({ summonerSpells }: Props) => {
           />
 
           <div className="mt-auto">
-
             <SidebarStatRows
               rows={[
                 ...spells.map((spell) => {
@@ -240,9 +198,7 @@ const SummonerSpells = ({ summonerSpells }: Props) => {
                       mode !== "best" ? (
                         <ValuePercentRow
                           value={formatCasts(value, mode)}
-                          pct={
-                            sidebarTotal > 0 ? (value / sidebarTotal) * 100 : 0
-                          }
+                          pct={sidebarTotal > 0 ? (value / sidebarTotal) * 100 : 0}
                         />
                       ) : (
                         formatCasts(value, mode)
@@ -259,14 +215,7 @@ const SummonerSpells = ({ summonerSpells }: Props) => {
       <HextechPanel contentMinWidth={620}>
         <PanelToolbar
           caption={`${modeCaption} · SORTED · BY ${metricLabel}`}
-          trailing={
-            mode === "perGame" ? (
-              <LowSampleSwitch
-                checked={mixLowSample}
-                onChange={setMixLowSample}
-              />
-            ) : null
-          }
+          trailing={mode === "perGame" ? <LowSampleSwitch checked={mixLowSample} onChange={setMixLowSample} /> : null}
         >
           <DiamondTabs
             tabs={[
@@ -300,23 +249,16 @@ const SummonerSpells = ({ summonerSpells }: Props) => {
           }}
         >
           <div />
-          <div className="text-[11px] tracking-[.22em] text-[#a09b8c]">
-            CHAMPION
-          </div>
+          <div className="text-[11px] tracking-[.22em] text-[#a09b8c]">CHAMPION</div>
           <button
             type="button"
             onClick={() => sortBy("total")}
             className="cursor-pointer text-right select-none hover:text-lol-gold-100"
             style={{
-              color:
-                metric === "total" ? "var(--color-lol-gold-50)" : "#a09b8c",
+              color: metric === "total" ? "var(--color-lol-gold-50)" : "#a09b8c",
             }}
           >
-            <SortHeaderLabel
-              label="TOTAL CASTS"
-              active={metric === "total"}
-              dir={sortDir}
-            />
+            <SortHeaderLabel label="TOTAL CASTS" active={metric === "total"} dir={sortDir} />
           </button>
           {spells.map((spell) => {
             const key = String(spell.spellId) as Metric;
@@ -333,19 +275,9 @@ const SummonerSpells = ({ summonerSpells }: Props) => {
               >
                 {spell.iconUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={spell.iconUrl}
-                    alt=""
-                    width={16}
-                    height={16}
-                    className="size-4"
-                  />
+                  <img src={spell.iconUrl} alt="" width={16} height={16} className="size-4" />
                 ) : null}
-                <SortHeaderLabel
-                  label={spell.name.toUpperCase()}
-                  active={metric === key}
-                  dir={sortDir}
-                />
+                <SortHeaderLabel label={spell.name.toUpperCase()} active={metric === key} dir={sortDir} />
               </button>
             );
           })}
@@ -364,25 +296,14 @@ const SummonerSpells = ({ summonerSpells }: Props) => {
               scrollbarColor: "rgba(200,170,110,.45) transparent",
             }}
           >
-            <div
-              className="relative"
-              style={{ height: rows.length * SLOT_PITCH - ROW_GAP }}
-            >
+            <div className="relative" style={{ height: rows.length * SLOT_PITCH - ROW_GAP }}>
               {rows.map((row, index) => {
                 const isSelected = row.championId === selected?.championId;
                 const total = sumCasts(row.active, spellIds);
-                const barWidthPct = Math.min(
-                  100,
-                  (columnValue(row, metric) / maxMetricValue) * 100,
-                );
+                const barWidthPct = Math.min(100, (columnValue(row, metric) / maxMetricValue) * 100);
                 // The sorted-by spell leads the bar, so it reads in list order.
                 const order =
-                  metric === "total"
-                    ? spellIds
-                    : [
-                        Number(metric),
-                        ...spellIds.filter((id) => String(id) !== metric),
-                      ];
+                  metric === "total" ? spellIds : [Number(metric), ...spellIds.filter((id) => String(id) !== metric)];
 
                 return (
                   <div
@@ -393,20 +314,14 @@ const SummonerSpells = ({ summonerSpells }: Props) => {
                     aria-label={`${displayName(row.championName)}, ${row.matchesPlayed} games`}
                     className={cn(
                       "absolute inset-x-0 grid cursor-pointer items-center gap-4 px-1.5 transition-[background,opacity] duration-150",
-                      mode === "perGame" &&
-                        isLowSample(row.matchesPlayed) &&
-                        "opacity-45",
+                      mode === "perGame" && isLowSample(row.matchesPlayed) && "opacity-45",
                     )}
                     style={{
                       top: index * SLOT_PITCH,
                       height: ROW_HEIGHT,
                       gridTemplateColumns,
-                      background: isSelected
-                        ? "rgba(200,170,110,.09)"
-                        : "transparent",
-                      boxShadow: isSelected
-                        ? "inset 0 0 0 1px rgba(200,170,110,.45)"
-                        : undefined,
+                      background: isSelected ? "rgba(200,170,110,.09)" : "transparent",
+                      boxShadow: isSelected ? "inset 0 0 0 1px rgba(200,170,110,.45)" : undefined,
                     }}
                   >
                     <div />
@@ -429,29 +344,20 @@ const SummonerSpells = ({ summonerSpells }: Props) => {
                                 key={id}
                                 className="h-full transition-[width] duration-300 ease-out"
                                 style={{
-                                  width:
-                                    total > 0
-                                      ? `${((row.active[id] ?? 0) / total) * 100}%`
-                                      : 0,
+                                  width: total > 0 ? `${((row.active[id] ?? 0) / total) * 100}%` : 0,
                                   background: colorOf(id),
                                 }}
                               />
                             ))
                           ) : (
-                            <div
-                              className="h-full w-full"
-                              style={{ background: colorOf(Number(metric)) }}
-                            />
+                            <div className="h-full w-full" style={{ background: colorOf(Number(metric)) }} />
                           )}
                         </div>
                       </div>
                       <div
                         className="w-16 flex-none text-right font-display text-[15px]"
                         style={{
-                          color:
-                            metric === "total"
-                              ? "var(--color-lol-gold-50)"
-                              : "var(--color-lol-text-secondary)",
+                          color: metric === "total" ? "var(--color-lol-gold-50)" : "var(--color-lol-text-secondary)",
                         }}
                       >
                         {formatCasts(total, mode)}

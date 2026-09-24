@@ -3,11 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { cn } from "cn";
 import { motion, MotionConfig } from "motion/react";
-import type {
-  ChampionStats,
-  UtilityBreakdown,
-  UtilityStats,
-} from "@arena/types";
+import type { ChampionStats, UtilityBreakdown, UtilityStats } from "@arena/types";
 import { CategorySection } from "@/components/category-section";
 import { HextechPanel } from "@/components/hextech-panel";
 import { Dial } from "@/components/dial";
@@ -66,9 +62,7 @@ type Row = {
 };
 
 function metricValue(row: Row, metric: Metric): number {
-  return metric === "heal"
-    ? row.active.healingAndShielding
-    : row.active.ccScoreSeconds;
+  return metric === "heal" ? row.active.healingAndShielding : row.active.ccScoreSeconds;
 }
 
 const ROW_GRID = "72px minmax(0,1fr) 96px minmax(0,1fr) 72px";
@@ -134,9 +128,7 @@ const Utility = ({ total, bestByType, champions }: Props) => {
           mode === "best"
             ? champion.utility.bestByType
             : mode === "perGame"
-              ? perGame(champion.utility.total, champion.matchesPlayed, [
-                  "savesFromDeath",
-                ])
+              ? perGame(champion.utility.total, champion.matchesPlayed, ["savesFromDeath"])
               : champion.utility.total,
         seasonTotal: champion.utility.total,
       })),
@@ -156,39 +148,21 @@ const Utility = ({ total, bestByType, champions }: Props) => {
       );
     }
     const dirSign = sortDir === "desc" ? 1 : -1;
-    return [...roster].sort(
-      (a, b) => dirSign * (metricValue(b, metric) - metricValue(a, metric)),
-    );
+    return [...roster].sort((a, b) => dirSign * (metricValue(b, metric) - metricValue(a, metric)));
   }, [roster, metric, sortDir, mode, mixLowSample]);
 
-  const [selectedChampionId, setSelectedChampionId] = useState<number | null>(
-    () => rows[0]?.championId ?? null,
-  );
-  const selected =
-    roster.find((r) => r.championId === selectedChampionId) ?? rows[0] ?? null;
+  const [selectedChampionId, setSelectedChampionId] = useState<number | null>(() => rows[0]?.championId ?? null);
+  const selected = roster.find((r) => r.championId === selectedChampionId) ?? rows[0] ?? null;
 
   // Scale from champions with enough games in PER GAME mode (see Damage).
-  const eligible =
-    mode === "perGame" && !mixLowSample
-      ? rows.filter((r) => !isLowSample(r.matchesPlayed))
-      : rows;
+  const eligible = mode === "perGame" && !mixLowSample ? rows.filter((r) => !isLowSample(r.matchesPlayed)) : rows;
   const scaleRows = eligible.length > 0 ? eligible : rows;
-  const maxHeal = Math.max(
-    1,
-    ...scaleRows.map((r) => r.active.healingAndShielding),
-  );
+  const maxHeal = Math.max(1, ...scaleRows.map((r) => r.active.healingAndShielding));
   const maxCc = Math.max(1, ...scaleRows.map((r) => r.active.ccScoreSeconds));
 
-  const totalGames = Object.values(champions).reduce(
-    (sum, c) => sum + c.matchesPlayed,
-    0,
-  );
+  const totalGames = Object.values(champions).reduce((sum, c) => sum + c.matchesPlayed, 0);
   const sidebarBreakdown =
-    mode === "best"
-      ? bestByType
-      : mode === "perGame"
-        ? perGame(total, totalGames, ["savesFromDeath"])
-        : total;
+    mode === "best" ? bestByType : mode === "perGame" ? perGame(total, totalGames, ["savesFromDeath"]) : total;
   const dialBreakdown = sidebarBreakdown;
 
   const modeCaption =
@@ -198,7 +172,6 @@ const Utility = ({ total, bestByType, champions }: Props) => {
         ? "ALL GAMES"
         : "BEST SINGLE GAME";
   const metricLabel = metric === "heal" ? "HEAL & SHIELD" : "CC SCORE";
-
 
   return (
     <CategorySection
@@ -210,13 +183,10 @@ const Utility = ({ total, bestByType, champions }: Props) => {
           <Dial
             value={dialBreakdown.savesFromDeath}
             label={`${mode === "perGame" ? "SAVES / GAME" : mode === "total" ? "TOTAL SAVES" : "BEST SAVES"}`}
-            formatValue={(v) =>
-              mode === "perGame" ? v.toFixed(1) : v.toLocaleString()
-            }
+            formatValue={(v) => (mode === "perGame" ? v.toFixed(1) : v.toLocaleString())}
           />
 
           <div className="mt-auto">
-
             <SidebarStatRows
               rows={[
                 {
@@ -240,14 +210,7 @@ const Utility = ({ total, bestByType, champions }: Props) => {
       <HextechPanel contentMinWidth={600}>
         <PanelToolbar
           caption={`${modeCaption} · SORTED · BY ${metricLabel}`}
-          trailing={
-            mode === "perGame" ? (
-              <LowSampleSwitch
-                checked={mixLowSample}
-                onChange={setMixLowSample}
-              />
-            ) : null
-          }
+          trailing={mode === "perGame" ? <LowSampleSwitch checked={mixLowSample} onChange={setMixLowSample} /> : null}
         >
           <DiamondTabs
             tabs={[
@@ -284,26 +247,16 @@ const Utility = ({ total, bestByType, champions }: Props) => {
             className="cursor-pointer text-right select-none hover:opacity-100"
             style={{ color: HEAL_COLOR, opacity: metric === "heal" ? 1 : 0.55 }}
           >
-            <SortHeaderLabel
-              label="◀ HEAL & SHIELD"
-              active={metric === "heal"}
-              dir={sortDir}
-            />
+            <SortHeaderLabel label="◀ HEAL & SHIELD" active={metric === "heal"} dir={sortDir} />
           </button>
-          <div className="text-center text-[11px] tracking-[.22em] text-[#a09b8c]">
-            CHAMPION
-          </div>
+          <div className="text-center text-[11px] tracking-[.22em] text-[#a09b8c]">CHAMPION</div>
           <button
             type="button"
             onClick={() => sortBy("cc")}
             className="cursor-pointer select-none hover:opacity-100"
             style={{ color: CC_COLOR, opacity: metric === "cc" ? 1 : 0.55 }}
           >
-            <SortHeaderLabel
-              label="CC SCORE ▶"
-              active={metric === "cc"}
-              dir={sortDir}
-            />
+            <SortHeaderLabel label="CC SCORE ▶" active={metric === "cc"} dir={sortDir} />
           </button>
           <div />
         </div>
@@ -321,16 +274,10 @@ const Utility = ({ total, bestByType, champions }: Props) => {
               scrollbarColor: "rgba(200,170,110,.45) transparent",
             }}
           >
-            <div
-              className="relative"
-              style={{ height: rows.length * SLOT_PITCH - ROW_GAP }}
-            >
+            <div className="relative" style={{ height: rows.length * SLOT_PITCH - ROW_GAP }}>
               {rows.map((row, index) => {
                 const isSelected = row.championId === selectedChampionId;
-                const healPct = barWidthPercent(
-                  row.active.healingAndShielding,
-                  maxHeal,
-                );
+                const healPct = barWidthPercent(row.active.healingAndShielding, maxHeal);
                 const ccPct = barWidthPercent(row.active.ccScoreSeconds, maxCc);
 
                 return (
@@ -343,33 +290,21 @@ const Utility = ({ total, bestByType, champions }: Props) => {
                     title={displayName(row.championName)}
                     className={cn(
                       "absolute inset-x-0 grid cursor-pointer items-center gap-4 px-1.5 transition-[background,opacity] duration-150",
-                      mode === "perGame" &&
-                        isLowSample(row.matchesPlayed) &&
-                        "opacity-45",
+                      mode === "perGame" && isLowSample(row.matchesPlayed) && "opacity-45",
                     )}
                     style={{
                       top: index * SLOT_PITCH,
                       height: ROW_HEIGHT,
                       gridTemplateColumns: ROW_GRID,
-                      background: isSelected
-                        ? "rgba(200,170,110,.09)"
-                        : "transparent",
-                      boxShadow: isSelected
-                        ? "inset 0 0 0 1px rgba(200,170,110,.45)"
-                        : undefined,
+                      background: isSelected ? "rgba(200,170,110,.09)" : "transparent",
+                      boxShadow: isSelected ? "inset 0 0 0 1px rgba(200,170,110,.45)" : undefined,
                     }}
                   >
-                    <div
-                      className="text-right font-display text-[15px]"
-                      style={{ color: HEAL_COLOR }}
-                    >
+                    <div className="text-right font-display text-[15px]" style={{ color: HEAL_COLOR }}>
                       {formatCompact(row.active.healingAndShielding)}
                     </div>
 
-                    <div
-                      className="relative h-2.5"
-                      style={{ background: "rgba(240,230,210,.05)" }}
-                    >
+                    <div className="relative h-2.5" style={{ background: "rgba(240,230,210,.05)" }}>
                       <div
                         className="absolute inset-y-0 right-0 h-2.5 transition-[width] duration-300 ease-out"
                         style={{
@@ -384,10 +319,7 @@ const Utility = ({ total, bestByType, champions }: Props) => {
                     {/* Portrait sits in the layer above — this reserves its column. */}
                     <div />
 
-                    <div
-                      className="relative h-2.5"
-                      style={{ background: "rgba(240,230,210,.05)" }}
-                    >
+                    <div className="relative h-2.5" style={{ background: "rgba(240,230,210,.05)" }}>
                       <div
                         className="absolute inset-y-0 left-0 h-2.5 transition-[width] duration-300 ease-out"
                         style={{
@@ -399,10 +331,7 @@ const Utility = ({ total, bestByType, champions }: Props) => {
                       />
                     </div>
 
-                    <div
-                      className="text-left font-display text-[15px]"
-                      style={{ color: CC_COLOR }}
-                    >
+                    <div className="text-left font-display text-[15px]" style={{ color: CC_COLOR }}>
                       {formatCompact(row.active.ccScoreSeconds)}
                     </div>
                   </div>

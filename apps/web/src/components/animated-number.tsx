@@ -21,13 +21,7 @@ interface AnimatedNumberProps {
  * Just the typography — a number that counts up to `value` once it scrolls
  * into view, nothing else.
  */
-export function AnimatedNumber({
-  value,
-  durationMs = 1200,
-  format,
-  decimals = 0,
-  className,
-}: AnimatedNumberProps) {
+export function AnimatedNumber({ value, durationMs = 1200, format, decimals = 0, className }: AnimatedNumberProps) {
   const [ref, isInView] = useInView<HTMLSpanElement>({ threshold: 0.3 });
   const animated = useCountUp(value, durationMs, isInView);
   // Locale pinned to "en-US" rather than left to the viewer's browser:

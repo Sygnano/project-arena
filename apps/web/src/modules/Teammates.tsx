@@ -36,9 +36,7 @@ const TOP3_RATE_COLOR = "#e0b563";
 const FIRST_RATE_COLOR = "var(--color-augment-prismatic)";
 
 function top3Rate(row: TeammateStats): number {
-  return row.gamesPlayed > 0
-    ? ((row.top1 + row.top3ExclTop1) / row.gamesPlayed) * 100
-    : 0;
+  return row.gamesPlayed > 0 ? ((row.top1 + row.top3ExclTop1) / row.gamesPlayed) * 100 : 0;
 }
 
 function firstRate(row: TeammateStats): number {
@@ -113,9 +111,7 @@ const Teammates = ({ teammates, totalTeammates, baselineTop3Rate }: Props) => {
   const rows = useMemo(() => {
     if (metric === "games") {
       const dirSign = sortDir === "desc" ? 1 : -1;
-      return [...teammates].sort(
-        (a, b) => dirSign * (b.gamesPlayed - a.gamesPlayed),
-      );
+      return [...teammates].sort((a, b) => dirSign * (b.gamesPlayed - a.gamesPlayed));
     }
     return sortByRate(
       teammates,
@@ -126,11 +122,8 @@ const Teammates = ({ teammates, totalTeammates, baselineTop3Rate }: Props) => {
     );
   }, [teammates, metric, sortDir, mixLowSample]);
 
-  const [selectedId, setSelectedId] = useState<number | null>(
-    () => rows[0]?.id ?? null,
-  );
-  const selected =
-    teammates.find((t) => t.id === selectedId) ?? rows[0] ?? null;
+  const [selectedId, setSelectedId] = useState<number | null>(() => rows[0]?.id ?? null);
+  const selected = teammates.find((t) => t.id === selectedId) ?? rows[0] ?? null;
 
   // Strips start empty and grow in once mounted.
   const [grown, setGrown] = useState(false);
@@ -139,16 +132,10 @@ const Teammates = ({ teammates, totalTeammates, baselineTop3Rate }: Props) => {
     return () => cancelAnimationFrame(frame);
   }, []);
 
-  const mostGamesTogether = teammates.reduce(
-    (max, t) => Math.max(max, t.gamesPlayed),
-    0,
-  );
+  const mostGamesTogether = teammates.reduce((max, t) => Math.max(max, t.gamesPlayed), 0);
   const bestDuo = teammates
     .filter((t) => t.gamesPlayed >= MIN_GAMES_FOR_BEST_DUO)
-    .reduce<TeammateStats | null>(
-      (best, t) => (best === null || top3Rate(t) > top3Rate(best) ? t : best),
-      null,
-    );
+    .reduce<TeammateStats | null>((best, t) => (best === null || top3Rate(t) > top3Rate(best) ? t : best), null);
 
   const modeCaption =
     metric === "games"
@@ -156,7 +143,6 @@ const Teammates = ({ teammates, totalTeammates, baselineTop3Rate }: Props) => {
       : metric === "top3Rate"
         ? `SORTED · BY WINRATE · UNDER ${MIN_SAMPLE} GAMES DIMMED`
         : `SORTED · BY 1ST RATE · UNDER ${MIN_SAMPLE} GAMES DIMMED`;
-
 
   return (
     <CategorySection
@@ -166,14 +152,9 @@ const Teammates = ({ teammates, totalTeammates, baselineTop3Rate }: Props) => {
       imageUrl={SECTION_BACKGROUNDS.teammates}
       sidebar={
         <>
-          <Dial
-            value={totalTeammates}
-            label="UNIQUE TEAMMATES"
-            formatValue={(v) => v.toLocaleString()}
-          />
+          <Dial value={totalTeammates} label="UNIQUE TEAMMATES" formatValue={(v) => v.toLocaleString()} />
 
           <div className="mt-auto">
-
             <SidebarStatRows
               rows={[
                 {
@@ -181,9 +162,7 @@ const Teammates = ({ teammates, totalTeammates, baselineTop3Rate }: Props) => {
                   value: mostGamesTogether.toLocaleString(),
                 },
                 {
-                  label: bestDuo
-                    ? `BEST PARTNER · ${bestDuo.riotIdGameName.toUpperCase()}`
-                    : "BEST PARTNER",
+                  label: bestDuo ? `BEST PARTNER · ${bestDuo.riotIdGameName.toUpperCase()}` : "BEST PARTNER",
                   value: bestDuo ? `${top3Rate(bestDuo).toFixed(0)}%` : "—",
                   valueColor: TOP3_RATE_COLOR,
                 },
@@ -196,14 +175,7 @@ const Teammates = ({ teammates, totalTeammates, baselineTop3Rate }: Props) => {
       <HextechPanel contentMinWidth={760}>
         <PanelToolbar
           caption={modeCaption}
-          trailing={
-            metric !== "games" ? (
-              <LowSampleSwitch
-                checked={mixLowSample}
-                onChange={setMixLowSample}
-              />
-            ) : null
-          }
+          trailing={metric !== "games" ? <LowSampleSwitch checked={mixLowSample} onChange={setMixLowSample} /> : null}
         >
           <DiamondTabs
             tabs={[
@@ -224,21 +196,13 @@ const Teammates = ({ teammates, totalTeammates, baselineTop3Rate }: Props) => {
           }}
         >
           <div />
-          <div className="text-[11px] tracking-[.22em] text-[#a09b8c]">
-            TEAMMATE
-          </div>
+          <div className="text-[11px] tracking-[.22em] text-[#a09b8c]">TEAMMATE</div>
           <div className="flex min-w-0 items-center gap-3.5 overflow-hidden text-[10px] tracking-[.2em] whitespace-nowrap text-[#a09b8c]">
             <LegendSwatch color={FIRST_RATE_COLOR} label="1ST" />
             <LegendSwatch color={TOP3_RATE_COLOR} label="2ND–3RD" />
             <LegendSwatch color={REST_COLOR} label="4TH+" />
-            <span
-              className="flex items-center gap-1.5"
-              style={{ color: BASELINE_COLOR }}
-            >
-              <span
-                className="inline-block h-3 w-px"
-                style={{ background: BASELINE_COLOR }}
-              />
+            <span className="flex items-center gap-1.5" style={{ color: BASELINE_COLOR }}>
+              <span className="inline-block h-3 w-px" style={{ background: BASELINE_COLOR }} />
               YOUR WINRATE · {baselineTop3Rate.toFixed(0)}%
             </span>
           </div>
@@ -248,11 +212,7 @@ const Teammates = ({ teammates, totalTeammates, baselineTop3Rate }: Props) => {
             style={{ opacity: metric === "games" ? 1 : 0.55 }}
             onClick={() => sortBy("games")}
           >
-            <SortHeaderLabel
-              label="GAMES"
-              active={metric === "games"}
-              dir={sortDir}
-            />
+            <SortHeaderLabel label="GAMES" active={metric === "games"} dir={sortDir} />
           </button>
           <button
             type="button"
@@ -263,11 +223,7 @@ const Teammates = ({ teammates, totalTeammates, baselineTop3Rate }: Props) => {
             }}
             onClick={() => sortBy("top3Rate")}
           >
-            <SortHeaderLabel
-              label="WINRATE"
-              active={metric === "top3Rate"}
-              dir={sortDir}
-            />
+            <SortHeaderLabel label="WINRATE" active={metric === "top3Rate"} dir={sortDir} />
           </button>
           <div
             className="text-right text-[11px] tracking-[.22em] text-[#a09b8c]"
@@ -284,11 +240,7 @@ const Teammates = ({ teammates, totalTeammates, baselineTop3Rate }: Props) => {
             }}
             onClick={() => sortBy("firstRate")}
           >
-            <SortHeaderLabel
-              label="1ST"
-              active={metric === "firstRate"}
-              dir={sortDir}
-            />
+            <SortHeaderLabel label="1ST" active={metric === "firstRate"} dir={sortDir} />
           </button>
         </div>
 
@@ -308,8 +260,7 @@ const Teammates = ({ teammates, totalTeammates, baselineTop3Rate }: Props) => {
             {rows.map((teammate, index) => {
               const isSelected = teammate.id === selectedId;
               const delta = top3Rate(teammate) - baselineTop3Rate;
-              const lowSample =
-                metric !== "games" && isLowSample(teammate.gamesPlayed);
+              const lowSample = metric !== "games" && isLowSample(teammate.gamesPlayed);
               const games = Math.max(1, teammate.gamesPlayed);
               const segments = [
                 {
@@ -343,12 +294,8 @@ const Teammates = ({ teammates, totalTeammates, baselineTop3Rate }: Props) => {
                   )}
                   style={{
                     gridTemplateColumns: ROW_GRID,
-                    background: isSelected
-                      ? "rgba(200,170,110,.09)"
-                      : "transparent",
-                    boxShadow: isSelected
-                      ? "inset 0 0 0 1px rgba(200,170,110,.45)"
-                      : undefined,
+                    background: isSelected ? "rgba(200,170,110,.09)" : "transparent",
+                    boxShadow: isSelected ? "inset 0 0 0 1px rgba(200,170,110,.45)" : undefined,
                   }}
                 >
                   <InitialAvatar name={teammate.riotIdGameName} />
@@ -368,10 +315,7 @@ const Teammates = ({ teammates, totalTeammates, baselineTop3Rate }: Props) => {
                     </div>
                   </div>
 
-                  <div
-                    className="relative h-3"
-                    style={{ background: "rgba(240,230,210,.05)" }}
-                  >
+                  <div className="relative h-3" style={{ background: "rgba(240,230,210,.05)" }}>
                     <div className="absolute inset-0 flex">
                       {segments.map((segment) => (
                         <div
@@ -399,17 +343,11 @@ const Teammates = ({ teammates, totalTeammates, baselineTop3Rate }: Props) => {
                   <div className="text-right font-display text-[16px] text-lol-text-secondary">
                     {teammate.gamesPlayed.toLocaleString()}
                   </div>
-                  <div
-                    className={cn("text-right font-display text-[16px]")}
-                    style={{ color: TOP3_RATE_COLOR }}
-                  >
+                  <div className={cn("text-right font-display text-[16px]")} style={{ color: TOP3_RATE_COLOR }}>
                     {top3Rate(teammate).toFixed(0)}%
                   </div>
                   <DeltaCell delta={delta} />
-                  <div
-                    className={cn("text-right font-display text-[16px]")}
-                    style={{ color: FIRST_RATE_COLOR }}
-                  >
+                  <div className={cn("text-right font-display text-[16px]")} style={{ color: FIRST_RATE_COLOR }}>
                     {firstRate(teammate).toFixed(0)}%
                   </div>
                 </div>
@@ -439,9 +377,7 @@ const Teammates = ({ teammates, totalTeammates, baselineTop3Rate }: Props) => {
               },
               {
                 label: "VS YOUR AVERAGE",
-                value: formatSignedPoints(
-                  top3Rate(selected) - baselineTop3Rate,
-                ),
+                value: formatSignedPoints(top3Rate(selected) - baselineTop3Rate),
                 nowrap: true,
               },
               {

@@ -91,9 +91,7 @@ type Row = {
 };
 
 function columnValue(row: Row, metric: Metric): number {
-  return metric === "total"
-    ? sumBreakdown(row.active)
-    : row.active[metric];
+  return metric === "total" ? sumBreakdown(row.active) : row.active[metric];
 }
 
 type SortDir = "asc" | "desc";
@@ -104,9 +102,7 @@ const BREAKDOWN_KEYS = ["physical", "magical", "trueDamage"] as const;
  * but when sorting by one of those specifically, that type's segment leads
  * (leftmost) so the bar visually reads left-to-right in the same order the
  * list is sorted by. */
-function segmentOrder(
-  metric: Metric,
-): readonly (typeof BREAKDOWN_KEYS)[number][] {
+function segmentOrder(metric: Metric): readonly (typeof BREAKDOWN_KEYS)[number][] {
   if (metric === "total") return BREAKDOWN_KEYS;
   return [metric, ...BREAKDOWN_KEYS.filter((k) => k !== metric)];
 }
@@ -133,12 +129,7 @@ const ROW_PADDING_X = 6;
  * the old separate mirrored-chart component, since the two are otherwise
  * identical down to the sort/motion behavior.
  */
-const Damage = ({
-  variant = "dealt",
-  damage,
-  champions,
-  skillshots,
-}: Props) => {
+const Damage = ({ variant = "dealt", damage, champions, skillshots }: Props) => {
   const dmgWord = variant === "taken" ? "TAKEN" : "DMG";
   const [mode, setMode] = useState<Mode>("total");
   const displayName = useChampionName();
@@ -164,8 +155,7 @@ const Damage = ({
   const roster = useMemo<Row[]>(
     () =>
       Object.values(champions).map((champion) => {
-        const championDamage =
-          variant === "taken" ? champion.damageTaken : champion.damage;
+        const championDamage = variant === "taken" ? champion.damageTaken : champion.damage;
         return {
           championId: champion.championId,
           championName: champion.championName,
@@ -198,16 +188,11 @@ const Damage = ({
       );
     }
     const dirSign = sortDir === "desc" ? 1 : -1;
-    return [...roster].sort(
-      (a, b) => dirSign * (columnValue(b, metric) - columnValue(a, metric)),
-    );
+    return [...roster].sort((a, b) => dirSign * (columnValue(b, metric) - columnValue(a, metric)));
   }, [roster, metric, sortDir, mode, mixLowSample]);
 
-  const [selectedChampionId, setSelectedChampionId] = useState<number | null>(
-    () => rows[0]?.championId ?? null,
-  );
-  const selected =
-    roster.find((r) => r.championId === selectedChampionId) ?? rows[0] ?? null;
+  const [selectedChampionId, setSelectedChampionId] = useState<number | null>(() => rows[0]?.championId ?? null);
+  const selected = roster.find((r) => r.championId === selectedChampionId) ?? rows[0] ?? null;
 
   // Drives the big bar's scale: the stacked total when showing TOTAL, or just
   // that one type's own max when a specific PHYS/MAGIC/TRUE column is active
@@ -217,14 +202,8 @@ const Damage = ({
   // Scale from champions with enough games in PER GAME mode, so a dimmed
   // one-game outlier can't shrink every trustworthy bar (widths clamp at 100%).
   // Mixed in by the viewer, they scale too, or they'd all clamp to 100%.
-  const scaleRows =
-    mode === "perGame" && !mixLowSample
-      ? rows.filter((r) => !isLowSample(r.matchesPlayed))
-      : rows;
-  const maxMetricValue = Math.max(
-    1,
-    ...(scaleRows.length > 0 ? scaleRows : rows).map((r) => columnValue(r, metric)),
-  );
+  const scaleRows = mode === "perGame" && !mixLowSample ? rows.filter((r) => !isLowSample(r.matchesPlayed)) : rows;
+  const maxMetricValue = Math.max(1, ...(scaleRows.length > 0 ? scaleRows : rows).map((r) => columnValue(r, metric)));
   const seasonGrandTotal = sumBreakdown(damage.total);
   const totalGames = Object.values(champions).reduce((sum, c) => sum + c.matchesPlayed, 0);
   // In "best" mode: the one game the grid's columns come from (see
@@ -253,22 +232,13 @@ const Damage = ({
   const sidebarTotal = sumBreakdown(sidebarBreakdown);
   const sidebarRow = (label: string, value: number) => ({
     label,
-    value: (
-      <ValuePercentRow
-        value={formatCompact(value)}
-        pct={sidebarTotal > 0 ? (value / sidebarTotal) * 100 : 0}
-      />
-    ),
+    value: <ValuePercentRow value={formatCompact(value)} pct={sidebarTotal > 0 ? (value / sidebarTotal) * 100 : 0} />,
   });
 
   return (
     <CategorySection
       title={variant === "taken" ? "DMG TAKEN" : "DMG DEALT"}
-      quote={
-        variant === "taken"
-          ? "Next time, try to leave a dent!"
-          : "Whatever, let's just start shooting!"
-      }
+      quote={variant === "taken" ? "Next time, try to leave a dent!" : "Whatever, let's just start shooting!"}
       imageUrl={variant === "taken" ? SECTION_BACKGROUNDS.damageTaken : SECTION_BACKGROUNDS.damage}
       sidebar={
         <>
@@ -293,10 +263,9 @@ const Damage = ({
                           mode === "best"
                             ? skillshots.best.toLocaleString()
                             : mode === "perGame"
-                              ? (totalGames > 0 ? skillshots.total / totalGames : 0).toLocaleString(
-                                  undefined,
-                                  { maximumFractionDigits: 1 },
-                                )
+                              ? (totalGames > 0 ? skillshots.total / totalGames : 0).toLocaleString(undefined, {
+                                  maximumFractionDigits: 1,
+                                })
                               : skillshots.total.toLocaleString(),
                       },
                     ]
@@ -310,14 +279,7 @@ const Damage = ({
       <HextechPanel contentMinWidth={700}>
         <PanelToolbar
           caption={`${modeCaption} · SORTED · BY ${METRIC_LABEL[metric]}`}
-          trailing={
-            mode === "perGame" ? (
-              <LowSampleSwitch
-                checked={mixLowSample}
-                onChange={setMixLowSample}
-              />
-            ) : null
-          }
+          trailing={mode === "perGame" ? <LowSampleSwitch checked={mixLowSample} onChange={setMixLowSample} /> : null}
         >
           <DiamondTabs
             tabs={[
@@ -352,16 +314,13 @@ const Damage = ({
           }}
         >
           <div />
-          <div className="text-[11px] tracking-[.22em] text-[#a09b8c]">
-            CHAMPION
-          </div>
+          <div className="text-[11px] tracking-[.22em] text-[#a09b8c]">CHAMPION</div>
           <button
             type="button"
             onClick={() => sortBy("total")}
             className="cursor-pointer text-right select-none hover:text-lol-gold-100"
             style={{
-              color:
-                metric === "total" ? "var(--color-lol-gold-50)" : "#a09b8c",
+              color: metric === "total" ? "var(--color-lol-gold-50)" : "#a09b8c",
             }}
           >
             <SortHeaderLabel
@@ -379,11 +338,7 @@ const Damage = ({
               opacity: metric === "physical" ? 1 : 0.55,
             }}
           >
-            <SortHeaderLabel
-              label="PHYS"
-              active={metric === "physical"}
-              dir={sortDir}
-            />
+            <SortHeaderLabel label="PHYS" active={metric === "physical"} dir={sortDir} />
           </button>
           <button
             type="button"
@@ -394,11 +349,7 @@ const Damage = ({
               opacity: metric === "magical" ? 1 : 0.55,
             }}
           >
-            <SortHeaderLabel
-              label="MAGIC"
-              active={metric === "magical"}
-              dir={sortDir}
-            />
+            <SortHeaderLabel label="MAGIC" active={metric === "magical"} dir={sortDir} />
           </button>
           <button
             type="button"
@@ -409,11 +360,7 @@ const Damage = ({
               opacity: metric === "trueDamage" ? 1 : 0.55,
             }}
           >
-            <SortHeaderLabel
-              label="TRUE"
-              active={metric === "trueDamage"}
-              dir={sortDir}
-            />
+            <SortHeaderLabel label="TRUE" active={metric === "trueDamage"} dir={sortDir} />
           </button>
         </div>
 
@@ -443,17 +390,11 @@ const Damage = ({
              * is what actually animates — it FLIPs to each icon's new rank
              * on top of the (positionally static) slots underneath.
              */}
-            <div
-              className="relative"
-              style={{ height: rows.length * SLOT_PITCH - ROW_GAP }}
-            >
+            <div className="relative" style={{ height: rows.length * SLOT_PITCH - ROW_GAP }}>
               {rows.map((row, index) => {
                 const isSelected = row.championId === selectedChampionId;
                 const total = sumBreakdown(row.active);
-                const barWidthPct = barWidthPercent(
-                  columnValue(row, metric),
-                  maxMetricValue,
-                );
+                const barWidthPct = barWidthPercent(columnValue(row, metric), maxMetricValue);
 
                 return (
                   <div
@@ -467,14 +408,9 @@ const Damage = ({
                     style={{
                       top: index * SLOT_PITCH,
                       height: ROW_HEIGHT,
-                      gridTemplateColumns:
-                        "36px 104px minmax(0,1fr) 76px 76px 76px",
-                      background: isSelected
-                        ? "rgba(200,170,110,.09)"
-                        : "transparent",
-                      boxShadow: isSelected
-                        ? "inset 0 0 0 1px rgba(200,170,110,.45)"
-                        : undefined,
+                      gridTemplateColumns: "36px 104px minmax(0,1fr) 76px 76px 76px",
+                      background: isSelected ? "rgba(200,170,110,.09)" : "transparent",
+                      boxShadow: isSelected ? "inset 0 0 0 1px rgba(200,170,110,.45)" : undefined,
                     }}
                   >
                     {/* Icon sits in the layer above — this reserves its column. */}
@@ -499,29 +435,20 @@ const Damage = ({
                                 key={key}
                                 className="h-full transition-[width] duration-300 ease-out"
                                 style={{
-                                  width:
-                                    total > 0
-                                      ? `${(row.active[key] / total) * 100}%`
-                                      : 0,
+                                  width: total > 0 ? `${(row.active[key] / total) * 100}%` : 0,
                                   background: COLORS[key],
                                 }}
                               />
                             ))
                           ) : (
-                            <div
-                              className="h-full w-full"
-                              style={{ background: COLORS[metric] }}
-                            />
+                            <div className="h-full w-full" style={{ background: COLORS[metric] }} />
                           )}
                         </div>
                       </div>
                       <div
                         className="w-16 flex-none text-right font-display text-[15px]"
                         style={{
-                          color:
-                            metric === "total"
-                              ? "var(--color-lol-gold-50)"
-                              : "var(--color-lol-text-secondary)",
+                          color: metric === "total" ? "var(--color-lol-gold-50)" : "var(--color-lol-text-secondary)",
                         }}
                       >
                         {formatCompact(total)}

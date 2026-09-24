@@ -1,11 +1,12 @@
 import type { FastifyBaseLogger, FastifyInstance } from "fastify";
-import type { Summoner } from "@arena/db";
+import { riotIdKey, type Summoner } from "@arena/db";
+import { accountRegion, toPlatform } from "@arena/riot";
 import type { RefreshProgress } from "@arena/types";
 import { refreshQueue } from "../../ingestion/index.js";
 import { resolveSummonerByRiotId } from "../../ingestion/resolveSummoner.js";
 import { riotIdLabel } from "../../logger.js";
 import { clientIp, SlidingWindowLimiter } from "../../rateLimit.js";
-import { accountRegion, toPlatform } from "../../riotApi/routing.js";
+import { riotGateway } from "../../riot.js";
 import { REFRESH_COOLDOWN_MS, statsCache } from "../../summoners/statsCache.js";
 import {
   findSummonerByPuuid,
@@ -30,12 +31,16 @@ const MAX_WAITING_FIRST_FETCHES = 10;
 // lets a few addresses queue refreshes of every stored summoner.
 const MAX_WAITING_REFRESHES = 50;
 // Riot ID lookups (Account-V1) running at once per Account-V1 cluster, all
-// visitors together. They share the cluster's Riot budget with match
-// fetches, and each waits in memory for its turn: without a ceiling, a few
-// addresses sending made-up Riot IDs could fill the budget and pile up
-// waiting lookups without end.
+// visitors together. They go first at the Riot gateway (the `lookup`
+// bucket), ahead of every match fetch on that cluster: without a ceiling, a
+// few addresses sending made-up Riot IDs could hold everyone's refreshes
+// back and pile up waiting lookups without end.
 const MAX_LOOKUPS_IN_FLIGHT = 10;
 const lookupsInFlight = new Map<string, number>();
+// The lookup running for each Riot ID ("euw1:name#tag"), shared like a
+// fetch: everyone searching the same Riot ID meanwhile waits on it rather
+// than asking Riot again, and joining costs no limiter or in-flight slot.
+const pendingLookups = new Map<string, Promise<Summoner | null>>();
 // Refresh streams open at once, all visitors together (each also holds a
 // connection through the web server).
 const MAX_OPEN_STREAMS = 200;
@@ -46,6 +51,9 @@ let openStreams = 0;
 // returns, which includes a Riot lookup still waiting after the visitor left.
 const MAX_OPEN_STREAMS_PER_IP = 4;
 const openStreamsByIp = new Map<string, number>();
+
+// A visitor waits on their Riot ID lookup: its calls go first at the gateway.
+const lookupRiot = riotGateway.client("lookup");
 
 /** Resolves when the summoner's fetch ends, or with "closed" when the visitor leaves first. */
 function followFetch(stream: EventStream, puuid: string): Promise<RefreshProgress | "closed"> {
@@ -89,7 +97,12 @@ async function sendRecap(stream: EventStream, summoner: Summoner) {
  * 4. send progress until the fetch ends, then the recap.
  * The visitor leaving doesn't stop the fetch: its matches are stored anyway.
  */
-async function streamRefresh(stream: EventStream, { region, gameName, tagLine }: RiotIdParams, ip: string, log: FastifyBaseLogger) {
+async function streamRefresh(
+  stream: EventStream,
+  { region, gameName, tagLine }: RiotIdParams,
+  ip: string,
+  log: FastifyBaseLogger,
+) {
   let chargedRiotRequest = false;
   const allowed = (limiter: SlidingWindowLimiter) => {
     const result = limiter.hit(ip);
@@ -102,23 +115,30 @@ async function streamRefresh(stream: EventStream, { region, gameName, tagLine }:
 
   let summoner: Summoner | null | undefined = await findSummonerByRiotId(region, gameName, tagLine);
   if (!summoner) {
-    const cluster = accountRegion(toPlatform(region));
-    const inFlight = lookupsInFlight.get(cluster) ?? 0;
-    if (inFlight >= MAX_LOOKUPS_IN_FLIGHT) {
-      log.warn({ cluster, inFlight }, "lookup refused: too many running");
-      stream.send("error", { code: "busy" });
-      return;
+    const lookupKey = `${region.toLowerCase()}:${riotIdKey(gameName, tagLine)}`;
+    let lookup = pendingLookups.get(lookupKey);
+    if (lookup) {
+      log.info({ summoner: `${gameName}#${tagLine}` }, "joining the lookup already running");
+    } else {
+      const cluster = accountRegion(toPlatform(region));
+      const inFlight = lookupsInFlight.get(cluster) ?? 0;
+      if (inFlight >= MAX_LOOKUPS_IN_FLIGHT) {
+        log.warn({ cluster, inFlight }, "lookup refused: too many running");
+        stream.send("error", { code: "busy" });
+        return;
+      }
+      if (!allowed(riotRequestLimiter)) return;
+      chargedRiotRequest = true;
+      lookupsInFlight.set(cluster, inFlight + 1);
+      lookup = resolveSummonerByRiotId(lookupRiot, region, gameName, tagLine).finally(() => {
+        pendingLookups.delete(lookupKey);
+        const left = (lookupsInFlight.get(cluster) ?? 1) - 1;
+        if (left > 0) lookupsInFlight.set(cluster, left);
+        else lookupsInFlight.delete(cluster);
+      });
+      pendingLookups.set(lookupKey, lookup);
     }
-    if (!allowed(riotRequestLimiter)) return;
-    chargedRiotRequest = true;
-    lookupsInFlight.set(cluster, inFlight + 1);
-    try {
-      summoner = await resolveSummonerByRiotId(region, gameName, tagLine);
-    } finally {
-      const left = (lookupsInFlight.get(cluster) ?? 1) - 1;
-      if (left > 0) lookupsInFlight.set(cluster, left);
-      else lookupsInFlight.delete(cluster);
-    }
+    summoner = await lookup;
     if (!summoner) {
       stream.send("error", { code: "not_found" });
       return;

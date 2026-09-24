@@ -24,9 +24,7 @@ export default function GlobalError({ reset }: { error: Error; reset: () => void
             </>
           }
         >
-          <p className="text-lol-text-secondary">
-            The site hit an unexpected error. Try again in a moment.
-          </p>
+          <p className="text-lol-text-secondary">The site hit an unexpected error. Try again in a moment.</p>
         </StatusScreen>
       </body>
     </html>

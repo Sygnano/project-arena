@@ -24,10 +24,7 @@ type Options = {
  * so re-measuring after scaling yields the same numbers and the observer
  * settles immediately.
  */
-export function useFitScale<
-  O extends HTMLElement,
-  I extends HTMLElement,
->({ minScale = 0.55 }: Options = {}) {
+export function useFitScale<O extends HTMLElement, I extends HTMLElement>({ minScale = 0.55 }: Options = {}) {
   const outerRef = useRef<O>(null);
   const innerRef = useRef<I>(null);
   const [scale, setScale] = useState(1);
@@ -39,24 +36,14 @@ export function useFitScale<
 
     const measure = () => {
       const style = getComputedStyle(outer);
-      const availableWidth =
-        outer.clientWidth -
-        parseFloat(style.paddingLeft) -
-        parseFloat(style.paddingRight);
-      const availableHeight =
-        outer.clientHeight -
-        parseFloat(style.paddingTop) -
-        parseFloat(style.paddingBottom);
+      const availableWidth = outer.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      const availableHeight = outer.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
       const width = inner.offsetWidth;
       const height = inner.offsetHeight;
       if (availableWidth <= 0 || availableHeight <= 0 || !width || !height) {
         return;
       }
-      const next = Math.min(
-        1,
-        availableWidth / width,
-        availableHeight / height,
-      );
+      const next = Math.min(1, availableWidth / width, availableHeight / height);
       // Rounded so sub-pixel measurement jitter doesn't churn React state.
       setScale(Math.max(minScale, Math.floor(next * 1000) / 1000));
     };

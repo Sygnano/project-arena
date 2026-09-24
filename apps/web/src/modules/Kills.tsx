@@ -3,12 +3,7 @@
 import type { ChampionStats, KillsStats } from "@arena/types";
 import { CursorTooltip } from "@/components/cursor-tooltip";
 import type { HoverPoint } from "@/components/hextech-bar-chart";
-import {
-  HoverCardChampions,
-  HoverCardRows,
-  HoverCardSection,
-  HoverStatCard,
-} from "@/components/hover-stat-card";
+import { HoverCardChampions, HoverCardRows, HoverCardSection, HoverStatCard } from "@/components/hover-stat-card";
 import { useChartHover } from "@/hooks/use-chart-hover";
 import { CategorySection } from "@/components/category-section";
 import { HextechPanel } from "@/components/hextech-panel";
@@ -46,13 +41,7 @@ function exactMultikills(champion: ChampionStats, key: MultikillKey): number {
   return Math.max(0, exact);
 }
 
-function Plate({
-  tier,
-  onHover,
-}: {
-  tier: PlateTier;
-  onHover: (id: MultikillKey | null, point?: HoverPoint) => void;
-}) {
+function Plate({ tier, onHover }: { tier: PlateTier; onHover: (id: MultikillKey | null, point?: HoverPoint) => void }) {
   return (
     <div
       tabIndex={0}
@@ -79,20 +68,12 @@ function Plate({
           boxShadow: tier.boxShadow,
         }}
       >
-        {tier.prismatic ? (
-          <div className="tier-bar-prismatic absolute inset-1.25 opacity-[.16]" />
-        ) : null}
-        <div
-          className="font-display relative text-[42px] -rotate-45"
-          style={{ color: tier.countColor }}
-        >
+        {tier.prismatic ? <div className="tier-bar-prismatic absolute inset-1.25 opacity-[.16]" /> : null}
+        <div className="font-display relative text-[42px] -rotate-45" style={{ color: tier.countColor }}>
           {tier.count}
         </div>
       </div>
-      <div
-        className="pl-[.28em] text-[11px] tracking-[.28em] mt-5"
-        style={{ color: tier.labelColor }}
-      >
+      <div className="pl-[.28em] text-[11px] tracking-[.28em] mt-5" style={{ color: tier.labelColor }}>
         {tier.label}
       </div>
     </div>
@@ -226,7 +207,6 @@ const Kills = ({
   ];
   const hoveredTier = hover ? tiers.find((tier) => tier.key === hover.id) : undefined;
 
-
   return (
     <CategorySection
       title="KILLS"
@@ -241,9 +221,7 @@ const Kills = ({
             ))}
           </div>
           <CursorTooltip point={hoveredTier ? hover!.point : null}>
-            {hoveredTier ? (
-              <MultikillCard tier={hoveredTier} champions={champions} totalGames={totalGames} />
-            ) : null}
+            {hoveredTier ? <MultikillCard tier={hoveredTier} champions={champions} totalGames={totalGames} /> : null}
           </CursorTooltip>
         </div>
 

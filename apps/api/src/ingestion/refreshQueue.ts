@@ -1,8 +1,7 @@
 import type { Db } from "@arena/db";
+import { REGION_LABEL, matchRegion, toPlatform, type GatewayHold, type Region, type RiotGateway } from "@arena/riot";
 import type { RefreshProgress } from "@arena/types";
 import { logger } from "../logger.js";
-import type { RiotClient } from "../riotApi/client.js";
-import { REGION_LABEL, matchRegion, toPlatform, type Region } from "../riotApi/routing.js";
 import { ingestSummoner } from "./ingestSummoner.js";
 
 /** A summoner whose matches to fetch. `label` ("Name#TAG") is for logs. */
@@ -23,6 +22,11 @@ type Job = RefreshTarget & {
   total: number;
   startedAt: number | null;
   finishedAt: number | null;
+  /** When the match-by-match phase began, for the measured ETA. */
+  matchesStartedAt: number | null;
+  /** Its current Riot call has been held at the gateway for HOLD_NOTICE_MS or more. */
+  waitingOnRiot: boolean;
+  holdTimer: ReturnType<typeof setTimeout> | null;
 };
 
 /**
@@ -39,11 +43,14 @@ interface Lane {
 
 type Listener = (progress: RefreshProgress) => void;
 
-// Each match costs two Riot calls (match + timeline) and a dev key sustains
-// 100 calls per 2 minutes, so a long fetch settles at ~2.4s per match.
-// Deliberately the sustained rate, not the 20/s burst: it only overestimates
-// when few matches are left and the 2-minute window is still fresh.
-const SECONDS_PER_MATCH = (2 * 120) / 100;
+// The ETA is the pace measured so far in this fetch, once it has this many
+// matches behind it: the key's limits (dev or production) and whatever else
+// the gateway runs first set that pace, not a constant.
+const MIN_MATCHES_FOR_ETA = 3;
+// A Riot call held at the gateway this long (behind higher-priority requests,
+// or for Riot's rate limit) shows as "waiting on Riot". Shorter holds are the
+// normal pacing between calls.
+const HOLD_NOTICE_MS = 3000;
 // Finished jobs stay readable for a while, so a page opened right after a
 // fetch still sees how it ended.
 const FINISHED_JOB_TTL_MS = 10 * 60_000;
@@ -62,8 +69,9 @@ export function laneOf(platform: string): Region {
  * EUNE share a lane because they share the `europe` budget (two lanes there
  * would only compete for it). Within a lane, one summoner at a time:
  * refreshes first, then first fetches, each first come first served (see
- * `Lane`). Bulk ingestion isn't queued here: it's
- * `scripts/crawl.ts`, its own process.
+ * `Lane`). Their Riot calls wait at the Riot gateway in the `refresh` or
+ * `firstFetch` bucket, ahead of the crawler's and behind visitors' lookups.
+ * Bulk ingestion isn't queued here: it's `scripts/crawl.ts`, its own process.
  *
  * In memory: a restart drops the queue and the next refresh press queues
  * again (ingestion skips matches already stored). Anyone can follow a job
@@ -77,7 +85,7 @@ export class RefreshQueue {
 
   constructor(
     private readonly db: Db,
-    private readonly riot: RiotClient,
+    private readonly gateway: RiotGateway,
   ) {}
 
   private lane(region: Region): Lane {
@@ -100,6 +108,9 @@ export class RefreshQueue {
       total: 0,
       startedAt: null,
       finishedAt: null,
+      matchesStartedAt: null,
+      waitingOnRiot: false,
+      holdTimer: null,
     });
     const lane = this.lane(laneName);
     (target.firstFetch ? lane.firstFetches : lane.refreshes).push(target.puuid);
@@ -133,7 +144,9 @@ export class RefreshQueue {
     const job = this.jobs.get(puuid);
     if (!job) return null;
     const lane = this.lane(job.lane);
-    const ahead = job.firstFetch ? lane.refreshes.length + lane.firstFetches.indexOf(puuid) : lane.refreshes.indexOf(puuid);
+    const ahead = job.firstFetch
+      ? lane.refreshes.length + lane.firstFetches.indexOf(puuid)
+      : lane.refreshes.indexOf(puuid);
     const position = job.state === "queued" ? ahead + (lane.running ? 1 : 0) : 0;
     return {
       state: job.state,
@@ -141,9 +154,39 @@ export class RefreshQueue {
       phase: job.phase,
       done: job.done,
       total: job.total,
-      etaSeconds:
-        job.state === "running" && job.phase === "matches" ? Math.ceil((job.total - job.done) * SECONDS_PER_MATCH) : null,
+      etaSeconds: job.state === "running" && job.phase === "matches" ? this.etaSeconds(job) : null,
+      waitingOnRiot: job.state === "running" && job.waitingOnRiot,
     };
+  }
+
+  /** Seconds left at the pace this fetch has kept so far, null until it has one. */
+  private etaSeconds(job: Job) {
+    if (job.matchesStartedAt === null || job.done < MIN_MATCHES_FOR_ETA) return null;
+    const secondsPerMatch = (Date.now() - job.matchesStartedAt) / 1000 / job.done;
+    return Math.ceil((job.total - job.done) * secondsPerMatch);
+  }
+
+  /**
+   * Follows the job's current Riot call at the gateway: a hold that lasts
+   * HOLD_NOTICE_MS turns `waitingOnRiot` on, the call leaving the gateway
+   * turns it off.
+   */
+  private onHold(job: Job, hold: GatewayHold | null) {
+    if (hold !== null) {
+      if (job.waitingOnRiot || job.holdTimer) return;
+      job.holdTimer = setTimeout(() => {
+        job.holdTimer = null;
+        job.waitingOnRiot = true;
+        this.notify(job.puuid);
+      }, HOLD_NOTICE_MS);
+      return;
+    }
+    if (job.holdTimer) clearTimeout(job.holdTimer);
+    job.holdTimer = null;
+    if (job.waitingOnRiot) {
+      job.waitingOnRiot = false;
+      this.notify(job.puuid);
+    }
   }
 
   /** Calls `listener` on every change to this summoner's job. Returns the unsubscribe. */
@@ -207,38 +250,60 @@ export class RefreshQueue {
     const lane = REGION_LABEL[job.lane];
     const waiting = this.lane(job.lane);
     log.info(
-      { summoner: job.label, lane, waitingRefreshes: waiting.refreshes.length, waitingFirstFetches: waiting.firstFetches.length },
+      {
+        summoner: job.label,
+        lane,
+        waitingRefreshes: waiting.refreshes.length,
+        waitingFirstFetches: waiting.firstFetches.length,
+      },
       "fetch started",
     );
     this.notify(job.puuid);
     this.notifyQueued(job.lane);
+    const riot = this.gateway.client(job.firstFetch ? "firstFetch" : "refresh", {
+      onHold: (hold) => this.onHold(job, hold),
+    });
     try {
       const { ingested, skipped, bad } = await ingestSummoner(
         this.db,
-        this.riot,
+        riot,
         job,
         (progress) => {
           job.phase = progress.phase;
           if (progress.phase === "matches") {
+            job.matchesStartedAt ??= Date.now();
             job.done = progress.done;
             job.total = progress.total;
           }
           this.notify(job.puuid);
         },
         {
-          onSkip: (skip) => log.warn({ summoner: job.label, lane, ...skip }, "match failed, skipped until the next refresh, see skipped_matches"),
-          onBadMatch: (badMatch) => log.info({ summoner: job.label, lane, ...badMatch }, "bad match, won't be fetched again"),
+          onSkip: (skip) =>
+            log.warn(
+              { summoner: job.label, lane, ...skip },
+              "match failed, skipped until the next refresh, see skipped_matches",
+            ),
+          onBadMatch: (badMatch) =>
+            log.info({ summoner: job.label, lane, ...badMatch }, "bad match, won't be fetched again"),
         },
       );
       job.state = "done";
       log.info(
-        { summoner: job.label, lane, newMatches: ingested, skipped, bad, seconds: Math.round((Date.now() - job.startedAt) / 1000) },
+        {
+          summoner: job.label,
+          lane,
+          newMatches: ingested,
+          skipped,
+          bad,
+          seconds: Math.round((Date.now() - job.startedAt) / 1000),
+        },
         "fetch finished",
       );
     } catch (err) {
       job.state = "failed";
       log.error({ summoner: job.label, lane, err }, "fetch failed");
     }
+    this.onHold(job, null);
     job.finishedAt = Date.now();
     this.notify(job.puuid);
   }

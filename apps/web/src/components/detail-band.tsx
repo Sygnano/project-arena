@@ -42,18 +42,11 @@ function StatCell({
   nowrap?: boolean;
 }) {
   return (
-    <div
-      className="px-3.5"
-      style={
-        bordered ? { borderLeft: "1px solid rgba(200,170,110,.16)" } : undefined
-      }
-    >
+    <div className="px-3.5" style={bordered ? { borderLeft: "1px solid rgba(200,170,110,.16)" } : undefined}>
       <div
         className={`text-[11px] tracking-[.22em] ${nowrap ? "whitespace-nowrap" : ""}`}
         style={{
-          color: highlight
-            ? "var(--color-lol-gold-300)"
-            : "var(--color-lol-text-muted)",
+          color: highlight ? "var(--color-lol-gold-300)" : "var(--color-lol-text-muted)",
         }}
       >
         {label}
@@ -61,9 +54,7 @@ function StatCell({
       <div
         className={`font-display mt-1.5 text-[23px] ${nowrap ? "whitespace-nowrap" : ""}`}
         style={{
-          color: highlight
-            ? "var(--color-lol-gold-300)"
-            : "var(--color-lol-gold-50)",
+          color: highlight ? "var(--color-lol-gold-300)" : "var(--color-lol-gold-50)",
         }}
       >
         {value}
@@ -85,41 +76,34 @@ function DetailBand({ icon, title, subtitle, action, stats, statsGrid }: Props) 
     // 64rem and up they sit side by side in fixed columns. A viewport
     // breakpoint here let 7 stat cells overlap in a 1366px-wide window.
     <div className="@container mt-2 pt-4.5" style={{ borderTop: "1px solid rgba(200,170,110,.28)" }}>
-    <div className="grid items-center gap-x-6.5 gap-y-3 @5xl:grid-cols-[240px_minmax(0,1fr)]">
-      <div className="flex min-w-0 items-center gap-4">
-        {icon}
-        <div className="min-w-0">
-          <div className="font-display truncate text-[22px] tracking-[.06em] text-lol-gold-50">
-            {title}
+      <div className="grid items-center gap-x-6.5 gap-y-3 @5xl:grid-cols-[240px_minmax(0,1fr)]">
+        <div className="flex min-w-0 items-center gap-4">
+          {icon}
+          <div className="min-w-0">
+            <div className="font-display truncate text-[22px] tracking-[.06em] text-lol-gold-50">{title}</div>
+            {subtitle ? <div className="mt-1 text-xs tracking-[.22em] text-[#a09b8c]">{subtitle}</div> : null}
+            {action ? <div className="mt-1.5">{action}</div> : null}
           </div>
-          {subtitle ? (
-            <div className="mt-1 text-xs tracking-[.22em] text-[#a09b8c]">
-              {subtitle}
-            </div>
-          ) : null}
-          {action ? <div className="mt-1.5">{action}</div> : null}
+        </div>
+
+        <div
+          className="flex flex-wrap gap-y-3 @5xl:grid"
+          style={{
+            gridTemplateColumns: statsGrid ?? `repeat(${stats.length},minmax(0,1fr))`,
+          }}
+        >
+          {stats.map((stat, i) => (
+            <StatCell
+              key={stat.label}
+              label={stat.label}
+              value={stat.value}
+              highlight={stat.highlight}
+              bordered={i > 0 ? stat.bordered !== false : stat.bordered}
+              nowrap={stat.nowrap}
+            />
+          ))}
         </div>
       </div>
-
-      <div
-        className="flex flex-wrap gap-y-3 @5xl:grid"
-        style={{
-          gridTemplateColumns:
-            statsGrid ?? `repeat(${stats.length},minmax(0,1fr))`,
-        }}
-      >
-        {stats.map((stat, i) => (
-          <StatCell
-            key={stat.label}
-            label={stat.label}
-            value={stat.value}
-            highlight={stat.highlight}
-            bordered={i > 0 ? stat.bordered !== false : stat.bordered}
-            nowrap={stat.nowrap}
-          />
-        ))}
-      </div>
-    </div>
     </div>
   );
 }

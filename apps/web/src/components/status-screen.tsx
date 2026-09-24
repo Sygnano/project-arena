@@ -42,8 +42,7 @@ function StatusScreen({ emblem, eyebrow, title, children, actions, busy }: Props
         aria-hidden
         className="absolute inset-0"
         style={{
-          background:
-            "radial-gradient(55% 45% at 50% 40%, rgba(10,50,60,.35) 0%, rgba(5,14,22,0) 70%)",
+          background: "radial-gradient(55% 45% at 50% 40%, rgba(10,50,60,.35) 0%, rgba(5,14,22,0) 70%)",
         }}
       />
       <div className="splash-rise relative">{emblem ?? <HextechEmblem />}</div>

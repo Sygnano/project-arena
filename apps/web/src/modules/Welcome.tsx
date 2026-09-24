@@ -57,8 +57,7 @@ function seasonPeriod(firstDay: string, lastMatchAt: string) {
  * `Farewell` finale, not something to give away in the first second.
  */
 const Welcome = ({ profile, firstTrackedDate, lastMatchAt, timePlayedSeconds, freshness }: Props) => {
-  const period =
-    firstTrackedDate && lastMatchAt ? seasonPeriod(firstTrackedDate, lastMatchAt) : null;
+  const period = firstTrackedDate && lastMatchAt ? seasonPeriod(firstTrackedDate, lastMatchAt) : null;
   // Under an hour, hours would read as a bare "0"; count minutes instead.
   const inHours = timePlayedSeconds >= 3600;
   const teaser = inHours ? timePlayedSeconds / 3600 : timePlayedSeconds / 60;
@@ -79,17 +78,13 @@ const Welcome = ({ profile, firstTrackedDate, lastMatchAt, timePlayedSeconds, fr
               className="absolute bottom-3.5 left-1/2 flex h-9 w-9 -translate-x-1/2 rotate-45 items-center justify-center border border-[rgba(200,170,110,.75)] bg-[#040c14]"
               aria-label={`Summoner level ${profile.summonerLevel}`}
             >
-              <div className="-rotate-45 font-display text-[15px] text-lol-gold-300">
-                {profile.summonerLevel}
-              </div>
+              <div className="-rotate-45 font-display text-[15px] text-lol-gold-300">{profile.summonerLevel}</div>
             </div>
           ) : null
         }
       >
         <Avatar className="relative size-26! border border-[rgba(200,170,110,.5)]">
-          {profile.profileIconId != null ? (
-            <AvatarImage src={profileIconUrl(profile.profileIconId)} alt="" />
-          ) : null}
+          {profile.profileIconId != null ? <AvatarImage src={profileIconUrl(profile.profileIconId)} alt="" /> : null}
           <AvatarFallback className="bg-lol-navy-800 font-display text-2xl! text-lol-gold-300">
             {profile.riotIdGameName.charAt(0)}
           </AvatarFallback>
@@ -100,15 +95,11 @@ const Welcome = ({ profile, firstTrackedDate, lastMatchAt, timePlayedSeconds, fr
         <span className="font-display text-[clamp(26px,6vw,40px)] leading-none tracking-[.05em] break-all text-lol-gold-50">
           {profile.riotIdGameName}
         </span>
-        <span className="font-display text-xl text-[#a09b8c] sm:text-2xl">
-          #{profile.riotIdTagline}
-        </span>
+        <span className="font-display text-xl text-[#a09b8c] sm:text-2xl">#{profile.riotIdTagline}</span>
       </div>
 
       <h1 id="welcome-title" className="mt-7 flex flex-col items-center text-center">
-        <span className="text-[12px] tracking-[.42em] text-lol-gold-300 sm:text-[13px]">
-          YOUR ARENA SEASON
-        </span>
+        <span className="text-[12px] tracking-[.42em] text-lol-gold-300 sm:text-[13px]">YOUR ARENA SEASON</span>
         {period ? (
           <span
             className="mt-2 font-display text-[clamp(72px,15vw,132px)] leading-none tracking-[.06em] text-lol-gold-50"
@@ -145,8 +136,7 @@ const Welcome = ({ profile, firstTrackedDate, lastMatchAt, timePlayedSeconds, fr
         </p>
       ) : (
         <p className="mt-8 max-w-md text-center text-sm text-lol-text-secondary">
-          No Arena games tracked yet. Stats appear here after the next ingestion run picks up a
-          match.
+          No Arena games tracked yet. Stats appear here after the next ingestion run picks up a match.
         </p>
       )}
     </HeroSection>

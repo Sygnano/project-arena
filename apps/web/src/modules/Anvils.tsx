@@ -30,9 +30,7 @@ const TICK_RADIUS = 150;
  */
 const Anvils = ({ economy, baseline }: Props) => {
   const { anvils, anvilGoldSpent, shardblade } = economy;
-  const rate = (count: number) =>
-    shardblade.timesPicked > 0 ? (count / shardblade.timesPicked) * 100 : null;
-
+  const rate = (count: number) => (shardblade.timesPicked > 0 ? (count / shardblade.timesPicked) * 100 : null);
 
   return (
     <CategorySection
@@ -41,11 +39,7 @@ const Anvils = ({ economy, baseline }: Props) => {
       imageUrl={SECTION_BACKGROUNDS.anvils}
       sidebar={
         <>
-          <Dial
-            value={anvils.stat}
-            label="STAT ANVILS BOUGHT"
-            formatValue={(v) => Math.round(v).toLocaleString()}
-          />
+          <Dial value={anvils.stat} label="STAT ANVILS BOUGHT" formatValue={(v) => Math.round(v).toLocaleString()} />
           <div className="mt-auto">
             <SidebarStatRows
               size="compact"
@@ -57,11 +51,7 @@ const Anvils = ({ economy, baseline }: Props) => {
                 {
                   label: "GOLD SPENT",
                   value: `${formatGold(anvilGoldSpent.stat)} · ${
-                    economy.totalGoldEarned > 0
-                      ? Math.round(
-                          (anvilGoldSpent.stat / economy.totalGoldEarned) * 100,
-                        )
-                      : 0
+                    economy.totalGoldEarned > 0 ? Math.round((anvilGoldSpent.stat / economy.totalGoldEarned) * 100) : 0
                   }% OF GOLD`,
                 },
               ]}
@@ -74,10 +64,7 @@ const Anvils = ({ economy, baseline }: Props) => {
         <div className="relative flex h-full min-h-0 flex-col items-center justify-center px-6 py-10">
           <div className="relative">
             {/* Backdrop: glow + rings + tick dial, centred on the medallion. */}
-            <div
-              aria-hidden
-              className="pointer-events-none absolute top-1/2 left-1/2 h-0 w-0"
-            >
+            <div aria-hidden className="pointer-events-none absolute top-1/2 left-1/2 h-0 w-0">
               <div
                 className="absolute top-0 left-0 h-[760px] w-[760px] -translate-x-1/2 -translate-y-1/2 rounded-full"
                 style={{
@@ -96,27 +83,19 @@ const Anvils = ({ economy, baseline }: Props) => {
                     cy="500"
                     r={r}
                     fill="none"
-                    stroke={
-                      i === 1 ? "rgba(10,200,185,.22)" : "rgba(200,170,110,.16)"
-                    }
+                    stroke={i === 1 ? "rgba(10,200,185,.22)" : "rgba(200,170,110,.16)"}
                     strokeDasharray={i % 2 ? "2 6" : undefined}
                   />
                 ))}
-                <g
-                  className="welcome-spin-slow"
-                  style={{ transformOrigin: "500px 500px" }}
-                >
+                <g className="welcome-spin-slow" style={{ transformOrigin: "500px 500px" }}>
                   {Array.from({ length: TICKS }, (_, i) => {
                     const a = (i / TICKS) * Math.PI * 2;
                     const long = i % 6 === 0;
                     const r2 = TICK_RADIUS + (long ? 20 : 10);
                     // Rounded: server and browser trig can differ in the last
                     // floating-point digits, which broke hydration.
-                    const at = (
-                      radius: number,
-                      fn: (x: number) => number,
-                      sign: number,
-                    ) => Math.round((500 + sign * fn(a) * radius) * 100) / 100;
+                    const at = (radius: number, fn: (x: number) => number, sign: number) =>
+                      Math.round((500 + sign * fn(a) * radius) * 100) / 100;
                     return (
                       <line
                         key={i}
@@ -124,11 +103,7 @@ const Anvils = ({ economy, baseline }: Props) => {
                         y1={at(TICK_RADIUS, Math.cos, -1)}
                         x2={at(r2, Math.sin, 1)}
                         y2={at(r2, Math.cos, -1)}
-                        stroke={
-                          long
-                            ? "rgba(200,170,110,.6)"
-                            : "rgba(200,170,110,.28)"
-                        }
+                        stroke={long ? "rgba(200,170,110,.6)" : "rgba(200,170,110,.28)"}
                         strokeWidth={long ? 1.5 : 1}
                       />
                     );
@@ -136,21 +111,14 @@ const Anvils = ({ economy, baseline }: Props) => {
                 </g>
               </svg>
             </div>
-            <ItemMedallion
-              iconUrl={shardblade.iconUrl}
-              alt={shardblade.itemName}
-              size={220}
-              glow={0.32}
-            />
+            <ItemMedallion iconUrl={shardblade.iconUrl} alt={shardblade.itemName} size={220} glow={0.32} />
           </div>
 
           <AnimatedNumber
             value={shardblade.timesPicked}
             className="relative mt-8 font-display text-[clamp(56px,7vw,80px)] leading-none text-lol-gold-50 [text-shadow:0_0_34px_rgba(200,170,110,.35)]"
           />
-          <div className="relative mt-2 text-[11px] tracking-[.26em] text-lol-text-muted">
-            OBTAINED
-          </div>
+          <div className="relative mt-2 text-[11px] tracking-[.26em] text-lol-text-muted">OBTAINED</div>
           <div
             aria-hidden
             className="relative mt-5 h-px w-full max-w-[420px]"

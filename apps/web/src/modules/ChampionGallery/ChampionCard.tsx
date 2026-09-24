@@ -1,11 +1,7 @@
 import { memo } from "react";
 import type { ChampionPickBreakdown } from "@arena/types";
 import { cn } from "cn";
-import {
-  CARD_ASPECT_RATIO,
-  CARD_INNER_INSET,
-  CardFrame,
-} from "@/components/card-frame";
+import { CARD_ASPECT_RATIO, CARD_INNER_INSET, CardFrame } from "@/components/card-frame";
 import { championLoadingUrl } from "@/lib/riot";
 import { tierForBestFinish, type Tier } from "@/lib/tier-bars";
 import { useChampionName } from "@/lib/champion-names";
@@ -18,9 +14,7 @@ import { useChampionName } from "@/lib/champion-names";
  * gallery only shows champions the summoner has actually picked — but the
  * signature keeps the never-picked case explicit for callers that reuse it.
  */
-export function tierForChampionCard(
-  champion: ChampionPickBreakdown,
-): Tier | null {
+export function tierForChampionCard(champion: ChampionPickBreakdown): Tier | null {
   return champion.timesPicked === 0 ? null : tierForBestFinish(champion);
 }
 
@@ -56,16 +50,10 @@ function ChampionCardImpl({
 
   return (
     <div
-      className={cn(
-        "group relative w-full select-none",
-        interactive && "cursor-pointer",
-      )}
+      className={cn("group relative w-full select-none", interactive && "cursor-pointer")}
       style={{ aspectRatio: CARD_ASPECT_RATIO }}
     >
-      <div
-        className="absolute overflow-hidden bg-lol-navy-950"
-        style={{ inset: CARD_INNER_INSET }}
-      >
+      <div className="absolute overflow-hidden bg-lol-navy-950" style={{ inset: CARD_INNER_INSET }}>
         <img
           src={championLoadingUrl(champion.championName)}
           alt=""

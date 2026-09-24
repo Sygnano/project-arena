@@ -19,10 +19,7 @@ type Props = {
  */
 function StatCell({ label, value, highlight = false, bordered = true }: Props) {
   return (
-    <div
-      className="px-6.5"
-      style={bordered ? { borderLeft: "1px solid rgba(200,170,110,.16)" } : undefined}
-    >
+    <div className="px-6.5" style={bordered ? { borderLeft: "1px solid rgba(200,170,110,.16)" } : undefined}>
       <div
         className="text-[11px] tracking-[.22em] whitespace-nowrap"
         style={{ color: highlight ? "var(--color-lol-gold-300)" : "#a09b8c" }}

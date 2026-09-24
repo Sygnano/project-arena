@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-  type RefObject,
-} from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { cn } from "cn";
 import type { HoverPoint } from "@/components/hextech-bar-chart";
 import { useSectionInView } from "@/hooks/use-section-in-view";
@@ -84,10 +77,13 @@ function combRows(count: number, columns: number): number[] {
  */
 function useCombLayout<T extends HTMLElement>(
   count: number,
-  { gap, minColumns, maxColumns, maxHexWidth, flowHexWidth }: Pick<
-    Props,
-    "gap" | "minColumns" | "maxColumns" | "maxHexWidth" | "flowHexWidth"
-  >,
+  {
+    gap,
+    minColumns,
+    maxColumns,
+    maxHexWidth,
+    flowHexWidth,
+  }: Pick<Props, "gap" | "minColumns" | "maxColumns" | "maxHexWidth" | "flowHexWidth">,
 ) {
   const ref = useRef<T>(null);
   const [layout, setLayout] = useState<Layout>({
@@ -106,10 +102,7 @@ function useCombLayout<T extends HTMLElement>(
       if (width <= 0) return;
 
       if (!deck.matches) {
-        const columns = Math.min(
-          maxColumns,
-          Math.max(4, Math.floor((width + FLOW_GAP) / (flowHexWidth + FLOW_GAP))),
-        );
+        const columns = Math.min(maxColumns, Math.max(4, Math.floor((width + FLOW_GAP) / (flowHexWidth + FLOW_GAP))));
         setLayout({
           columns,
           gap: FLOW_GAP,
@@ -123,8 +116,7 @@ function useCombLayout<T extends HTMLElement>(
         const rows = combRows(count, columns).length;
         const byWidth = (width - (columns - 1) * gap) / columns;
         const byHeight =
-          (height - (rows - 1) * gap * ROW_PITCH_RATIO) /
-          (HEX_HEIGHT_RATIO + (rows - 1) * ROW_PITCH_RATIO);
+          (height - (rows - 1) * gap * ROW_PITCH_RATIO) / (HEX_HEIGHT_RATIO + (rows - 1) * ROW_PITCH_RATIO);
         const hexWidth = Math.min(byWidth, byHeight, maxHexWidth);
         if (hexWidth > best.hexWidth) best = { columns, hexWidth, gap };
       }
@@ -163,17 +155,18 @@ function HexComb({
   animationKey,
   imageClassName,
 }: Props) {
-  const [combRef, { columns, hexWidth, gap }] = useCombLayout<HTMLDivElement>(
-    cells.length,
-    { gap: deckGap, minColumns, maxColumns, maxHexWidth, flowHexWidth },
-  );
+  const [combRef, { columns, hexWidth, gap }] = useCombLayout<HTMLDivElement>(cells.length, {
+    gap: deckGap,
+    minColumns,
+    maxColumns,
+    maxHexWidth,
+    flowHexWidth,
+  });
   const [inViewRef, inView] = useSectionInView<HTMLDivElement>();
 
   const rows = useMemo(() => {
     const lengths = combRows(cells.length, columns);
-    const starts = lengths.map((_, i) =>
-      lengths.slice(0, i).reduce((sum, length) => sum + length, 0),
-    );
+    const starts = lengths.map((_, i) => lengths.slice(0, i).reduce((sum, length) => sum + length, 0));
     return lengths.map((length, i) => {
       const items = cells.slice(starts[i], starts[i] + length);
       const padBefore = Math.floor((length - items.length) / 2);
@@ -219,14 +212,24 @@ function HexComb({
         aria-label={cell.name}
         onPointerEnter={interactive ? (e) => onHover(id, { x: e.clientX, y: e.clientY }) : undefined}
         onPointerMove={interactive ? (e) => onHover(id, { x: e.clientX, y: e.clientY }) : undefined}
-        onPointerLeave={interactive ? (e) => { if (e.pointerType !== "touch") onHover(null); } : undefined}
-        onFocus={interactive ? (e) => {
-          // Keyboard focus only: a click also focuses the cell, and would
-          // otherwise yank the pointer-following card to the cell's top.
-          if (!e.currentTarget.matches(":focus-visible")) return;
-          const rect = e.currentTarget.getBoundingClientRect();
-          onHover(id, { x: rect.left + rect.width / 2, y: rect.top });
-        } : undefined}
+        onPointerLeave={
+          interactive
+            ? (e) => {
+                if (e.pointerType !== "touch") onHover(null);
+              }
+            : undefined
+        }
+        onFocus={
+          interactive
+            ? (e) => {
+                // Keyboard focus only: a click also focuses the cell, and would
+                // otherwise yank the pointer-following card to the cell's top.
+                if (!e.currentTarget.matches(":focus-visible")) return;
+                const rect = e.currentTarget.getBoundingClientRect();
+                onHover(id, { x: rect.left + rect.width / 2, y: rect.top });
+              }
+            : undefined
+        }
         onBlur={interactive ? () => onHover(null) : undefined}
       >
         {/* Rim: the tier's own bar fill, clipped to the hexagon. */}
@@ -284,17 +287,11 @@ function HexComb({
         className="relative flex flex-none flex-col items-center"
       >
         {rows.map((row, rowIndex) => (
-          <div
-            key={rowIndex}
-            className="flex"
-            style={{ gap, marginTop: rowIndex === 0 ? 0 : -rowOverlap }}
-          >
+          <div key={rowIndex} className="flex" style={{ gap, marginTop: rowIndex === 0 ? 0 : -rowOverlap }}>
             {Array.from({ length: row.padBefore }, (_, i) => (
               <div key={`before-${i}`} aria-hidden style={{ width: hexWidth }} />
             ))}
-            {row.items.map((cell, i) =>
-              renderCell(cell, rowIndex, row.padBefore + i, row.length),
-            )}
+            {row.items.map((cell, i) => renderCell(cell, rowIndex, row.padBefore + i, row.length))}
             {Array.from({ length: row.padAfter }, (_, i) => (
               <div key={`after-${i}`} aria-hidden style={{ width: hexWidth }} />
             ))}

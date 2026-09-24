@@ -15,8 +15,7 @@ const MAX_RECENT = 12;
 // `storage` events only reach other tabs; this one tells the current tab.
 const CHANGE_EVENT = "arena-journey:recent-recaps-change";
 
-const keyOf = (recap: RecentRecap) =>
-  `${recap.region}/${recap.gameName}#${recap.tagLine}`.toLowerCase();
+const keyOf = (recap: RecentRecap) => `${recap.region}/${recap.gameName}#${recap.tagLine}`.toLowerCase();
 
 function readRaw(): string | null {
   try {
@@ -38,10 +37,7 @@ function parse(raw: string | null): RecentRecap[] {
 
 /** Puts a recap at the front of this browser's list (once per Riot ID). */
 export function rememberRecap(recap: RecentRecap) {
-  const next = [recap, ...parse(readRaw()).filter((r) => keyOf(r) !== keyOf(recap))].slice(
-    0,
-    MAX_RECENT,
-  );
+  const next = [recap, ...parse(readRaw()).filter((r) => keyOf(r) !== keyOf(recap))].slice(0, MAX_RECENT);
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     window.dispatchEvent(new Event(CHANGE_EVENT));

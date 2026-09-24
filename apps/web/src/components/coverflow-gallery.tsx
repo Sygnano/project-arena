@@ -214,9 +214,7 @@ export function CoverflowGallery<T>({
 
   /** Writes every card's fan transform for the current position. */
   const paint = useCallback(() => {
-    const reduceMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const pos = posRef.current;
     const step = stepPxRef.current;
 
@@ -235,23 +233,13 @@ export function CoverflowGallery<T>({
 
       const translateX = Math.sign(offset) * fanOffset(n, step);
       const scale = CENTER_SCALE * SCALE_DECAY ** n;
-      const rotateY = reduceMotion
-        ? 0
-        : -Math.sign(offset) *
-          MAX_ROTATE_Y_DEG *
-          Math.min(n / ROTATE_FALLOFF_CARDS, 1);
-      const translateZ = reduceMotion
-        ? 0
-        : Math.max(MAX_DEPTH_PX, DEPTH_PER_CARD_PX * n);
+      const rotateY = reduceMotion ? 0 : -Math.sign(offset) * MAX_ROTATE_Y_DEG * Math.min(n / ROTATE_FALLOFF_CARDS, 1);
+      const translateZ = reduceMotion ? 0 : Math.max(MAX_DEPTH_PX, DEPTH_PER_CARD_PX * n);
       const dim = Math.min(n / DIM_FALLOFF_CARDS, 1);
 
       card.style.transform = `translate3d(${translateX}px, 0, ${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`;
-      card.style.opacity = String(
-        clamp(1 - (n / CARDS_PER_SIDE) ** OPACITY_CURVE, 0, 1),
-      );
-      card.style.filter = `saturate(${1 + (FAR_SATURATION - 1) * dim}) brightness(${
-        1 + (FAR_BRIGHTNESS - 1) * dim
-      })`;
+      card.style.opacity = String(clamp(1 - (n / CARDS_PER_SIDE) ** OPACITY_CURVE, 0, 1));
+      card.style.filter = `saturate(${1 + (FAR_SATURATION - 1) * dim}) brightness(${1 + (FAR_BRIGHTNESS - 1) * dim})`;
       // Nearer cards stack above farther ones.
       card.style.zIndex = String(Math.round(1000 - n * 10));
     });
@@ -356,10 +344,7 @@ export function CoverflowGallery<T>({
       // A genuine horizontal gesture (shift-wheel, trackpad swipe) reports on
       // deltaX; fold either axis into the same target.
       const horizontal = Math.abs(event.deltaX) > Math.abs(event.deltaY);
-      const px = wheelDeltaToPixels(
-        horizontal ? event.deltaX : event.deltaY,
-        event.deltaMode,
-      );
+      const px = wheelDeltaToPixels(horizontal ? event.deltaX : event.deltaY, event.deltaMode);
       if (px === 0) return;
 
       // A vertical wheel with no card left in that direction belongs to the
@@ -372,10 +357,7 @@ export function CoverflowGallery<T>({
       event.preventDefault();
       wheelDirectionRef.current = Math.sign(px);
 
-      glideTo(
-        targetRef.current + (px * WHEEL_SPEED) / stepPxRef.current,
-        WHEEL_TAU_MS,
-      );
+      glideTo(targetRef.current + (px * WHEEL_SPEED) / stepPxRef.current, WHEEL_TAU_MS);
 
       if (settleTimerRef.current !== null) {
         window.clearTimeout(settleTimerRef.current);
@@ -420,9 +402,7 @@ export function CoverflowGallery<T>({
   function onPointerDown(event: ReactPointerEvent<HTMLUListElement>) {
     if (event.pointerType === "mouse" && event.button !== 0) return;
 
-    const cardEl = (event.target as HTMLElement).closest<HTMLElement>(
-      "[data-coverflow-index]",
-    );
+    const cardEl = (event.target as HTMLElement).closest<HTMLElement>("[data-coverflow-index]");
     const pressedIndex = cardEl ? Number(cardEl.dataset.coverflowIndex) : null;
 
     // Grab the gallery mid-glide: freeze where it is.
@@ -465,16 +445,12 @@ export function CoverflowGallery<T>({
     // Soft rubber band past either end rather than a hard wall.
     const raw = drag.startPos - dx / stepPxRef.current;
     const max = lastIndexRef.current;
-    const pos =
-      raw < 0 ? raw * 0.3 : raw > max ? max + (raw - max) * 0.3 : raw;
+    const pos = raw < 0 ? raw * 0.3 : raw > max ? max + (raw - max) * 0.3 : raw;
 
     posRef.current = pos;
     targetRef.current = pos;
     drag.samples.push({ t: event.timeStamp, pos });
-    while (
-      drag.samples.length > 2 &&
-      event.timeStamp - drag.samples[0].t > VELOCITY_WINDOW_MS
-    ) {
+    while (drag.samples.length > 2 && event.timeStamp - drag.samples[0].t > VELOCITY_WINDOW_MS) {
       drag.samples.shift();
     }
     paint();
@@ -509,8 +485,7 @@ export function CoverflowGallery<T>({
     // Ride the gesture: project where its momentum would carry it, then land
     // on a card, leaning in the direction of travel so it never slides back.
     const projected = posRef.current + velocity * FLICK_TAU_MS;
-    const bias =
-      Math.abs(velocity) > MIN_FLICK_VELOCITY ? Math.sign(velocity) * DIRECTIONAL_BIAS : 0;
+    const bias = Math.abs(velocity) > MIN_FLICK_VELOCITY ? Math.sign(velocity) * DIRECTIONAL_BIAS : 0;
     glideTo(Math.round(projected + bias), FLICK_TAU_MS);
   }
 
@@ -535,9 +510,7 @@ export function CoverflowGallery<T>({
       const typeahead = typeaheadRef.current;
       typeahead.query = (now - typeahead.at < 700 ? typeahead.query : "") + event.key.toLowerCase();
       typeahead.at = now;
-      const match = items.findIndex((item) =>
-        itemText(item).toLowerCase().startsWith(typeahead.query),
-      );
+      const match = items.findIndex((item) => itemText(item).toLowerCase().startsWith(typeahead.query));
       if (match >= 0) {
         event.preventDefault();
         glideTo(match, KEY_TAU_MS);

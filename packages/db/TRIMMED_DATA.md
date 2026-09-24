@@ -53,8 +53,8 @@ Frames are now stored as tuples: `[t, dmgPhys, dmgMagic, dmgTrue]`.
 
 These columns looked like trim candidates but are used:
 
-- `matches.raw`, `matches.timeline`: the app never reads them, but `backfill-reparse-participants`,
-  `backfill-rounds` and `remap-puuids` rebuild everything else from them. They were kept by
+- `matches.raw`, `matches.timeline`: the app never reads them, but `backfill-reparse-participants` and
+  `backfill-rounds` rebuild everything else from them. They were kept by
   decision. Together they are about 80 KB of each match's stored size.
 - `matches.region`: `backfill-reparse-participants` passes it back to `parseMatch`. It is the match's own
   platform (from its id prefix), which can differ from the platform of the player whose history listed it.
@@ -63,8 +63,9 @@ These columns looked like trim candidates but are used:
   `flawless_aces`, `largest_critical_strike`, `cc_total_time_dealt`, `skillshots_hit`,
   `skillshots_dodged`, `fist_bumps`, `damage_self_mitigated`: each one is rendered somewhere
   (Vault, Kills, Utility, the champion dossier, the Ability and fun slides).
-- `pings` (1.6 MB, the second-largest participant column): all 14 counters are shown on the
-  Pings slide.
+- `pings`: all 14 counters are shown on the Pings slide. Kept, but made compact (2026-09): a
+  `smallint[]` in `PING_TYPES` order instead of a jsonb object that repeated all 14 key names on
+  every row (338 bytes down to 49 per row; 9 MB of the 37 MB table locally, now about 1.3 MB).
 
 ### Storage after the trim
 

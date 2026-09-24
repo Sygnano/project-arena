@@ -15,25 +15,14 @@ import { createContext, useCallback, useContext, type ReactNode } from "react";
  */
 const ChampionNamesContext = createContext<Record<string, string>>({});
 
-function ChampionNamesProvider({
-  names,
-  children,
-}: {
-  names: Record<string, string>;
-  children: ReactNode;
-}) {
-  return (
-    <ChampionNamesContext.Provider value={names}>{children}</ChampionNamesContext.Provider>
-  );
+function ChampionNamesProvider({ names, children }: { names: Record<string, string>; children: ReactNode }) {
+  return <ChampionNamesContext.Provider value={names}>{children}</ChampionNamesContext.Provider>;
 }
 
 /** Returns a `(championKey) => displayName` lookup. */
 function useChampionName(): (championKey: string) => string {
   const names = useContext(ChampionNamesContext);
-  return useCallback(
-    (championKey: string) => names[championKey.toLowerCase()] ?? championKey,
-    [names],
-  );
+  return useCallback((championKey: string) => names[championKey.toLowerCase()] ?? championKey, [names]);
 }
 
 export { ChampionNamesProvider, useChampionName };

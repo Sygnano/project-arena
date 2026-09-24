@@ -1,4 +1,14 @@
-import { and, eq, matches, matchParticipants, riotIdColumns, riotIdKey, sql, summoners, type Summoner } from "@arena/db";
+import {
+  and,
+  eq,
+  matches,
+  matchParticipants,
+  riotIdColumns,
+  riotIdKey,
+  sql,
+  summoners,
+  type Summoner,
+} from "@arena/db";
 import type { RiotAccountDto, RiotSummonerDto, SummonerView } from "@arena/types";
 import { db } from "../db.js";
 
@@ -13,9 +23,7 @@ export async function findSummonerByRiotId(region: string, gameName: string, tag
   const [summoner] = await db
     .select()
     .from(summoners)
-    .where(
-      and(eq(summoners.region, region.toLowerCase()), eq(summoners.riotIdKey, riotIdKey(gameName, tagLine))),
-    )
+    .where(and(eq(summoners.region, region.toLowerCase()), eq(summoners.riotIdKey, riotIdKey(gameName, tagLine))))
     .orderBy(sql`${summoners.lastRefreshedAt} desc nulls last`)
     .limit(1);
   return summoner as Summoner | undefined;

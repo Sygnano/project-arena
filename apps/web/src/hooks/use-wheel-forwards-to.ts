@@ -1,9 +1,5 @@
 import { useEffect, type RefObject } from "react";
-import {
-  GESTURE_GAP_MS,
-  canScrollY,
-  wheelDeltaToPixels,
-} from "@/hooks/use-wheel-scrolls-sideways";
+import { GESTURE_GAP_MS, canScrollY, wheelDeltaToPixels } from "@/hooks/use-wheel-scrolls-sideways";
 
 /**
  * A vertical wheel anywhere over `areaRef` (a panel) scrolls `listRef` (the
@@ -18,10 +14,7 @@ import {
  * skips events this one already took (`defaultPrevented`). Wheels over the
  * list itself scroll it natively and are left to the page hook.
  */
-export function useWheelForwardsTo(
-  areaRef: RefObject<HTMLElement | null>,
-  listRef: RefObject<HTMLElement | null>,
-) {
+export function useWheelForwardsTo(areaRef: RefObject<HTMLElement | null>, listRef: RefObject<HTMLElement | null>) {
   useEffect(() => {
     const area = areaRef.current;
     if (!area) return;

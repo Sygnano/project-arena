@@ -1,5 +1,13 @@
 import { GUEST_OF_HONOR_CHAMPIONS, type AugmentCatalog } from "../../../leagueData/index.js";
-import { addToSplit, addToTally, emptySplit, emptyTally, increment, type PlacementSplit, type WinTally } from "../aggregate.js";
+import {
+  addToSplit,
+  addToTally,
+  emptySplit,
+  emptyTally,
+  increment,
+  type PlacementSplit,
+  type WinTally,
+} from "../aggregate.js";
 import type { OwnGame } from "../loadStatsData.js";
 
 /** Champions shown in an augment's hover card. */
@@ -60,7 +68,11 @@ export function buildAugmentStats(
         topChampions: [...champions]
           .sort((a, b) => b.tally.count - a.tally.count || b.tally.top3 - a.tally.top3 || a.championId - b.championId)
           .slice(0, TOP_CHAMPIONS_PER_AUGMENT)
-          .map(({ championId, tally }) => ({ championName: championKey(championId), games: tally.count, top3: tally.top3 })),
+          .map(({ championId, tally }) => ({
+            championName: championKey(championId),
+            games: tally.count,
+            top3: tally.top3,
+          })),
         championCount: champions.length,
       };
     })
@@ -95,7 +107,9 @@ export function buildAugmentStats(
 
   return {
     // Every draft augment, picked or not.
-    augments: { augments: draftable.map((augment) => ({ augmentId: augment.id, timesPicked: picks.get(augment.id) ?? 0 })) },
+    augments: {
+      augments: draftable.map((augment) => ({ augmentId: augment.id, timesPicked: picks.get(augment.id) ?? 0 })),
+    },
     augmentPicks: { augments: augmentPicks },
     guestOfHonor: { champions: guestOfHonor },
     metaAugments: { augments: metaAugments },

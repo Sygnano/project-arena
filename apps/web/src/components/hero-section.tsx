@@ -66,16 +66,14 @@ function HeroSection({
         aria-hidden
         className="absolute inset-0"
         style={{
-          background:
-            "radial-gradient(78% 70% at 50% 48%, rgba(3,10,18,.2) 0%, rgba(2,8,14,.8) 58%, #01050a 100%)",
+          background: "radial-gradient(78% 70% at 50% 48%, rgba(3,10,18,.2) 0%, rgba(2,8,14,.8) 58%, #01050a 100%)",
         }}
       />
       <div
         aria-hidden
         className="absolute inset-0"
         style={{
-          background:
-            "linear-gradient(180deg, rgba(9,20,40,.5), transparent 34%, transparent 62%, rgba(1,5,10,.9))",
+          background: "linear-gradient(180deg, rgba(9,20,40,.5), transparent 34%, transparent 62%, rgba(1,5,10,.9))",
         }}
       />
       <SectionEdgeFade />

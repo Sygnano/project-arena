@@ -3,11 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { cn } from "cn";
 import { motion, MotionConfig } from "motion/react";
-import type {
-  AbilityCastBreakdown,
-  AbilityStats,
-  ChampionStats,
-} from "@arena/types";
+import type { AbilityCastBreakdown, AbilityStats, ChampionStats } from "@arena/types";
 import { CategorySection } from "@/components/category-section";
 import { HextechPanel } from "@/components/hextech-panel";
 import { Dial } from "@/components/dial";
@@ -16,10 +12,7 @@ import { PanelToolbar, ToolbarDivider } from "@/components/panel-toolbar";
 import { LowSampleSwitch } from "@/components/low-sample-switch";
 import { DetailBand } from "@/components/detail-band";
 import { SidebarStatRows } from "@/components/sidebar-stat-row";
-import {
-  ValuePercentRow,
-  SortHeaderLabel,
-} from "@/components/sortable-stat-row";
+import { ValuePercentRow, SortHeaderLabel } from "@/components/sortable-stat-row";
 import { championIconUrl } from "@/lib/riot";
 import { formatCompact } from "@/lib/format";
 import { ABILITY_COLORS } from "@/lib/ability-colors";
@@ -90,9 +83,7 @@ type Row = {
 };
 
 function columnValue(row: Row, metric: Metric): number {
-  return metric === "total"
-    ? sumBreakdown(row.active)
-    : row.activeByType[metric];
+  return metric === "total" ? sumBreakdown(row.active) : row.activeByType[metric];
 }
 
 type SortDir = "asc" | "desc";
@@ -185,51 +176,27 @@ const Ability = ({ ability, champions }: Props) => {
       );
     }
     const dirSign = sortDir === "desc" ? 1 : -1;
-    return [...roster].sort(
-      (a, b) => dirSign * (columnValue(b, metric) - columnValue(a, metric)),
-    );
+    return [...roster].sort((a, b) => dirSign * (columnValue(b, metric) - columnValue(a, metric)));
   }, [roster, metric, sortDir, mode, mixLowSample]);
 
-  const [selectedChampionId, setSelectedChampionId] = useState<number | null>(
-    () => rows[0]?.championId ?? null,
-  );
-  const selected =
-    roster.find((r) => r.championId === selectedChampionId) ?? rows[0] ?? null;
+  const [selectedChampionId, setSelectedChampionId] = useState<number | null>(() => rows[0]?.championId ?? null);
+  const selected = roster.find((r) => r.championId === selectedChampionId) ?? rows[0] ?? null;
 
   // Scale from champions with enough games in PER GAME mode, so a dimmed
   // one-game outlier can't shrink every trustworthy bar (widths clamp at 100%).
   // Mixed in by the viewer, they scale too, or they'd all clamp to 100%.
-  const scaleRows =
-    mode === "perGame" && !mixLowSample
-      ? rows.filter((r) => !isLowSample(r.matchesPlayed))
-      : rows;
-  const maxMetricValue = Math.max(
-    1,
-    ...(scaleRows.length > 0 ? scaleRows : rows).map((r) =>
-      columnValue(r, metric),
-    ),
-  );
+  const scaleRows = mode === "perGame" && !mixLowSample ? rows.filter((r) => !isLowSample(r.matchesPlayed)) : rows;
+  const maxMetricValue = Math.max(1, ...(scaleRows.length > 0 ? scaleRows : rows).map((r) => columnValue(r, metric)));
   const seasonGrandTotal = sumBreakdown(ability.total);
-  const totalGames = Object.values(champions).reduce(
-    (sum, c) => sum + c.matchesPlayed,
-    0,
-  );
+  const totalGames = Object.values(champions).reduce((sum, c) => sum + c.matchesPlayed, 0);
   const dialValue = sumBreakdown(
-    mode === "best"
-      ? ability.maxGame
-      : mode === "perGame"
-        ? perGame(ability.total, totalGames)
-        : ability.total,
+    mode === "best" ? ability.maxGame : mode === "perGame" ? perGame(ability.total, totalGames) : ability.total,
   );
   // Same "no independent per-key best" caveat as `Row.activeByType` — BEST
   // mode's sidebar breakdown is just the one best-total-casts match's
   // numbers, not each spell's own all-time high.
   const sidebarBreakdown =
-    mode === "best"
-      ? ability.maxGame
-      : mode === "perGame"
-        ? perGame(ability.total, totalGames)
-        : ability.total;
+    mode === "best" ? ability.maxGame : mode === "perGame" ? perGame(ability.total, totalGames) : ability.total;
 
   const modeCaption =
     mode === "perGame"
@@ -245,15 +212,11 @@ const Ability = ({ ability, champions }: Props) => {
     label,
     value:
       mode !== "best" ? (
-        <ValuePercentRow
-          value={formatCompact(value)}
-          pct={sidebarTotal > 0 ? (value / sidebarTotal) * 100 : 0}
-        />
+        <ValuePercentRow value={formatCompact(value)} pct={sidebarTotal > 0 ? (value / sidebarTotal) * 100 : 0} />
       ) : (
         formatCompact(value)
       ),
   });
-
 
   return (
     <CategorySection
@@ -270,7 +233,6 @@ const Ability = ({ ability, champions }: Props) => {
           />
 
           <div className="mt-auto">
-
             <SidebarStatRows
               rows={[
                 sidebarRow("Q", sidebarBreakdown.q),
@@ -286,14 +248,7 @@ const Ability = ({ ability, champions }: Props) => {
       <HextechPanel contentMinWidth={700}>
         <PanelToolbar
           caption={`${modeCaption} · SORTED · BY ${METRIC_LABEL[metric]}`}
-          trailing={
-            mode === "perGame" ? (
-              <LowSampleSwitch
-                checked={mixLowSample}
-                onChange={setMixLowSample}
-              />
-            ) : null
-          }
+          trailing={mode === "perGame" ? <LowSampleSwitch checked={mixLowSample} onChange={setMixLowSample} /> : null}
         >
           <DiamondTabs
             tabs={[
@@ -321,23 +276,16 @@ const Ability = ({ ability, champions }: Props) => {
           }}
         >
           <div />
-          <div className="text-[11px] tracking-[.22em] text-[#a09b8c]">
-            CHAMPION
-          </div>
+          <div className="text-[11px] tracking-[.22em] text-[#a09b8c]">CHAMPION</div>
           <button
             type="button"
             onClick={() => sortBy("total")}
             className="cursor-pointer text-right select-none hover:text-lol-gold-100"
             style={{
-              color:
-                metric === "total" ? "var(--color-lol-gold-50)" : "#a09b8c",
+              color: metric === "total" ? "var(--color-lol-gold-50)" : "#a09b8c",
             }}
           >
-            <SortHeaderLabel
-              label="TOTAL CASTS"
-              active={metric === "total"}
-              dir={sortDir}
-            />
+            <SortHeaderLabel label="TOTAL CASTS" active={metric === "total"} dir={sortDir} />
           </button>
           {BREAKDOWN_KEYS.map((key) => (
             <button
@@ -350,11 +298,7 @@ const Ability = ({ ability, champions }: Props) => {
                 opacity: metric === key ? 1 : 0.55,
               }}
             >
-              <SortHeaderLabel
-                label={METRIC_LABEL[key]}
-                active={metric === key}
-                dir={sortDir}
-              />
+              <SortHeaderLabel label={METRIC_LABEL[key]} active={metric === key} dir={sortDir} />
             </button>
           ))}
         </div>
@@ -372,17 +316,11 @@ const Ability = ({ ability, champions }: Props) => {
               scrollbarColor: "rgba(200,170,110,.45) transparent",
             }}
           >
-            <div
-              className="relative"
-              style={{ height: rows.length * SLOT_PITCH - ROW_GAP }}
-            >
+            <div className="relative" style={{ height: rows.length * SLOT_PITCH - ROW_GAP }}>
               {rows.map((row, index) => {
                 const isSelected = row.championId === selectedChampionId;
                 const total = sumBreakdown(row.active);
-                const barWidthPct = barWidthPercent(
-                  columnValue(row, metric),
-                  maxMetricValue,
-                );
+                const barWidthPct = barWidthPercent(columnValue(row, metric), maxMetricValue);
 
                 return (
                   <div
@@ -393,21 +331,14 @@ const Ability = ({ ability, champions }: Props) => {
                     aria-label={`${displayName(row.championName)}, ${row.matchesPlayed} games`}
                     className={cn(
                       "absolute inset-x-0 grid cursor-pointer items-center gap-4 px-1.5 transition-[background,opacity] duration-150",
-                      mode === "perGame" &&
-                        isLowSample(row.matchesPlayed) &&
-                        "opacity-45",
+                      mode === "perGame" && isLowSample(row.matchesPlayed) && "opacity-45",
                     )}
                     style={{
                       top: index * SLOT_PITCH,
                       height: ROW_HEIGHT,
-                      gridTemplateColumns:
-                        "36px 104px minmax(0,1fr) 60px 60px 60px 60px",
-                      background: isSelected
-                        ? "rgba(200,170,110,.09)"
-                        : "transparent",
-                      boxShadow: isSelected
-                        ? "inset 0 0 0 1px rgba(200,170,110,.45)"
-                        : undefined,
+                      gridTemplateColumns: "36px 104px minmax(0,1fr) 60px 60px 60px 60px",
+                      background: isSelected ? "rgba(200,170,110,.09)" : "transparent",
+                      boxShadow: isSelected ? "inset 0 0 0 1px rgba(200,170,110,.45)" : undefined,
                     }}
                   >
                     {/* Icon sits in the layer above — this reserves its column. */}
@@ -432,29 +363,20 @@ const Ability = ({ ability, champions }: Props) => {
                                 key={key}
                                 className="h-full transition-[width] duration-300 ease-out"
                                 style={{
-                                  width:
-                                    total > 0
-                                      ? `${(row.active[key] / total) * 100}%`
-                                      : 0,
+                                  width: total > 0 ? `${(row.active[key] / total) * 100}%` : 0,
                                   background: COLORS[key],
                                 }}
                               />
                             ))
                           ) : (
-                            <div
-                              className="h-full w-full"
-                              style={{ background: COLORS[metric] }}
-                            />
+                            <div className="h-full w-full" style={{ background: COLORS[metric] }} />
                           )}
                         </div>
                       </div>
                       <div
                         className="w-16 flex-none text-right font-display text-[15px]"
                         style={{
-                          color:
-                            metric === "total"
-                              ? "var(--color-lol-gold-50)"
-                              : "var(--color-lol-text-secondary)",
+                          color: metric === "total" ? "var(--color-lol-gold-50)" : "var(--color-lol-text-secondary)",
                         }}
                       >
                         {formatCompact(total)}

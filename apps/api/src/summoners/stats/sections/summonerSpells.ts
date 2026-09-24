@@ -1,8 +1,4 @@
-import type {
-  ChampionSummonerSpellStats,
-  SummonerSpellCasts,
-  SummonerSpellsStats,
-} from "@arena/types";
+import type { ChampionSummonerSpellStats, SummonerSpellCasts, SummonerSpellsStats } from "@arena/types";
 import type { SummonerSpellInfo } from "../../../leagueData/index.js";
 import type { OwnGame } from "../loadStatsData.js";
 

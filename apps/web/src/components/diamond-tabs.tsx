@@ -30,14 +30,7 @@ type Props<T extends string> = {
  * tab is in the Tab order (roving tabindex), and Left/Right/Home/End move and
  * select — previously these were `div`s reachable only by mouse.
  */
-function DiamondTabs<T extends string>({
-  tabs,
-  active,
-  onChange,
-  gap = 24,
-  label,
-  size = "md",
-}: Props<T>) {
+function DiamondTabs<T extends string>({ tabs, active, onChange, gap = 24, label, size = "md" }: Props<T>) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   // `active` can be a value none of the tabs carry — Bans lets its column
   // headers sort by things the two tabs don't name, which leaves both tabs
@@ -58,12 +51,7 @@ function DiamondTabs<T extends string>({
   }
 
   return (
-    <div
-      role="tablist"
-      aria-label={label}
-      className="flex flex-wrap items-center gap-y-2"
-      style={{ columnGap: gap }}
-    >
+    <div role="tablist" aria-label={label} className="flex flex-wrap items-center gap-y-2" style={{ columnGap: gap }}>
       {tabs.map((tab, index) => {
         const isActive = active === tab.key;
         return (
@@ -96,9 +84,7 @@ function DiamondTabs<T extends string>({
             <span
               className={cn(
                 "whitespace-nowrap",
-                size === "sm"
-                  ? "text-[11px] tracking-[.2em]"
-                  : "text-[13px] tracking-[.26em]",
+                size === "sm" ? "text-[11px] tracking-[.2em]" : "text-[13px] tracking-[.26em]",
               )}
             >
               {tab.label}
