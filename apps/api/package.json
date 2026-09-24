@@ -12,6 +12,7 @@
     "lint": "eslint .",
     "crawl": "tsx --env-file-if-exists=.env scripts/crawl.ts",
     "crawl:forever": "tsx --env-file-if-exists=.env scripts/crawl.ts --forever",
+    "crawl:leaderboard": "tsx --env-file-if-exists=.env scripts/crawl-leaderboard.ts",
     "check-recaps": "tsx --env-file-if-exists=.env scripts/check-recaps.ts",
     "retry-skipped": "tsx --env-file-if-exists=.env scripts/retry-skipped.ts"
   },

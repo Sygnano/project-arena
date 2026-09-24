@@ -109,7 +109,19 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   (decided with the user, so every region gets data, not just the ones someone searched). Every
   refresh, from the crawler or a web search, adds each participant of a newly stored match to
   `summoners` with `lastRefreshedAt` null, so the crawl snowballs outward from whoever is in the
-  database. A match is stored once however many of its players get refreshed, and later
+  database. A second crawler, `scripts/crawl-leaderboard.ts` (Railway `crawler-leaderboard`, a
+  copy of `crawler` with its own start command; by hand `pnpm --filter @arena/api
+  crawl:leaderboard [--start-rank N] [--players N]`), goes down arenasweats.lol's global Arena
+  leaderboard instead (decided with the user: top players are the likeliest to keep playing Arena
+  and to look up their stats). It fetches one page of 125 ranks (arenasweats' maximum) and splits
+  it into one bucket per lane by each player's region. When a lane's bucket runs dry it fetches
+  the next page, which refills every bucket, so arenasweats gets one call per 125 players. Each
+  player's Riot ID is resolved at Riot, then their matches are ingested; anyone refreshed in the
+  last 6 hours is skipped without a Riot call. Buckets have no size limit (decided with the user: europe
+  gets ~45% of each page but crawls no faster than sea, so its bucket just grows); past the last rank, and after
+  a restart, it starts again from rank 1. Gaps and repeats from the ranking moving are accepted
+  (decided with the user). Its Riot calls also wait in the `crawler` bucket.
+  A match is stored once however many of its players get refreshed, and later
   refreshes only ask Riot for games since the previous one (minus a 2h overlap). Discovered rows
   take their Riot ID/icon/level from the match they were met in, and their platform from the
   match id's prefix, as does the match itself: Match-V5 lists a player's games on every platform of
@@ -511,6 +523,7 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   |---|---|---|---|---|
   | api | `pnpm install --frozen-lockfile --filter @arena/api...` | `pnpm --filter @arena/api build && pnpm --filter @arena/api build:scripts` | `node --enable-source-maps apps/api/dist/scripts/migrate.mjs` | `node --enable-source-maps apps/api/dist/index.mjs` |
   | crawler | same as api | `pnpm --filter @arena/api build:scripts` | none | `node --enable-source-maps apps/api/dist/scripts/crawl.mjs --forever` |
+  | crawler-leaderboard | same as api | `pnpm --filter @arena/api build:scripts` | none | `node --enable-source-maps apps/api/dist/scripts/crawl-leaderboard.mjs` |
   | retry-skipped (cron) | same as api | `pnpm --filter @arena/api build:scripts` | none | `node --enable-source-maps apps/api/dist/scripts/retry-skipped.mjs` |
   | riot-gateway | `pnpm install --frozen-lockfile --filter @arena/riot-gateway...` | `pnpm --filter @arena/riot-gateway build` | none | `node --enable-source-maps apps/riot-gateway/dist/index.mjs` |
 
