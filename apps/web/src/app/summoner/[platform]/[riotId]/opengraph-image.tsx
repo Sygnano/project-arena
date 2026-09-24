@@ -1,5 +1,4 @@
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import type { SummonerView } from "@arena/types";
 import { getSummonerPage } from "@/lib/api";
@@ -66,10 +65,12 @@ export default async function Image({ params }: { params: Promise<{ platform: st
     return png(cached);
   }
 
-  const fontDir = join(process.cwd(), "src/fonts");
+  // Relative to this file, not process.cwd(): the bundler copies them into
+  // the build, so the card works whatever directory the server starts in
+  // (started from the repo root, a cwd path 500ed every card).
   const [beaufort, spiegel, icon] = await Promise.all([
-    readFile(join(fontDir, "beaufort/beaufortforlol-bold.otf")),
-    readFile(join(fontDir, "spiegel/spiegel-semibold.otf")),
+    readFile(new URL("../../../../fonts/beaufort/beaufortforlol-bold.otf", import.meta.url)),
+    readFile(new URL("../../../../fonts/spiegel/spiegel-semibold.otf", import.meta.url)),
     loadIcon(summoner?.profileIconId ?? null),
   ]);
 
