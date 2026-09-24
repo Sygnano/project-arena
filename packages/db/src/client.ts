@@ -9,6 +9,10 @@ export interface DbOptions {
   /** Postgres `idle_in_transaction_session_timeout`: a session left idle
    * inside a transaction this long is closed, releasing its locks. */
   idleInTransactionTimeoutMs?: number;
+  /** Postgres `lock_timeout`: a statement waiting this long for a lock is
+   * cancelled (error 55P03) instead of waiting on, and holding up everything
+   * queued behind it on that table. */
+  lockTimeoutMs?: number;
 }
 
 export function createDb(connectionString: string, options: DbOptions = {}) {
@@ -23,6 +27,7 @@ export function createDb(connectionString: string, options: DbOptions = {}) {
       ...(options.idleInTransactionTimeoutMs !== undefined
         ? { idle_in_transaction_session_timeout: options.idleInTransactionTimeoutMs }
         : {}),
+      ...(options.lockTimeoutMs !== undefined ? { lock_timeout: options.lockTimeoutMs } : {}),
     },
   });
   return drizzle(client, { schema });

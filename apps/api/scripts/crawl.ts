@@ -41,7 +41,7 @@
  */
 import { parseArgs } from "node:util";
 import type { Logger } from "pino";
-import { and, asc, backfillRiotIdKeys, eq, inArray, isNull, lt, or, sql, summoners, type Summoner } from "@arena/db";
+import { and, asc, eq, inArray, isNull, lt, or, sql, summoners, type Summoner } from "@arena/db";
 import { db } from "../src/db.js";
 import { logger, riotIdLabel } from "../src/logger.js";
 import { PLATFORMS, matchRegion, type Platform, type Region } from "@arena/riot";
@@ -345,9 +345,6 @@ async function main() {
     `starting${forever ? " (forever)" : ""}: ${forever ? "never-refreshed summoners first, then oldest refresh first" : "never-refreshed summoners"}` +
       `${Number.isFinite(maxSummoners) ? `, stops after ~${maxSummoners} summoner(s)` : ""}, lanes: ${LANES.join(", ")}`,
   );
-  // Rows an older build stored without a lookup key (the API does the same at startup).
-  const keyed = await backfillRiotIdKeys(db);
-  if (keyed > 0) scriptLog.info(`filled ${keyed} Riot ID lookup key(s)`);
   const results = await Promise.allSettled(
     LANES.map((lane) =>
       crawlLane(lane).catch((err) => {

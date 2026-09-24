@@ -56,8 +56,9 @@ export const summoners = pgTable(
     riotIdGameName: text("riot_id_game_name").notNull(),
     riotIdTagline: text("riot_id_tagline").notNull(),
     /** The Riot ID's lookup key (`riotIdKey()` in riotId.ts): what a summoner
-     * page is found by. Null only on rows from before the column, which the
-     * API fills at startup (`backfillRiotIdKeys`). */
+     * page is found by. Every writer sets it (`riotIdColumns`); rows from
+     * before the column were filled once, and none lacks it (checked on the
+     * hosted database 2026-09-24: 0 of 998,460). */
     riotIdKey: text("riot_id_key"),
     region: text("region").notNull(),
     profileIconId: integer("profile_icon_id"),

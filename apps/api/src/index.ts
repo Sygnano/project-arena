@@ -1,9 +1,9 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import Fastify, { type FastifyReply } from "fastify";
-import { backfillRiotIdKeys, createDb, runMigrations } from "@arena/db";
 import { db } from "./db.js";
 import { env } from "./env.js";
 import { logger } from "./logger.js";
+import { applyMigrations } from "./migrations.js";
 import { healthRoutes } from "./routes/health.js";
 import { catalogRoutes } from "./routes/catalog.js";
 import { overviewRoutes } from "./routes/overview.js";
@@ -23,24 +23,11 @@ const app = Fastify({
   },
 });
 
-// Brings the database schema up to date before serving anything: this is
-// how a deploy applies new migrations. With MIGRATION_DATABASE_URL, through
-// that (DDL-capable) role, closed right after, so the role serving requests
-// needs no rights beyond reading and writing rows.
-if (env.MIGRATION_DATABASE_URL) {
-  const migrationDb = createDb(env.MIGRATION_DATABASE_URL);
-  try {
-    await runMigrations(migrationDb);
-  } finally {
-    await migrationDb.$client.end({ timeout: 5 });
-  }
-} else {
-  await runMigrations(db);
-}
+// Brings the database schema up to date before serving anything. In
+// production the pre-deploy command (scripts/migrate.ts) has already run
+// them, so this finds nothing; locally it's how `pnpm dev` migrates.
+await applyMigrations();
 app.log.info("Database migrations applied");
-// Rows from before `riot_id_key` can't be found until they have one.
-const keyed = await backfillRiotIdKeys(db);
-if (keyed > 0) app.log.info({ rows: keyed }, "Riot ID lookup keys filled");
 
 // Only the web app's server may call this API: it sends the shared secret.
 // Without this, anyone who could reach the API could pick their own

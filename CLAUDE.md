@@ -472,9 +472,18 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   provider-specific assumptions (e.g. serverless-only patterns in the API) until this is settled,
   since the ingestion worker needs a long-lived process, not a request/response function.
   The API is ready for a long-lived host as is: it's deployed as an esbuild bundle (`build`,
-  see "Bundled services" below) run by plain `node`, applies pending migrations at startup
-  (`runMigrations` in `packages/db/src/migrate.ts`, drizzle-orm's migrator, so drizzle-kit
-  stays dev-only; the build copies the SQL to `dist/drizzle`, where the bundled code finds it), listens on `::` (Railway's private network can be IPv6-only), closes cleanly
+  see "Bundled services" below) run by plain `node`. **Migrations run in the Railway pre-deploy
+  command** (`apps/api/scripts/migrate.ts`, decided with the user 2026-09-24), after the build and
+  before the new container starts, with no health-check window: migration 0020 rewrote the 4.3 GB
+  `match_participants` (2.6M rows), and run at startup it outlasted the 60s health check, got
+  killed and rolled back on every deploy. Both paths go through `applyMigrations`
+  (`apps/api/src/migrations.ts`): its own connection (`MIGRATION_DATABASE_URL` or `DATABASE_URL`),
+  no statement timeout, a 30s `lock_timeout` (a migration waiting for a lock queues every query on
+  that table behind it, the live site's recap reads included: stop the crawler and cron before a
+  migration that rewrites a table they write). The API still calls it at startup, a no-op once
+  pre-deploy has run and how `pnpm dev` migrates locally (`runMigrations` in
+  `packages/db/src/migrate.ts`, drizzle-orm's migrator, so drizzle-kit stays dev-only; the builds
+  copy the SQL to `dist/drizzle`, where the bundled code finds it). It listens on `::` (Railway's private network can be IPv6-only), closes cleanly
   on SIGTERM, and its `/health` fails (503) when the database doesn't answer. It has no CORS: only
   the web app's server calls it, so give it no public domain (Railway: same project, web reaches it
   at `${{api.RAILWAY_PRIVATE_DOMAIN}}`). Wherever the web app lands, it needs `API_URL` (the API's address, server-side
@@ -498,12 +507,12 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   the source through `tsx`; `start` runs the built bundle. Railway (Railpack builds each service
   from the whole repo; no Dockerfile), per service:
 
-  | Service | `RAILPACK_INSTALL_CMD` | Build command | Start command |
-  |---|---|---|---|
-  | api | `pnpm install --frozen-lockfile --filter @arena/api...` | `pnpm --filter @arena/api build` | `node --enable-source-maps apps/api/dist/index.mjs` |
-  | crawler | same as api | `pnpm --filter @arena/api build:scripts` | `node --enable-source-maps apps/api/dist/scripts/crawl.mjs --forever` |
-  | retry-skipped (cron) | same as api | `pnpm --filter @arena/api build:scripts` | `node --enable-source-maps apps/api/dist/scripts/retry-skipped.mjs` |
-  | riot-gateway | `pnpm install --frozen-lockfile --filter @arena/riot-gateway...` | `pnpm --filter @arena/riot-gateway build` | `node --enable-source-maps apps/riot-gateway/dist/index.mjs` |
+  | Service | `RAILPACK_INSTALL_CMD` | Build command | Pre-deploy command | Start command |
+  |---|---|---|---|---|
+  | api | `pnpm install --frozen-lockfile --filter @arena/api...` | `pnpm --filter @arena/api build && pnpm --filter @arena/api build:scripts` | `node --enable-source-maps apps/api/dist/scripts/migrate.mjs` | `node --enable-source-maps apps/api/dist/index.mjs` |
+  | crawler | same as api | `pnpm --filter @arena/api build:scripts` | none | `node --enable-source-maps apps/api/dist/scripts/crawl.mjs --forever` |
+  | retry-skipped (cron) | same as api | `pnpm --filter @arena/api build:scripts` | none | `node --enable-source-maps apps/api/dist/scripts/retry-skipped.mjs` |
+  | riot-gateway | `pnpm install --frozen-lockfile --filter @arena/riot-gateway...` | `pnpm --filter @arena/riot-gateway build` | none | `node --enable-source-maps apps/riot-gateway/dist/index.mjs` |
 
   The filtered install skips the web app's dependencies. Watch paths: `apps/api/**` (or
   `apps/riot-gateway/**`) plus `packages/**`, `pnpm-lock.yaml`, `package.json`,
@@ -794,8 +803,9 @@ redesigning:
   trimmed, Unicode lowercase, NFC, "name#tag", indexed with the region). Not `lower()` in SQL: this
   database's C collation only lowercases ASCII, and a quarter of stored names aren't ASCII. Every
   writer of `summoners` goes through `riotIdColumns()`, which also trims the names (match data can
-  carry a trailing space). The API and the crawler fill keys missing from older rows at startup
-  (`backfillRiotIdKeys`). A successful lookup also corrects the stored platform, so a player who
+  carry a trailing space). Rows from before the key column were filled once; the startup backfill
+  that did it (`backfillRiotIdKeys`) was removed 2026-09-24, when no row lacked a key and its scan
+  of ~1M summoners timed out at crawler startup. A successful lookup also corrects the stored platform, so a player who
   moved server doesn't keep the old one's lane and match cluster.
 - **`apps/web/src/lib/api.ts` is server-only** (`import "server-only"`): it holds the API's
   address and secret. Helpers the browser needs (`summonerStatsQueryKey`, `hasRecap`,
