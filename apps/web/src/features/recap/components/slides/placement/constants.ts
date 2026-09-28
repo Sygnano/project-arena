@@ -1,0 +1,7 @@
+const BAR_MAX_HEIGHT = 330;
+
+const COLUMN_WIDTH = 108;
+
+const COLUMN_GAP = 48;
+
+export { BAR_MAX_HEIGHT, COLUMN_WIDTH, COLUMN_GAP };

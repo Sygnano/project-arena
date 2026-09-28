@@ -1,6 +1,6 @@
-import { fetchRefreshStream } from "@/lib/api";
-import { isKnownPlatform } from "@/lib/riot";
-import { parseRiotIdSlug } from "@/lib/riot-id";
+import { fetchRefreshStream } from "@/features/recap/api/fetch-refresh-stream";
+import { isKnownPlatform } from "@/utils/riot";
+import { parseRiotIdSlug } from "@/utils/riot-id";
 import { visitorIp } from "@/lib/visitor-ip";
 
 /**

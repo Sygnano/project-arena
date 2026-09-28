@@ -3,30 +3,20 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import type { SummonerView } from "@arena/types";
-import { getSummonerPage, getSummonerStatsByRiotId, RecapRateLimitedError } from "@/lib/api";
-import { hasRecap, summonerStatsQueryKey } from "@/lib/summoner-query";
-import { formatUtcDateTime } from "@/lib/format";
-import { isKnownPlatform, platformRegionName } from "@/lib/riot";
-import { parseRiotIdSlug, summonerPath } from "@/lib/riot-id";
+import { getSummonerPage } from "@/features/recap/api/get-summoner-page";
+import { getSummonerStatsByRiotId, RecapRateLimitedError } from "@/features/recap/api/get-summoner-stats";
+import { hasRecap, summonerStatsQueryKey } from "@/features/recap/api/summoner-query";
+import { isKnownPlatform } from "@/utils/riot";
+import { parseRiotIdSlug, summonerPath } from "@/utils/riot-id";
 import { getQueryClient } from "@/lib/query-client";
 import { visitorIp } from "@/lib/visitor-ip";
-import { RateLimitedView } from "./rate-limited";
-import { SummonerRecap } from "./recap";
-import { RefreshView } from "./refresh-view";
+import { RateLimitedView } from "@/features/recap/components/rate-limited-view";
+import { SummonerRecap } from "@/features/recap/components/summoner-recap";
+import { RefreshView } from "@/features/recap/components/refresh-view";
+import { describeRecap } from "@/features/recap/utils/describe-recap";
 
 // One read per request, shared by generateMetadata and the page.
 const loadSummonerPage = cache(getSummonerPage);
-
-/** The link preview's text: always says when the matches were last fetched. */
-function describeRecap(summoner: SummonerView | null, platform: string): string {
-  const server = platformRegionName(platform);
-  if (!summoner?.lastRefreshedAt) {
-    return `Arena season recap on ${server}. Last updated: never. Open the link to fetch their matches.`;
-  }
-  const games = `${summoner.matchCount.toLocaleString("en-US")} Arena ${summoner.matchCount === 1 ? "game" : "games"}`;
-  return `${games} on ${server}. Last updated ${formatUtcDateTime(summoner.lastRefreshedAt)}.`;
-}
 
 export async function generateMetadata(props: PageProps<"/summoner/[platform]/[riotId]">): Promise<Metadata> {
   const { platform, riotId } = await props.params;

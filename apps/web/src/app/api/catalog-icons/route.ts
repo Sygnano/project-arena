@@ -1,5 +1,5 @@
-import { getGameCatalog } from "@/lib/api";
-import { championIconUrl } from "@/lib/riot";
+import { getGameCatalog } from "@/features/recap/api/get-game-catalog";
+import { championIconUrl } from "@/utils/riot";
 
 /**
  * Every icon a recap can show (champions, augments, recap items), as URLs,

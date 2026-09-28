@@ -7,8 +7,8 @@ function makeQueryClient() {
         // This app's only query (the recap) is fetched server-side on every
         // page load (page.tsx) or put in the cache by the refresh stream, then
         // read from the cache in the browser, which never fetches it: the
-        // fetcher is server-only (lib/api.ts) and the query is disabled in
-        // stats-view.tsx. Infinity also keeps hydrated data from counting as
+        // fetcher is server-only (lib/api-client.ts) and the query is disabled in
+        // SummonerStatsView. Infinity also keeps hydrated data from counting as
         // stale.
         staleTime: Infinity,
       },

@@ -2,7 +2,7 @@
 
 The `TimeRange` chart from [`@nivo/calendar`](https://github.com/plouc/nivo/tree/master/packages/calendar)
 0.99.0, copied here as source with our fix applied, used by the summoner page's activity calendar
-(`src/modules/TimePlayed/Calendar.tsx`). MIT licensed, see `LICENSE.md`.
+(`src/features/recap/components/slides/time-played/components/calendar`). MIT licensed, see `LICENSE.md`.
 
 ## Why a copy
 

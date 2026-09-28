@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { beaufort, spiegel } from "@/fonts";
-import { AssetPrefetch } from "@/components/asset-prefetch";
-import { Providers } from "@/components/providers";
+import { AssetPrefetch } from "./_components/asset-prefetch";
+import { Providers } from "./_components/providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
