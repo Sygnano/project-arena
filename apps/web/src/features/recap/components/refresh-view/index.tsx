@@ -43,6 +43,7 @@ function RefreshView({ platform, gameName, tagLine, initial }: Props) {
         tagLine={tagLine}
         summoner={state.summoner}
         refresh={null}
+        view="story"
       />
     );
   }

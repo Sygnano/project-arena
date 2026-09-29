@@ -9,7 +9,7 @@ import {
   HoverCardPlacementBars,
 } from "@/features/recap/components/hover-stat-card";
 import { isLowSample } from "@/features/recap/utils/sample";
-import { TEAM_NAME } from "@/features/recap/components/slides/team-slot/constants";
+import { TEAM_NAME } from "@/features/recap/utils/team-crests";
 import { percent, slotGames } from "./utils";
 
 /** Hover card for one slot: its record against the summoner's overall one

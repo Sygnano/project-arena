@@ -10,6 +10,8 @@ import {
 import { formatDuration } from "@/utils/format";
 import { edgeFor, games } from "@/features/recap/components/slides/time-played/utils";
 import { pad, percent } from "./utils";
+import { useUtcOffsetHours } from "@/hooks/use-utc-offset-hours";
+import { utcOffsetLabel } from "@/utils/time-zone";
 
 function HourHoverCard({ calendar, hour }: { calendar: CalendarStats; hour: number }) {
   const gamesPlayed = calendar.gamesByHour[hour] ?? 0;
@@ -20,12 +22,13 @@ function HourHoverCard({ calendar, hour }: { calendar: CalendarStats; hour: numb
   const kda = calendar.kdaByHour?.[hour];
   const avgGameSeconds = calendar.avgGameSecondsByHour?.[hour];
   const champions = calendar.championsByHour?.[hour] ?? [];
+  const zone = utcOffsetLabel(useUtcOffsetHours());
 
   return (
     <HoverStatCard
       title={`${pad(hour)}:00–${pad((hour + 1) % 24)}:00`}
       meta={games(gamesPlayed)}
-      subtitle={`UTC · ${totalGames > 0 ? percent(gamesPlayed, totalGames) : "0%"} of all games`}
+      subtitle={`${zone} · ${totalGames > 0 ? percent(gamesPlayed, totalGames) : "0%"} of all games`}
       edgeColor={edgeFor(top1, top3)}
     >
       {gamesPlayed > 0 ? (

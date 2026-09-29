@@ -386,6 +386,41 @@
   }
 }
 
+/* The story recap's clock (features/recap/components/summoner-story): the
+ * current slide's progress bar fills over the slide's duration, and its
+ * `animationend` moves the story on, so pausing the animation pauses the
+ * story. Deliberately kept under reduced motion: it's the timer, not
+ * decoration. */
+@keyframes story-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.story-progress-fill {
+  transform-origin: left;
+  animation-name: story-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+/* Story heatmap cells popping in, staggered by an inline animation-delay. */
+@keyframes story-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+}
+.story-pop {
+  animation: story-pop 0.45s cubic-bezier(0.2, 0.8, 0.2, 1.2) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .story-pop {
+    animation: none;
+  }
+}
+
 /* The hover treatment on a gallery card (features/recap/components/slides/champion-gallery/
  * components/champion-card) — the champion's name stays hidden until the card is
  * hovered, then fades in, lifts and picks up a gold bloom. Driven by CSS on
@@ -551,6 +586,15 @@
   .tier-bar-prismatic {
     animation: none;
   }
+}
+/* A tiny tier fill (a calendar day, a thin bar segment): the prismatic tile
+ * is 4x the element and pans, so a small one only ever shows a single hue
+ * of it (it read as plain blue). Here the whole iridescent sweep fits in. */
+.tier-bar-prismatic.tier-compact {
+  background-size:
+    100% 100%,
+    100% 100%;
+  animation: none;
 }
 
 /* Arena Stats is a single, permanently dark Hextech theme — no light mode. */

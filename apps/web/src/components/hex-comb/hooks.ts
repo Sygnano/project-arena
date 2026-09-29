@@ -7,7 +7,7 @@ import { combRows } from "./utils";
  * Solves the column count giving the biggest hexagons that fit the parent's
  * box (like `useFitColumns`, but with honeycomb row geometry). Only the deck
  * layout has a fixed height to fit; in flow the section grows to its content,
- * so there the width alone sets the columns.
+ * so there the width alone sets the columns (unless `alwaysFit`).
  */
 function useCombLayout<T extends HTMLElement>(
   count: number,
@@ -17,7 +17,8 @@ function useCombLayout<T extends HTMLElement>(
     maxColumns,
     maxHexWidth,
     flowHexWidth,
-  }: Pick<Props, "gap" | "minColumns" | "maxColumns" | "maxHexWidth" | "flowHexWidth">,
+    alwaysFit = false,
+  }: Pick<Props, "gap" | "minColumns" | "maxColumns" | "maxHexWidth" | "flowHexWidth" | "alwaysFit">,
 ) {
   const ref = useRef<T>(null);
   const [layout, setLayout] = useState<Layout>({
@@ -35,7 +36,7 @@ function useCombLayout<T extends HTMLElement>(
       const height = parent.clientHeight;
       if (width <= 0) return;
 
-      if (!deck.matches) {
+      if (!deck.matches && !alwaysFit) {
         const columns = Math.min(maxColumns, Math.max(4, Math.floor((width + FLOW_GAP) / (flowHexWidth + FLOW_GAP))));
         setLayout({
           columns,
@@ -64,7 +65,7 @@ function useCombLayout<T extends HTMLElement>(
       observer.disconnect();
       deck.removeEventListener("change", measure);
     };
-  }, [count, gap, minColumns, maxColumns, maxHexWidth, flowHexWidth]);
+  }, [count, gap, minColumns, maxColumns, maxHexWidth, flowHexWidth, alwaysFit]);
 
   return [ref, layout] as const;
 }

@@ -25,7 +25,12 @@ system are being carried forward, its Vite+ tooling and Express-less structure a
   page's own reads never call Riot: a search just navigates to the summoner's URL, and the page
   reads `GET /summoners/by-riot-id/...` (summoner + fetch in progress) and `.../stats` from our
   database. Page flow: not stored → FETCH MATCHES button; stored but never fetched
-  (`lastRefreshedAt` null) → the same button with their icon; fetched → the recap. A first
+  (`lastRefreshedAt` null) → the same button with their icon; fetched → the recap, in two views
+  (decided with the user, after feedback that the recap read as "expert mode"): the summoner's
+  URL opens the **story recap** (a cover, then Spotify Wrapped style auto-playing slides), and
+  `/summoner/<platform>/<riotId>/advanced` holds the **full stats** (every expert slide), linked
+  from the story's cover and finale. `/advanced` for a summoner without a recap redirects to their
+  page, which offers the fetch; an old `#section` link on the story page moves to `/advanced`. A first
   full-history fetch is never automatic (decided with the user, so it's always a deliberate click).
   During a fetch the page shows the queue screen (`features/recap/components/refresh-view`: queue position, then "match X
   of Y" with an ETA), then swaps the recap in place from the stream's `stats` event (put in the
@@ -680,8 +685,9 @@ redesigning:
     `game-catalog.tsx` (contexts: provider + hook, the context object private) and
     `champion-dossier.ts` (the open-a-dossier channel). Components (`DossierLink`) and plain
     helpers (`scroll-to-slide.ts`) that touch a store live in `components/` and `utils/`. Today:
-    `recap` (the whole summoner page: the recap and its slides in `components/slides/<slide>`,
-    the queue screen `RefreshView`, `RecapLoading`, `RateLimitedView`), `search` (`RiotIdSearch`, `RecentRecaps`),
+    `recap` (the whole summoner page, both views: the story recap `SummonerStory` and its slides in
+    `components/story-slides/<slide>`, the full stats `SummonerStatsView` and its slides in
+    `components/slides/<slide>`, the queue screen `RefreshView`, `RecapLoading`, `RateLimitedView`), `search` (`RiotIdSearch`, `RecentRecaps`),
     `overview` (the splash totals), `dev` (the /dev table). Inside a feature, `components/` holds
     its building blocks: screens, slides and pieces several of them share.
   - Shared: `components/` = the app-wide UI kit, generic pieces with no domain knowledge
@@ -731,7 +737,36 @@ redesigning:
   only if it must never be covered. Riot ID input rules live in `utils/riot-id.ts`
   (`gameNameError`/`tagLineError`, mirrored by the API's `routes/summoners/riotIdParams.ts`), and `parseRiotIdSlug`
   decodes the slug because Next passes dynamic params still percent-encoded.
-- **Summoner page structure lives in one slide registry** — the ordered `slides` array in
+- **The story recap is the summoner page's default view** (`features/recap/components/summoner-story`,
+  route `app/summoner/[platform]/[riotId]/page.tsx`; both views load through `_components/recap-route.tsx`).
+  It is at-a-glance by design: text leads, one or two visuals per slide, no hover cards, tabs or
+  sorting (those stay in the full stats). A cover (`StoryCover`, never automated: its button, a
+  scroll down, a swipe up or ArrowDown starts it), then `StoryPlayer`: full-screen slides, each
+  shown for its `durationMs` with a progress bar per slide. The active bar's CSS animation
+  (`.story-progress-fill`) is the clock: its `animationend` advances, so pausing the animation
+  pauses the story (hold, Space, the pause button, a hidden tab). Tap the left 30% or ← to go
+  back, elsewhere or → to skip; the last slide waits. Order, timing and each slide's entrance
+  (`TRANSITIONS`: slide, rise, zoom, iris, tilt, wipe, mirrored going back, a cross-fade under
+  reduced motion) live in one registry, the `slides` array in `summoner-story/index.tsx`; a slide
+  without data to show is left out there. Every story slide sits in `StoryFrame` (blurred art,
+  its own two-color glow) and staggers its content with `Appear` (`components/appear.tsx`,
+  on-mount, unlike the scroll-driven `Reveal`); `StoryStat`, `StoryFact`, `StoryPortrait` (a
+  featured champion's full loading-screen art, used wherever a slide names one champion) and
+  `StoryComb` are its shared pieces. `StoryComb` is the Hall of Fame honeycomb with `alwaysFit`
+  and `play`: it stays hidden while the slide moves in and ripples in afterwards, as in the full
+  stats, because cells animated along with a slide transition looked broken (decided with the
+  user). A slide must fit 390×844 and 1366×768 without scrolling: clamp()/vh sizes, and details
+  dropped or shrunk at `max-height`.
+- **Hour-of-day stats are shown in the viewer's time zone** (asked by the user, both views). The
+  API buckets by UTC hour; `useRecapStats` re-indexes every `calendar.*ByHour` array with
+  `localizeCalendarHours` and `useUtcOffsetHours` (UTC on the server render, local right after
+  hydration), and labels print `utcOffsetLabel` ("UTC+2") where they said UTC. Calendar days stay
+  UTC days (labelled so): the API sends no per-game times to re-bucket them.
+- **Tier colors mean finishes everywhere** (the user's rule): a winrate or win count is tier gold,
+  a 1st-place rate or count tier prismatic, games played silver (`StoryStat`'s `win`/`first`
+  tones, `.tier-bar-*` fills). A tiny fill (a calendar day, a thin bar segment) adds
+  `tier-compact`, or the prismatic sweep, 4x the element's size, shows as one flat hue.
+- **Full stats structure lives in one slide registry** — the ordered `slides` array in
   `features/recap/components/summoner-stats-view/index.tsx` (id, short label, chapter, render). Each section's
   DOM id (`#augments` deep links), the previous section's "next" cue label and the chapter rail all
   derive from it through `features/recap/stores/slide-position.tsx`'s `SlideProvider`/`useSlide`. Don't pass hand-typed "next

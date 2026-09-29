@@ -1,10 +1,7 @@
 import type { TeamSlotStats } from "@arena/types";
 import type { BarColumn } from "@/components/hextech-bar-chart";
-import { BAR_MAX_PERCENT, SEGMENT_TIER, TEAM_ICON_SLUG, TEAM_NAME } from "./constants";
-
-function teamIconUrl(slug: string): string {
-  return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-match-history/global/default/images/subteams/${slug}.svg`;
-}
+import { teamIconUrl, teamName } from "@/features/recap/utils/team-crests";
+import { BAR_MAX_PERCENT, SEGMENT_TIER } from "./constants";
 
 /**
  * Builds one stacked column per team slot — 1st-place finishes on top
@@ -22,7 +19,7 @@ function buildTeamSlotColumns(teamSlot: TeamSlotStats): BarColumn[] {
 
   return teamSlot.byTeamId.map((row) => {
     const total = row.top1 + row.top3ExclTop1 + row.remaining;
-    const slug = TEAM_ICON_SLUG[row.teamId];
+    const iconUrl = teamIconUrl(row.teamId);
 
     const segments = (
       [
@@ -49,7 +46,7 @@ function buildTeamSlotColumns(teamSlot: TeamSlotStats): BarColumn[] {
     return {
       id: row.teamId,
       topLabel: total.toLocaleString(),
-      icon: slug ? (
+      icon: iconUrl ? (
         <div className="flex flex-col items-center gap-1.5">
           <div
             className="my-2 flex h-12.5 w-12.5 rotate-45 items-center justify-center border"
@@ -60,7 +57,7 @@ function buildTeamSlotColumns(teamSlot: TeamSlotStats): BarColumn[] {
             }}
           >
             <div className="font-display -rotate-45 text-[15px] tracking-[.04em] text-lol-gold-50">
-              <img loading="lazy" decoding="async" src={teamIconUrl(slug)} alt="" width={36} height={36} />
+              <img loading="lazy" decoding="async" src={iconUrl} alt="" width={36} height={36} />
             </div>
           </div>
 
@@ -70,7 +67,7 @@ function buildTeamSlotColumns(teamSlot: TeamSlotStats): BarColumn[] {
             <span className="h-px w-3 bg-[rgba(200,170,110,.4)]" />
           </div>
           <div className="mt-1 text-sm font-semibold tracking-[.22em] text-lol-gold-100 uppercase">
-            {TEAM_NAME[row.teamId] ?? `Team ${row.teamId}`}
+            {teamName(row.teamId)}
           </div>
         </div>
       ) : undefined,

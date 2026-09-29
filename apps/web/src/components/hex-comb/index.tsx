@@ -28,6 +28,8 @@ function HexComb({
   hoverRef,
   animationKey,
   imageClassName,
+  alwaysFit,
+  play,
 }: Props) {
   const [combRef, { columns, hexWidth, gap }] = useCombLayout<HTMLDivElement>(cells.length, {
     gap: deckGap,
@@ -35,8 +37,10 @@ function HexComb({
     maxColumns,
     maxHexWidth,
     flowHexWidth,
+    alwaysFit,
   });
-  const [inViewRef, inView] = useSectionInView<HTMLDivElement>();
+  const [inViewRef, scrolledTo] = useSectionInView<HTMLDivElement>();
+  const inView = play ?? scrolledTo;
 
   const rows = useMemo(() => {
     const lengths = combRows(cells.length, columns);
@@ -67,6 +71,7 @@ function HexComb({
         className={cn(
           "relative flex-none transition-[transform,filter] duration-200 ease-out",
           inView && "hof-cell-in",
+          play === false && "opacity-0",
           interactive &&
             "hover:z-10 hover:scale-[1.18] hover:brightness-125 focus-visible:z-10 focus-visible:scale-[1.18] focus-visible:outline-none",
           hovered && "z-10 scale-[1.18] brightness-125",

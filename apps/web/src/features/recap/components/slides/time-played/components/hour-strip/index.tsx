@@ -11,11 +11,14 @@ import { barHeight } from "@/utils/bar-scale";
 import { MIN_LABEL_PERCENT } from "./constants";
 import type { Segment } from "./types";
 import { pad, plural } from "./utils";
+import { useUtcOffsetHours } from "@/hooks/use-utc-offset-hours";
+import { utcOffsetLabel } from "@/utils/time-zone";
 
 type Props = {
   /** The full calendar stats, for the hover card's per-hour extras. */
   calendar: CalendarStats;
-  /** 24 entries, index 0 = matches starting 00:00-00:59 UTC. */
+  /** 24 entries, index 0 = matches starting 00:00-00:59 in the viewer's
+   * time zone (`localizeCalendarHours`). */
   gamesByHour: number[];
   /** 24 entries, 1st-place finishes per hour. */
   top1ByHour: number[];
@@ -27,7 +30,7 @@ type Props = {
 };
 
 /**
- * "BY HOUR" view: one stacked column per UTC hour. Total height = games
+ * "BY HOUR" view: one stacked column per hour of the viewer's day. Total height = games
  * started in that hour (linear from zero, `lib/bar-scale.ts`), split into the
  * same fixed-meaning tier stack as TeamSlot: Prismatic = 1st, Gold = 2nd-3rd,
  * Silver = everything lower. So both "when do we play" and the exact 1st /
@@ -35,6 +38,7 @@ type Props = {
  */
 function HourStrip({ calendar, gamesByHour, top1ByHour, top3ByHour, selectedHour, onSelectHour }: Props) {
   const maxGames = Math.max(0, ...gamesByHour);
+  const zone = utcOffsetLabel(useUtcOffsetHours());
 
   const { hover, setHover, containerRef: stripRef } = useChartHover<number>();
 
@@ -52,7 +56,7 @@ function HourStrip({ calendar, gamesByHour, top1ByHour, top3ByHour, selectedHour
             { key: "top3", count: top3 - top1, tier: TIER_STYLE.gold },
             { key: "rest", count: games - top3, tier: TIER_STYLE.silver },
           ];
-          const summary = `${pad(hour)}:00 UTC · ${plural(games, "game")} · ${top1} 1st · ${top3} wins`;
+          const summary = `${pad(hour)}:00 ${zone} · ${plural(games, "game")} · ${top1} 1st · ${top3} wins`;
 
           return (
             <button

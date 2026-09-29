@@ -1,4 +1,22 @@
-import { DAY_MONTH, DAY_MONTH_YEAR } from "./constants";
+import type { CalendarStats } from "@arena/types";
+
+const DAY_MONTH = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+});
+
+const DAY_MONTH_YEAR = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+/** The earliest tracked match day (`YYYY-MM-DD`, UTC), or null with no games. */
+function firstTrackedDate(calendar: CalendarStats): string | null {
+  return calendar.days.reduce<string | null>((min, day) => (min === null || day.date < min ? day.date : min), null);
+}
 
 /** The season's years and date span, from the first to the last tracked
  * game: `{ years: "2026", span: "12 MAR – 18 SEP 2026" }`, or a two-year
@@ -15,4 +33,4 @@ function seasonPeriod(firstDay: string, lastMatchAt: string) {
   };
 }
 
-export { seasonPeriod };
+export { firstTrackedDate, seasonPeriod };

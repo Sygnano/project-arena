@@ -7,12 +7,13 @@ const SORT_MODES: { key: SortMode; label: string }[] = [
 ];
 
 /** What each view shows. These tabs change the coloring or the chart, not
- * an ordering, so the caption says so rather than "SORTED". Day and hour
- * buckets are UTC (see `CalendarDayStats`), and the caption says that too. */
+ * an ordering, so the caption says so rather than "SORTED". Days are UTC
+ * days (see `CalendarDayStats`); hours are the viewer's own, and the caption
+ * gets their zone appended. */
 const MODE_CAPTION: Record<SortMode, string> = {
   games: "DAYS COLORED BY GAMES PLAYED · UTC",
   wins: "DAYS COLORED BY BEST PLACEMENT · UTC",
-  hour: "GAMES BY HOUR OF DAY · UTC",
+  hour: "GAMES BY HOUR OF DAY",
 };
 
 const MONTH_ABBREV = new Intl.DateTimeFormat("en-US", {

@@ -24,6 +24,13 @@ type Props = {
   maxHexWidth: number;
   /** Target hexagon width in the flow layout, which is fitted to width only. */
   flowHexWidth: number;
+  /** Fit the parent's box at every screen size, not only in the deck layout
+   * (the story recap's slides never grow to their content). */
+  alwaysFit?: boolean;
+  /** Drives the entrance ripple from outside instead of scroll position:
+   * cells stay hidden while false and ripple in when it turns true (a story
+   * slide waits until it has stopped moving). */
+  play?: boolean;
   hoveredId: number | undefined;
   onHover: (id: number | null, point?: HoverPoint) => void;
   /** `useChartHover`'s container, so a tap outside the comb closes the card. */

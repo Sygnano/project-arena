@@ -1,11 +1,8 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Welcome } from "@/features/recap/components/slides/welcome";
 import { TimePlayed } from "@/features/recap/components/slides/time-played";
-import type { RefreshProgress, SummonerStatsPayload, SummonerView } from "@arena/types";
-import { summonerStatsQueryKey } from "@/features/recap/api/summoner-query";
+import type { RefreshProgress, SummonerView } from "@arena/types";
 import { KDA } from "@/features/recap/components/slides/kda";
 import { Placement } from "@/features/recap/components/slides/placement";
 import { TeamSlot } from "@/features/recap/components/slides/team-slot";
@@ -38,9 +35,10 @@ import { Pings } from "@/features/recap/components/slides/pings";
 import { Farewell } from "@/features/recap/components/slides/farewell";
 import { ChapterRail } from "./components/chapter-rail";
 import { ChampionNamesProvider } from "@/features/recap/stores/champion-names";
-import { useGameCatalog } from "@/features/recap/stores/game-catalog";
-import { resolveStats } from "@/features/recap/utils/resolve-stats";
-import { rememberRecap } from "@/lib/recent-recaps";
+import { useRecapStats } from "@/features/recap/hooks/use-recap-stats";
+import { useRememberRecap } from "@/features/recap/hooks/use-remember-recap";
+import { firstTrackedDate } from "@/features/recap/utils/season-period";
+import { summonerPath } from "@/utils/riot-id";
 import { SlideProvider } from "@/features/recap/stores/slide-position";
 import { useWheelScrollsSideways } from "@/hooks/use-wheel-scrolls-sideways";
 import { RecapRefresh } from "@/features/recap/components/recap-refresh";
@@ -59,38 +57,18 @@ type Props = {
 };
 
 /**
- * Client-side counterpart to the summoner page's server-side prefetch (see
- * page.tsx). `useQuery` reads the data straight out of the hydrated cache
- * seeded by that prefetch (or by the refresh stream) — same query key, so no
- * extra fetch happens on first render — rather than fetching independently.
- * The recap arrives with items and augments as ids and is resolved once
- * against the game catalog, so every module below reads names and icons.
+ * The full stats (`/summoner/.../advanced`): every expert slide, one screen
+ * each, for the reader who wants to dig past the story recap. Reads the
+ * recap from the query cache (`useRecapStats`), resolved once against the
+ * game catalog, so every module below reads names and icons.
  *
  * The page is one ordered `slides` list. It is the single source of truth
  * for section order, each section's DOM id (`#augments` deep links), the
  * short label on the previous section's "next" cue, and the chapter rail.
  */
 const SummonerStatsView = ({ region, gameName, tagLine, summoner, refresh }: Props) => {
-  // Never fetched from the browser: the fetcher is server-only (it holds the
-  // API's address and secret), so the data only ever comes from the cache.
-  const { data: payload } = useQuery<SummonerStatsPayload | null>({
-    queryKey: summonerStatsQueryKey(region, gameName, tagLine),
-    enabled: false,
-  });
-  const catalog = useGameCatalog();
-  const stats = useMemo(() => (payload ? resolveStats(payload, catalog) : undefined), [payload, catalog]);
-
-  // Adds this recap to the browser's own "recently viewed" list (splash page).
-  const viewedProfile = stats?.profile;
-  useEffect(() => {
-    if (!viewedProfile || viewedProfile.matchesPlayed === 0) return;
-    rememberRecap({
-      region: viewedProfile.region,
-      gameName: viewedProfile.riotIdGameName,
-      tagLine: viewedProfile.riotIdTagline,
-      profileIconId: viewedProfile.profileIconId,
-    });
-  }, [viewedProfile]);
+  const stats = useRecapStats(region, gameName, tagLine);
+  useRememberRecap(stats?.profile);
 
   usePageUpkeep("summoner-scroll", stats !== undefined);
   useWheelScrollsSideways("summoner-scroll", stats !== undefined);
@@ -141,10 +119,6 @@ const SummonerStatsView = ({ region, gameName, tagLine, summoner, refresh }: Pro
     top3Rate: top3Baseline,
     top1Rate: rate(placements.top1Finishes, matchesPlayed),
   };
-  const firstTrackedDate = calendar.days.reduce<string | null>(
-    (min, day) => (min === null || day.date < min ? day.date : min),
-    null,
-  );
 
   const slides: Slide[] = [
     {
@@ -154,9 +128,10 @@ const SummonerStatsView = ({ region, gameName, tagLine, summoner, refresh }: Pro
       render: () => (
         <Welcome
           profile={profile}
-          firstTrackedDate={firstTrackedDate}
+          firstTrackedDate={firstTrackedDate(calendar)}
           lastMatchAt={stats.lastMatchAt}
           timePlayedSeconds={timePlayed.timePlayedSeconds}
+          storyHref={summonerPath(region, gameName, tagLine)}
           freshness={
             <RecapRefresh
               platform={region}

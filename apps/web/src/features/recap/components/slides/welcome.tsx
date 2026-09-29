@@ -1,6 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Link from "next/link";
+import { Play } from "lucide-react";
 import type { SummonerProfile } from "@arena/types";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AnimatedNumber } from "@/components/animated-number";
@@ -9,7 +11,7 @@ import { HeroSection } from "@/features/recap/components/hero-section";
 import { SlideCue } from "@/features/recap/components/slide-cue";
 import { profileIconUrl, platformRegionName } from "@/utils/riot";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
-import { seasonPeriod } from "./utils";
+import { seasonPeriod } from "@/features/recap/utils/season-period";
 
 type Props = {
   profile: SummonerProfile;
@@ -21,6 +23,8 @@ type Props = {
   timePlayedSeconds: number;
   /** How fresh the data is, with a refresh button once it's stale. */
   freshness?: ReactNode;
+  /** The story recap, for a way back to it. */
+  storyHref?: string;
 };
 
 /**
@@ -30,7 +34,7 @@ type Props = {
  * results (games, average place, winrate, 1st rate) are the payoff of the
  * `Farewell` finale, not something to give away in the first second.
  */
-const Welcome = ({ profile, firstTrackedDate, lastMatchAt, timePlayedSeconds, freshness }: Props) => {
+const Welcome = ({ profile, firstTrackedDate, lastMatchAt, timePlayedSeconds, freshness, storyHref }: Props) => {
   const period = firstTrackedDate && lastMatchAt ? seasonPeriod(firstTrackedDate, lastMatchAt) : null;
   // Under an hour, hours would read as a bare "0"; count minutes instead.
   const inHours = timePlayedSeconds >= 3600;
@@ -97,6 +101,16 @@ const Welcome = ({ profile, firstTrackedDate, lastMatchAt, timePlayedSeconds, fr
       </div>
 
       {freshness ? <div className="mt-4 empty:hidden">{freshness}</div> : null}
+
+      {storyHref ? (
+        <Link
+          href={storyHref}
+          className="mt-3 flex items-center gap-2 text-[11px] tracking-[.26em] text-lol-gold-200 transition-colors hover:text-lol-gold-50"
+        >
+          <Play aria-hidden className="h-3 w-3 fill-current" />
+          WATCH THE STORY RECAP
+        </Link>
+      ) : null}
 
       {profile.matchesPlayed > 0 ? (
         <p className="mt-8 flex items-baseline gap-3 border-y border-[rgba(200,170,110,.25)] px-6 py-3">

@@ -9,7 +9,7 @@ import { useChartHover } from "@/hooks/use-chart-hover";
 import { FadingRule } from "@/components/fading-rule";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
 import { TeamSlotCard } from "./components/team-slot-card";
-import { TEAM_NAME } from "./constants";
+import { TEAM_NAME } from "@/features/recap/utils/team-crests";
 import { buildTeamSlotColumns } from "./utils";
 
 type Props = {

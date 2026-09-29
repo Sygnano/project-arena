@@ -18,6 +18,8 @@ import { CountStat } from "./components/count-stat";
 import { DurationStat } from "./components/duration-stat";
 import { MODE_CAPTION, MONTH_ABBREV, SORT_MODES } from "./constants";
 import type { SortMode } from "./types";
+import { useUtcOffsetHours } from "@/hooks/use-utc-offset-hours";
+import { utcOffsetLabel } from "@/utils/time-zone";
 
 type Props = {
   timePlayed: TimePlayedStats;
@@ -27,10 +29,12 @@ type Props = {
 const TimePlayed = ({ timePlayed, calendar }: Props) => {
   const [sortMode, setSortMode] = useState<SortMode>("games");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  // Defaults to the busiest hour so the band has something to say at once.
-  const [selectedHour, setSelectedHour] = useState<number>(() =>
-    calendar.gamesByHour.reduce((best, games, hour, all) => (games > all[best] ? hour : best), 0),
-  );
+  const zone = utcOffsetLabel(useUtcOffsetHours());
+  // Until one is clicked, the busiest hour, so the band has something to say
+  // at once (derived, since the hours move to local time after hydration).
+  const [pickedHour, setSelectedHour] = useState<number | null>(null);
+  const selectedHour =
+    pickedHour ?? calendar.gamesByHour.reduce((best, games, hour, all) => (games > all[best] ? hour : best), 0);
   const hourGames = calendar.gamesByHour[selectedHour] ?? 0;
   const hourAvg = calendar.avgPlacementByHour[selectedHour];
   const hourTop1 = calendar.top1ByHour[selectedHour] ?? 0;
@@ -119,7 +123,7 @@ const TimePlayed = ({ timePlayed, calendar }: Props) => {
       }
     >
       <HextechPanel>
-        <PanelToolbar caption={MODE_CAPTION[sortMode]}>
+        <PanelToolbar caption={sortMode === "hour" ? `${MODE_CAPTION.hour} · ${zone}` : MODE_CAPTION[sortMode]}>
           <DiamondTabs tabs={SORT_MODES} active={sortMode} onChange={setSortMode} />
         </PanelToolbar>
 
@@ -148,7 +152,7 @@ const TimePlayed = ({ timePlayed, calendar }: Props) => {
               title={
                 <div className="flex flex-col leading-none">
                   <span className="text-[12px] tracking-[.24em] text-lol-text-muted">
-                    {isLowSample(hourGames) ? "FEW GAMES · UTC" : "UTC · CLICK AN HOUR"}
+                    {isLowSample(hourGames) ? `FEW GAMES · ${zone}` : `${zone} · CLICK AN HOUR`}
                   </span>
                   <span className="mt-1.5 text-[30px] text-lol-gold-50">{hourLabel}</span>
                 </div>

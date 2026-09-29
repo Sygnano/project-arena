@@ -30,10 +30,16 @@ export function summonerPath(region: string, gameName: string, tagLine: string):
   return `/summoner/${encodeURIComponent(region.toLowerCase())}/${encodeURIComponent(`${gameName}-${tagLine}`)}`;
 }
 
+/** The summoner's full stats: every expert slide, after the story recap
+ * that `summonerPath` opens on. */
+export function summonerAdvancedPath(region: string, gameName: string, tagLine: string): string {
+  return `${summonerPath(region, gameName, tagLine)}/advanced`;
+}
+
 // Riot ID rules (mirrored by the API's routes/summoners/riotIdParams.ts): the game
 // name is 3-16 characters of any script's letters, digits or spaces (plus
 // combining marks, which scripts like Thai need); the tag line is 3-5
-// letters or digits. Neither is case-sensitive. Lengths
+// letters, digits or spaces. Neither is case-sensitive. Lengths
 // count code points, so a Korean or Cyrillic name isn't measured in UTF-16
 // halves.
 export const GAME_NAME_LENGTH = { min: 3, max: 16 } as const;
@@ -43,7 +49,7 @@ export const TAG_LINE_LENGTH = { min: 3, max: 5 } as const;
 const SHORT_DEFAULT_TAG_LINES = new Set(["OC"]);
 
 const GAME_NAME_PATTERN = /^[\p{L}\p{N}\p{M} ]+$/u;
-const TAG_LINE_PATTERN = /^[\p{L}\p{N}]+$/u;
+const TAG_LINE_PATTERN = /^[\p{L}\p{N} ]+$/u;
 
 export function gameNameError(gameName: string): string | null {
   const length = [...gameName.trim()].length;
@@ -61,12 +67,12 @@ export function tagLineError(tagLine: string): string | null {
   if (SHORT_DEFAULT_TAG_LINES.has(tag.toUpperCase())) return null;
   const length = [...tag].length;
   if (!TAG_LINE_PATTERN.test(tag) || length < TAG_LINE_LENGTH.min || length > TAG_LINE_LENGTH.max) {
-    return `Tags are ${TAG_LINE_LENGTH.min}–${TAG_LINE_LENGTH.max} letters or numbers.`;
+    return `Tags are ${TAG_LINE_LENGTH.min}–${TAG_LINE_LENGTH.max} letters, numbers or spaces.`;
   }
   return null;
 }
 
 /** Keeps only what a tag line may contain, capped at its max length. */
 export function sanitizeTagLine(value: string): string {
-  return [...value.replace(/[^\p{L}\p{N}]/gu, "")].slice(0, TAG_LINE_LENGTH.max).join("");
+  return [...value.replace(/[^\p{L}\p{N} ]/gu, "")].slice(0, TAG_LINE_LENGTH.max).join("");
 }
