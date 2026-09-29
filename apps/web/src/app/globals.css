@@ -291,7 +291,7 @@
 }
 
 /* Ambient motion for the KDA section's "instrument panel" treatment
- * (apps/web/src/modules/KDA) — prefixed like the augment-frame keyframes
+ * (apps/web/src/features/recap/components/slides/kda) — prefixed like the augment-frame keyframes
  * above rather than the generic `spin`/`rise` names the design reference
  * used, so this never collides with Tailwind's own built-in `spin` keyframe
  * (used by its `animate-spin` utility) or any future addition here. */
@@ -346,7 +346,7 @@
     animation: none;
   }
 }
-/* Welcome card's medallion (apps/web/src/modules/Welcome.tsx) reuses the
+/* Welcome card's medallion (apps/web/src/features/recap/components/slides/welcome) reuses the
  * same `dial-spin`/`dial-breathe`/`kda-rise` keyframes above at the design's
  * own slower durations, rather than redefining identical `rotate(360deg)`/
  * opacity-pulse/rise keyframes under new names. */
@@ -386,8 +386,43 @@
   }
 }
 
-/* The hover treatment on a gallery card (modules/ChampionGallery/
- * ChampionCard.tsx) — the champion's name stays hidden until the card is
+/* The story recap's clock (features/recap/components/summoner-story): the
+ * current slide's progress bar fills over the slide's duration, and its
+ * `animationend` moves the story on, so pausing the animation pauses the
+ * story. Deliberately kept under reduced motion: it's the timer, not
+ * decoration. */
+@keyframes story-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.story-progress-fill {
+  transform-origin: left;
+  animation-name: story-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+/* Story heatmap cells popping in, staggered by an inline animation-delay. */
+@keyframes story-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+}
+.story-pop {
+  animation: story-pop 0.45s cubic-bezier(0.2, 0.8, 0.2, 1.2) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .story-pop {
+    animation: none;
+  }
+}
+
+/* The hover treatment on a gallery card (features/recap/components/slides/champion-gallery/
+ * components/champion-card) — the champion's name stays hidden until the card is
  * hovered, then fades in, lifts and picks up a gold bloom. Driven by CSS on
  * the card's own hover rather than React state, so hovering never re-renders
  * a 60+ card list mid-scroll; `.coverflow-card` is the wrapper the gallery
@@ -421,14 +456,14 @@
   }
 }
 
-/* The activity calendar (modules/TimePlayed/Calendar.tsx) recolors every day
+/* The activity calendar (features/recap/components/slides/time-played/components/calendar) recolors every day
  * cell when switching between the Games/Placement tabs — same `rect` nodes
  * (nivo's TimeRange fork keys them by date, unaffected by mode), just a new
  * `fill`. Without this the colors snap instantly; nivo doesn't animate its
  * own SVG attribute changes. */
 .calendar-time-range rect {
   transition: fill 300ms ease-out;
-  /* The staggered entrance in modules/TimePlayed/Calendar.tsx scales each day
+  /* The staggered entrance in features/recap/components/slides/time-played/components/calendar scales each day
    * cell up; without these an SVG transform would scale it about the SVG's
    * own origin and fling the cell across the grid. */
   transform-box: fill-box;
@@ -486,7 +521,7 @@
   }
 }
 
-/* Hextech bar-chart tier fills (components/hextech-bar-chart.tsx, via
+/* Hextech bar-chart tier fills (components/hextech-bar-chart, via
  * `BarSegment.fillClassName`, plus the small split bars elsewhere).
  * Deliberately calmer than the augment-rarity frames above, which they used
  * to copy verbatim: a bar is a big flat area, and stacked bars put three of
@@ -551,6 +586,15 @@
   .tier-bar-prismatic {
     animation: none;
   }
+}
+/* A tiny tier fill (a calendar day, a thin bar segment): the prismatic tile
+ * is 4x the element and pans, so a small one only ever shows a single hue
+ * of it (it read as plain blue). Here the whole iridescent sweep fits in. */
+.tier-bar-prismatic.tier-compact {
+  background-size:
+    100% 100%,
+    100% 100%;
+  animation: none;
 }
 
 /* Arena Stats is a single, permanently dark Hextech theme — no light mode. */
@@ -780,7 +824,7 @@
   }
 }
 
-/* Offscreen sections (see hooks/use-page-upkeep.ts) pause their decorative
+/* Offscreen sections (see usePageUpkeep in features/recap/components/summoner-stats-view/hooks.ts) pause their decorative
    CSS animations; failed remote images are hidden rather than showing a
    broken-image glyph. Headings focused by section navigation get no ring:
    the scroll itself shows where focus went. */

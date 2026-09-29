@@ -7,7 +7,7 @@ caches it per package). ESLint 10, flat config.
 | Export | For |
 |---|---|
 | `@arena/eslint-config/base` | TypeScript on Node: apps/api, apps/riot-gateway, packages/* |
-| `@arena/eslint-config/next` | apps/web: Next's own presets, wrapped for ESLint 10 |
+| `@arena/eslint-config/next` | apps/web: Next's own presets, wrapped for ESLint 10 (`next`), plus `architecture(appDir)`, Bulletproof React's rules for its `src/`: imports flow shared → features → app (no feature importing another, no `../` imports, no cycles; one zone per folder in `src/features`, read at load), and every file and folder is kebab-case (`eslint-plugin-check-file`; `src/app` folders follow Next's route rules) |
 
 A package's config:
 

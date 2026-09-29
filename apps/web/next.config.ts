@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 // Where page assets come from besides this app: champion/profile icons and
 // augment/item icons. Also in default-src so the icon prefetch
-// (components/asset-prefetch.tsx) isn't blocked.
+// (components/asset-prefetch) isn't blocked.
 const ASSET_HOSTS = "https://ddragon.leagueoflegends.com https://raw.communitydragon.org";
 
 // Next's nonce-free policy (docs: guides/content-security-policy): scripts

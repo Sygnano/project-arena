@@ -1,10 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { ImageResponse } from "next/og";
 import type { SummonerView } from "@arena/types";
-import { getSummonerPage } from "@/lib/api";
-import { formatUtcDateTime } from "@/lib/format";
-import { isKnownPlatform, platformRegionName, profileIconUrl } from "@/lib/riot";
-import { parseRiotIdSlug } from "@/lib/riot-id";
+import { getSummonerPage } from "@/features/recap/api/get-summoner-page";
+import { formatUtcDateTime } from "@/utils/format";
+import { isKnownPlatform, platformRegionName, profileIconUrl } from "@/utils/riot";
+import { parseRiotIdSlug } from "@/utils/riot-id";
 
 export const alt = "Arena season recap";
 export const size = { width: 1200, height: 630 };
