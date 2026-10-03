@@ -2,15 +2,15 @@
 
 import type { EconomyStats } from "@arena/types";
 import { AnimatedNumber } from "@/components/animated-number";
-import { CategorySection } from "@/features/recap/components/category-section";
 import { Dial } from "@/components/dial";
 import { HextechPanel } from "@/components/hextech-panel";
+import { SidebarStatRows } from "@/components/sidebar-stat-rows";
+import { CategorySection } from "@/features/recap/components/category-section";
 import { ItemMedallion } from "@/features/recap/components/item-medallion";
 import { RatePair } from "@/features/recap/components/rate-pair";
-import { SidebarStatRows } from "@/components/sidebar-stat-rows";
-import { formatGold } from "@/utils/format";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
-import { RINGS, TICKS, TICK_RADIUS } from "./constants";
+import { formatGold } from "@/utils/format";
+import { RINGS, TICK_RADIUS, TICKS } from "./constants";
 
 type Props = {
   economy: EconomyStats;

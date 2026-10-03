@@ -1,7 +1,7 @@
 "use client";
 
+import { actionClass, NewSearchLink, StatusScreen } from "@/components/status-screen";
 import { beaufort, spiegel } from "@/fonts";
-import { NewSearchLink, StatusScreen, actionClass } from "@/components/status-screen";
 import "./globals.css";
 
 /**

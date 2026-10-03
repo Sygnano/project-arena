@@ -1,17 +1,17 @@
 "use client";
 
-import type { ReactNode } from "react";
-import Link from "next/link";
-import { Play } from "lucide-react";
 import type { SummonerProfile } from "@arena/types";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Play } from "lucide-react";
+import Link from "next/link";
+import type { ReactNode } from "react";
 import { AnimatedNumber } from "@/components/animated-number";
 import { IdentityRing } from "@/components/dial";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { HeroSection } from "@/features/recap/components/hero-section";
 import { SlideCue } from "@/features/recap/components/slide-cue";
-import { profileIconUrl, platformRegionName } from "@/utils/riot";
-import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
 import { seasonPeriod } from "@/features/recap/utils/season-period";
+import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
+import { platformRegionName, profileIconUrl } from "@/utils/riot";
 
 type Props = {
   profile: SummonerProfile;

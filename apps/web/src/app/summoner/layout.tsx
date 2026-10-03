@@ -1,6 +1,6 @@
-import { TopBar } from "./_components/top-bar";
 import { getGameCatalog } from "@/features/recap/api/get-game-catalog";
 import { GameCatalogProvider } from "@/features/recap/stores/game-catalog";
+import { TopBar } from "./_components/top-bar";
 
 /**
  * Every summoner page (queue screen, recap, not found) shares the top bar,

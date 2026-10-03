@@ -10,7 +10,7 @@
  * Riot publishes the list at
  * https://static.developer.riotgames.com/docs/lol/queues.json, but it lags
  * behind the game: Arena's current queue (1750) isn't in it and was taken
- * from real match data instead (CLAUDE.md §2). Riot has renumbered queues
+ * from real match data instead (.claude/rules/arena-data.md). Riot has renumbered queues
  * before, so check a real match's `info.queueId` when adding one.
  */
 export const Queue = {

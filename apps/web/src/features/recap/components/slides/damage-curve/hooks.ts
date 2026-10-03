@@ -1,5 +1,5 @@
-import { useEffect, type RefObject } from "react";
-import { GESTURE_GAP_MS, canScrollY, wheelDeltaToPixels } from "@/hooks/use-wheel-scrolls-sideways";
+import { type RefObject, useEffect } from "react";
+import { canScrollY, GESTURE_GAP_MS, wheelDeltaToPixels } from "@/hooks/use-wheel-scrolls-sideways";
 
 /**
  * A vertical wheel anywhere over `areaRef` (a panel) scrolls `listRef` (the

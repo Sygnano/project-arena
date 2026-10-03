@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(pnpm typecheck*)",
+      "Bash(pnpm lint*)",
+      "Bash(pnpm test*)",
+      "Bash(pnpm format*)",
+      "Bash(pnpm --filter * typecheck*)",
+      "Bash(pnpm --filter * test*)",
+      "Bash(pnpm --filter @arena/db query *)",
+      "Bash(pnpm --filter @arena/db match-json *)",
+      "Bash(node apps/web/scripts/screenshot.mjs *)",
+      "Bash(node scripts/screenshot.mjs *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(gh run view*)",
+      "Bash(gh run list*)",
+      "Bash(gh pr view*)",
+      "Bash(gh pr checks*)"
+    ],
+    "ask": ["Edit(apps/web/src/components/ui/**)", "Edit(packages/db/drizzle/meta/**)", "Edit(apps/web/AGENTS.md)"],
+    "deny": ["Read(**/.env)"]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/format.mjs\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/verify.mjs\"",
+            "timeout": 600
+          }
+        ]
+      }
+    ]
+  }
+}

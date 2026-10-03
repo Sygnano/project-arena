@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
 import { cn } from "cn";
+import type { ReactNode } from "react";
 import { Appear } from "@/components/appear";
 
 type Props = {

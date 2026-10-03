@@ -1,7 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { cn } from "cn";
+import type { ReactNode } from "react";
 import { IDENTITY_RING_REFERENCE_SIZE } from "./constants";
 
 type IdentityRingProps = {

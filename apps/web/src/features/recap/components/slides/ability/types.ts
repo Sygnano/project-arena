@@ -17,7 +17,7 @@ type Row = {
   bestGame: AbilityCastBreakdown;
   /** Unlike Damage's `bestByType`, there's no independently-per-key-maxed
    * field for ability casts — `ChampionAbilityStats` only carries `total`
-   * and one single-match `maxGame` breakdown (see CLAUDE.md §2 on why: Riot
+   * and one single-match `maxGame` breakdown (see .claude/rules/arena-data.md on why: Riot
    * gives ability casts as a flat total per match, not per-type maxes). So
    * in BEST mode this is just `maxGame` again, the same single game's
    * numbers the stacked bar already reads — not an independent per-key best
@@ -27,4 +27,4 @@ type Row = {
 
 type SortDir = "asc" | "desc";
 
-export type { SpellKey, Mode, Metric, Row, SortDir };
+export type { Metric, Mode, Row, SortDir, SpellKey };

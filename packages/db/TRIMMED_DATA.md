@@ -27,14 +27,14 @@ The audit covered every column of `summoners`, `matches`, `match_participants` a
 |---|---|---|
 | `summoners` | `tracked_since` | Never read. The crawler orders by `last_refreshed_at` instead. |
 | `matches` | `queue_id` | Never read. The Arena queue filter is applied when match ids are fetched from Riot, so every stored match is already Arena. |
-| `matches` | `game_duration_seconds` | Never read. Stats use `match_participants.time_played_seconds`, which accounts for teams knocked out early (CLAUDE.md §2). |
+| `matches` | `game_duration_seconds` | Never read. Stats use `match_participants.time_played_seconds`, which accounts for teams knocked out early (.claude/rules/arena-data.md). |
 | `matches` | `patch` | Never read. There are no per-patch stats yet. |
 | `matches` | `ingested_at` | Never read. |
 | `match_participants` | `champ_level` | Never read. |
 | `match_participants` | `win` | Never read. On this site a "win" means a top-3 finish, computed from `placement`. Riot's own `win` flag is not used. |
-| `match_participants` | `killing_sprees` | The API summed it, but the page never showed it. It is also always `0` in Arena (CLAUDE.md §2). |
+| `match_participants` | `killing_sprees` | The API summed it, but the page never showed it. It is also always `0` in Arena (.claude/rules/arena-data.md). |
 | `match_participants` | `largest_multi_kill` | The API sent it (as `kills.largestMultiKill` and `combat.largestMultiKill`), but the page never rendered it. |
-| `match_participants` | `total_time_spent_dead` | Never read, and Riot's value is unreliable in Arena (it exceeds time played on 21.6% of rows, CLAUDE.md §2). |
+| `match_participants` | `total_time_spent_dead` | Never read, and Riot's value is unreliable in Arena (it exceeds time played on 21.6% of rows, .claude/rules/arena-data.md). |
 | `match_rounds` | `ended_at_ms` | Never read. The round order is already in `round_number`. |
 
 ### Slimmed: `match_participants.frames`

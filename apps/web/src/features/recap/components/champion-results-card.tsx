@@ -1,9 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
 import type { ChampionStats } from "@arena/types";
-import { championIconUrl } from "@/utils/riot";
+import type { ReactNode } from "react";
 import { useChampionName } from "@/features/recap/stores/champion-names";
+import { championIconUrl } from "@/utils/riot";
 import { HoverCardPlacementBars, HoverCardRows, HoverCardSection, HoverStatCard } from "./hover-stat-card";
 
 /** Hover card showing how one champion's games FINISHED: win rate, 1st

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, type ReactNode } from "react";
+import { createContext, type ReactNode, useCallback, useContext } from "react";
 
 /**
  * Display names for champions. Everything the API sends as `championName` is

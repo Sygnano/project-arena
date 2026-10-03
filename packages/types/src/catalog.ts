@@ -1,8 +1,8 @@
 import type {
   AugmentPickBreakdown,
   AugmentStats,
-  BootsStats,
   BootStats,
+  BootsStats,
   ChampionAugmentStats,
   ChampionItemBuckets,
   ChampionItemStats,

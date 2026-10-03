@@ -15,5 +15,5 @@ function DeltaCell({ delta, className }: { delta: number; className?: string }) 
   );
 }
 
-export { DeltaCell };
 export { formatSignedPoints } from "./utils";
+export { DeltaCell };

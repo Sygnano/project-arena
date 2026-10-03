@@ -1,7 +1,7 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
 import { cn } from "cn";
+import type { CSSProperties, ReactNode } from "react";
 import { useSectionInView } from "@/hooks/use-section-in-view";
 
 type Props = {

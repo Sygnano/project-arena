@@ -28,4 +28,4 @@ function sortAugments(rows: AugmentPickBreakdown[], sort: SortMode, mixLowSample
   );
 }
 
-export { rankLabel, pickRate, sortAugments };
+export { pickRate, rankLabel, sortAugments };

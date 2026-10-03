@@ -1,10 +1,10 @@
 "use client";
 
+import type { PingBreakdown, PingsStats } from "@arena/types";
 import type { CSSProperties } from "react";
-import type { PingsStats, PingBreakdown } from "@arena/types";
-import { CategorySection } from "@/features/recap/components/category-section";
-import { HextechPanel } from "@/components/hextech-panel";
 import { AnimatedNumber } from "@/components/animated-number";
+import { HextechPanel } from "@/components/hextech-panel";
+import { CategorySection } from "@/features/recap/components/category-section";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
 import { PING_ICON_FILE, PING_LABEL } from "./constants";
 import { pingIconUrl } from "./utils";

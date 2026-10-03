@@ -1,27 +1,27 @@
 "use client";
 
-import { useMemo, useState, useRef } from "react";
+import type { SummonerSpellsStats } from "@arena/types";
 import { cn } from "cn";
 import { MotionConfig, motion } from "motion/react";
-import type { SummonerSpellsStats } from "@arena/types";
-import { CategorySection } from "@/features/recap/components/category-section";
-import { HextechPanel } from "@/components/hextech-panel";
+import { useMemo, useRef, useState } from "react";
+import { DetailBand } from "@/components/detail-band";
 import { Dial } from "@/components/dial";
 import { DiamondTabs } from "@/components/diamond-tabs";
+import { HextechPanel } from "@/components/hextech-panel";
 import { PanelToolbar, ToolbarDivider } from "@/components/panel-toolbar";
-import { LowSampleSwitch } from "@/features/recap/components/low-sample-switch";
-import { DetailBand } from "@/components/detail-band";
 import { SidebarStatRows } from "@/components/sidebar-stat-rows";
-import { ValuePercentRow } from "@/components/value-percent-row";
 import { SortHeaderLabel } from "@/components/sort-header-label";
-import { championIconUrl } from "@/utils/riot";
-import { formatCompact } from "@/utils/format";
-import { pressable } from "@/utils/a11y";
-import { useChampionName } from "@/features/recap/stores/champion-names";
+import { ValuePercentRow } from "@/components/value-percent-row";
+import { CategorySection } from "@/features/recap/components/category-section";
 import { DossierLink } from "@/features/recap/components/dossier-link";
-import { useDragScroll } from "@/hooks/use-drag-scroll";
-import { sortByRate, isLowSample, MIN_SAMPLE } from "@/features/recap/utils/sample";
+import { LowSampleSwitch } from "@/features/recap/components/low-sample-switch";
+import { useChampionName } from "@/features/recap/stores/champion-names";
+import { isLowSample, MIN_SAMPLE, sortByRate } from "@/features/recap/utils/sample";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
+import { useDragScroll } from "@/hooks/use-drag-scroll";
+import { pressable } from "@/utils/a11y";
+import { formatCompact } from "@/utils/format";
+import { championIconUrl } from "@/utils/riot";
 import {
   FALLBACK_COLORS,
   ICON_SIZE,
@@ -240,10 +240,7 @@ const SummonerSpells = ({ summonerSpells }: Props) => {
                   opacity: metric === key ? 1 : 0.55,
                 }}
               >
-                {spell.iconUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={spell.iconUrl} alt="" width={16} height={16} className="size-4" />
-                ) : null}
+                {spell.iconUrl ? <img src={spell.iconUrl} alt="" width={16} height={16} className="size-4" /> : null}
                 <SortHeaderLabel label={spell.name.toUpperCase()} active={metric === key} dir={sortDir} />
               </button>
             );
@@ -369,7 +366,6 @@ const SummonerSpells = ({ summonerSpells }: Props) => {
                       height: ICON_SIZE,
                     }}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       loading="lazy"
                       decoding="async"
@@ -390,7 +386,6 @@ const SummonerSpells = ({ summonerSpells }: Props) => {
           <DetailBand
             icon={
               <div className="relative flex-none">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   loading="lazy"
                   decoding="async"

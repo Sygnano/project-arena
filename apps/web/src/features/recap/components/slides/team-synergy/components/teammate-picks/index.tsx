@@ -1,13 +1,13 @@
 "use client";
 
-import { useRef } from "react";
 import type { TeammateChampionStats } from "@arena/types";
+import { useRef } from "react";
 import { DeltaCell } from "@/components/delta-cell";
-import { sortByRate, isLowSample } from "@/features/recap/utils/sample";
-import { championIconUrl } from "@/utils/riot";
-import { useChampionName } from "@/features/recap/stores/champion-names";
-import { useDragScroll } from "@/hooks/use-drag-scroll";
 import type { PickSort } from "@/features/recap/components/slides/team-synergy/types";
+import { useChampionName } from "@/features/recap/stores/champion-names";
+import { isLowSample, sortByRate } from "@/features/recap/utils/sample";
+import { useDragScroll } from "@/hooks/use-drag-scroll";
+import { championIconUrl } from "@/utils/riot";
 import { PICK_GRID } from "./constants";
 import { top3RateOf } from "./utils";
 

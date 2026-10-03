@@ -23,4 +23,4 @@ function renderSegmentLabel(segment: BarSegment, minHeightForLabel: number) {
   ) : null;
 }
 
-export { barGlow, segmentShadow, renderSegmentLabel };
+export { barGlow, renderSegmentLabel, segmentShadow };

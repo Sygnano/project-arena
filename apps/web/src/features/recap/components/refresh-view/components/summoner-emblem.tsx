@@ -8,7 +8,6 @@ function SummonerEmblem({ profileIconId }: Props) {
   if (profileIconId === null) return <HextechEmblem />;
   return (
     <HextechEmblem>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={profileIconUrl(profileIconId)}
         alt=""

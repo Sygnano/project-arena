@@ -1,7 +1,7 @@
 "use client";
 
-import { type ReactNode, useRef } from "react";
 import { cn } from "cn";
+import { type ReactNode, useRef } from "react";
 import { useDragScroll } from "@/hooks/use-drag-scroll";
 import { CORNER_DIAMOND_POSITIONS } from "./constants";
 

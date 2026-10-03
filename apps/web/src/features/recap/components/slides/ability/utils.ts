@@ -9,7 +9,7 @@ function sumBreakdown(breakdown: AbilityCastBreakdown): number {
 function barWidthPercent(value: number, max: number): number {
   if (max <= 0) return 0;
   const ratio = Math.min(1, Math.max(0, value / max));
-  return Math.pow(ratio, BAR_WIDTH_EXPONENT) * 100;
+  return ratio ** BAR_WIDTH_EXPONENT * 100;
 }
 
 function columnValue(row: Row, metric: Metric): number {
@@ -24,4 +24,4 @@ function segmentOrder(metric: Metric): readonly SpellKey[] {
   return [metric, ...BREAKDOWN_KEYS.filter((k) => k !== metric)];
 }
 
-export { sumBreakdown, barWidthPercent, columnValue, segmentOrder };
+export { barWidthPercent, columnValue, segmentOrder, sumBreakdown };

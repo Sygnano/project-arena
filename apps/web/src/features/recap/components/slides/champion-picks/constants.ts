@@ -12,7 +12,7 @@ const BAR_MIN_HEIGHT = 5;
  * The design's middle stack segment (`top3ExclTop1`, 2nd-3rd place — see
  * `ChampionPickBreakdown`) is labeled "TOP 4" in the original prototype's
  * legend/sidebar text, a leftover from an earlier Arena team-size era (see
- * CLAUDE.md §2 on why team size — and therefore what "top 4" even means —
+ * .claude/rules/arena-data.md on why team size — and therefore what "top 4" even means —
  * isn't stable). Relabeled to "WINRATE" here to match what the field actually
  * counts and stay consistent with `PlacementStats.top3Finishes`'s "win"
  * definition used everywhere else in the app; no data or layout changed.
@@ -27,4 +27,4 @@ const SORT_NOUN: Record<SortMode, string> = {
   rate: "BY 1ST RATE",
 };
 
-export { BAR_MAX_HEIGHT, BAR_MIN_HEIGHT, TOP3_RATE_COLOR, FIRST_RATE_COLOR, SORT_NOUN };
+export { BAR_MAX_HEIGHT, BAR_MIN_HEIGHT, FIRST_RATE_COLOR, SORT_NOUN, TOP3_RATE_COLOR };

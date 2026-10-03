@@ -1,5 +1,5 @@
-import Link from "next/link";
 import type { DevSummonerList } from "@arena/types";
+import Link from "next/link";
 import { formatTimeAgo, formatUtcDateTime } from "@/utils/format";
 import { summonerPath } from "@/utils/riot-id";
 import { CELL, HEADER } from "./constants";

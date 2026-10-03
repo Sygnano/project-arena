@@ -1,6 +1,7 @@
 import {
   badMatches,
   compressJson,
+  type Db,
   eq,
   inArray,
   matches,
@@ -12,9 +13,8 @@ import {
   skippedMatches,
   sql,
   summoners,
-  type Db,
 } from "@arena/db";
-import { Queue, RiotApiError, platformOfMatch, type Platform, type RiotClient } from "@arena/riot";
+import { type Platform, platformOfMatch, Queue, RiotApiError, type RiotClient } from "@arena/riot";
 import type { RiotArenaMatchDto } from "@arena/types";
 
 export type IngestProgress =

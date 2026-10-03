@@ -1,20 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { HexComb, type HexCombCell } from "@/components/hex-comb";
-import { tierForBestFinish } from "@/utils/tier-bars";
 import type { AugmentPicksStats, AugmentsStats } from "@arena/types";
-import { CategorySection } from "@/features/recap/components/category-section";
-import { HextechPanel } from "@/components/hextech-panel";
-import { HeaderStatStrip, StatCell } from "@/components/header-stat-strip";
-import { RarityFilterTabs } from "@/features/recap/components/rarity-filter-tabs";
-import { FadingRule } from "@/components/fading-rule";
-import { matchesRarityFilter, RARITY_KICKER, type AugmentRarityFilter } from "@/features/recap/utils/augment-rarity";
-import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
-import { pooledRate } from "@/features/recap/utils/sample";
+import { useMemo, useState } from "react";
 import { CursorTooltip } from "@/components/cursor-tooltip";
+import { FadingRule } from "@/components/fading-rule";
+import { HeaderStatStrip, StatCell } from "@/components/header-stat-strip";
+import { HexComb, type HexCombCell } from "@/components/hex-comb";
+import { HextechPanel } from "@/components/hextech-panel";
+import { CategorySection } from "@/features/recap/components/category-section";
 import { PickHoverCard } from "@/features/recap/components/pick-hover-card";
+import { RarityFilterTabs } from "@/features/recap/components/rarity-filter-tabs";
+import { type AugmentRarityFilter, matchesRarityFilter, RARITY_KICKER } from "@/features/recap/utils/augment-rarity";
+import { pooledRate } from "@/features/recap/utils/sample";
+import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
 import { useChartHover } from "@/hooks/use-chart-hover";
+import { tierForBestFinish } from "@/utils/tier-bars";
 
 type Props = {
   augments: AugmentsStats;
@@ -22,7 +22,7 @@ type Props = {
 };
 
 /**
- * The full augment catalog (currently 225 — see CLAUDE.md §2) as one Hall of
+ * The full augment catalog (currently 225 — see .claude/rules/arena-data.md) as one Hall of
  * Fame honeycomb (`HexComb`), same layout as `Champions` — fixed alphabetical
  * order within whatever the rarity filter currently allows (the comb re-fits
  * its columns to the shown count), each hexagon rimmed by the

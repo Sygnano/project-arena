@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
-import Link from "next/link";
-import { Search, X } from "lucide-react";
 import { cn } from "cn";
+import { Search, X } from "lucide-react";
+import Link from "next/link";
+import { useRef, useState } from "react";
 import { RiotIdSearch } from "@/features/search/components/riot-id-search";
 import { Logo } from "./components/logo";
 import { ShareButton } from "./components/share-button";

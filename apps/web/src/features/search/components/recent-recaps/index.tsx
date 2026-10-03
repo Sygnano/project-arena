@@ -26,7 +26,6 @@ function RecentRecaps({ className }: { className?: string }) {
               className="group flex items-center gap-2 border border-[rgba(200,170,110,.25)] bg-[rgba(5,14,22,.6)] py-1 pr-3 pl-1 backdrop-blur-sm transition-colors hover:border-[rgba(200,170,110,.6)] hover:bg-[rgba(10,20,30,.8)] focus-visible:border-lol-gold-300 focus-visible:outline-none"
             >
               {recap.profileIconId != null ? (
-                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={profileIconUrl(recap.profileIconId)}
                   alt=""

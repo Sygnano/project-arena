@@ -1,12 +1,12 @@
 "use client";
 
-import { useId, useRef, useSyncExternalStore, useState, useTransition, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
 import { cn } from "cn";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { type FormEvent, useId, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DEFAULT_SEARCH_PLATFORM, platformRegionName, SEARCH_PLATFORMS } from "@/utils/riot";
-import { gameNameError, tagLineError, sanitizeTagLine, summonerPath } from "@/utils/riot-id";
+import { gameNameError, sanitizeTagLine, summonerPath, tagLineError } from "@/utils/riot-id";
 import { PLATFORM_STORAGE_KEY } from "./constants";
 import { platformLabel, readStoredPlatform, subscribeToStorage } from "./utils";
 

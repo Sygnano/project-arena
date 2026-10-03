@@ -41,4 +41,4 @@ function crestHighlights(slots: TeamSlotBreakdown[]) {
   return { mostPlayed, luckiest: luckiest && luckiest.teamId !== mostPlayed?.teamId ? luckiest : null };
 }
 
-export { finishHeadline, placementTier, slotGames, slotWinRate, crestHighlights };
+export { crestHighlights, finishHeadline, placementTier, slotGames, slotWinRate };

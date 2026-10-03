@@ -1,6 +1,6 @@
 /**
  * Arena item groups that no data source flags, so they're kept by hand.
- * Recheck after a patch (CLAUDE.md §2 has how each was established).
+ * Recheck after a patch (.claude/rules/arena-data.md has how each was established).
  * Arena's boots and anvil ids live in `@arena/db` (parseMatch needs them
  * without network access).
  */

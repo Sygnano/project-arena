@@ -1,18 +1,18 @@
 "use client";
 
-import { motion } from "motion/react";
 import type { CalendarStats } from "@arena/types";
 import { cn } from "cn";
+import { motion } from "motion/react";
 import { CursorTooltip } from "@/components/cursor-tooltip";
 import { useChartHover } from "@/hooks/use-chart-hover";
-import { HourHoverCard } from "./components/hour-hover-card";
-import { TIER_STYLE } from "@/utils/tier-bars";
+import { useUtcOffsetHours } from "@/hooks/use-utc-offset-hours";
 import { barHeight } from "@/utils/bar-scale";
+import { TIER_STYLE } from "@/utils/tier-bars";
+import { utcOffsetLabel } from "@/utils/time-zone";
+import { HourHoverCard } from "./components/hour-hover-card";
 import { MIN_LABEL_PERCENT } from "./constants";
 import type { Segment } from "./types";
 import { pad, plural } from "./utils";
-import { useUtcOffsetHours } from "@/hooks/use-utc-offset-hours";
-import { utcOffsetLabel } from "@/utils/time-zone";
 
 type Props = {
   /** The full calendar stats, for the hover card's per-hour extras. */

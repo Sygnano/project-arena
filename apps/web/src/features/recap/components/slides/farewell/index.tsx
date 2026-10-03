@@ -1,8 +1,8 @@
 "use client";
 
 import type { PlacementStats } from "@arena/types";
-import Link from "next/link";
 import { Heart } from "lucide-react";
+import Link from "next/link";
 import { AnimatedNumber } from "@/components/animated-number";
 import { IdentityRing } from "@/components/dial";
 import { HeroSection } from "@/features/recap/components/hero-section";

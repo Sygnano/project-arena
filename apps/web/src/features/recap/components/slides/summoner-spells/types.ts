@@ -15,4 +15,4 @@ type Row = {
   bestGame: SummonerSpellCasts;
 };
 
-export type { Mode, Metric, Row };
+export type { Metric, Mode, Row };

@@ -1,27 +1,27 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
-import { MotionConfig, motion } from "motion/react";
-import { cn } from "cn";
 import type { BannedChampionsStats } from "@arena/types";
-import { CategorySection } from "@/features/recap/components/category-section";
-import { HextechPanel } from "@/components/hextech-panel";
+import { cn } from "cn";
+import { MotionConfig, motion } from "motion/react";
+import { useMemo, useRef, useState } from "react";
+import { formatSignedPoints } from "@/components/delta-cell";
+import { DetailBand } from "@/components/detail-band";
 import { Dial } from "@/components/dial";
 import { DiamondTabs } from "@/components/diamond-tabs";
+import { HextechPanel } from "@/components/hextech-panel";
 import { PanelToolbar } from "@/components/panel-toolbar";
-import { DetailBand } from "@/components/detail-band";
-import { formatSignedPoints } from "@/components/delta-cell";
 import { SidebarStatRows } from "@/components/sidebar-stat-rows";
-import { TIER_STYLE, tierForBanRate } from "@/utils/tier-bars";
-import { championIconUrl } from "@/utils/riot";
-import { pressable } from "@/utils/a11y";
+import { CategorySection } from "@/features/recap/components/category-section";
+import { useChampionName } from "@/features/recap/stores/champion-names";
+import { isLowSample, MIN_SAMPLE, sortByRate } from "@/features/recap/utils/sample";
+import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
 import { useDragScroll } from "@/hooks/use-drag-scroll";
 import { useSectionInView } from "@/hooks/use-section-in-view";
-import { useChampionName } from "@/features/recap/stores/champion-names";
-import { sortByRate, isLowSample, MIN_SAMPLE } from "@/features/recap/utils/sample";
-import { SortHeader } from "./components/sort-header";
-import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
+import { pressable } from "@/utils/a11y";
+import { championIconUrl } from "@/utils/riot";
+import { TIER_STYLE, tierForBanRate } from "@/utils/tier-bars";
 import { CountPercentValue } from "./components/count-percent-value";
+import { SortHeader } from "./components/sort-header";
 import {
   ICON_SIZE,
   MIN_SWING_SCALE_PP,
@@ -39,7 +39,7 @@ import type { BanSort } from "./types";
 type Props = {
   bannedChampions: BannedChampionsStats;
   /** The summoner's own top3-finish rate, used as the rail's baseline — the
-   * same "win" definition `winRateWhenNotBanned` uses (see CLAUDE.md §2 and
+   * same "win" definition `winRateWhenNotBanned` uses (see .claude/rules/arena-data.md and
    * `BannedChampionStats`'s doc comment), so they must come from the same
    * source or the rail lies. */
   top3Finishes: number;

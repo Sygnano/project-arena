@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, type KeyboardEvent } from "react";
 import { cn } from "cn";
+import { type KeyboardEvent, useRef } from "react";
 import type { Tab } from "./types";
 
 type Props<T extends string> = {

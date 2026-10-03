@@ -1,4 +1,4 @@
-import { PRIORITIES, hearsHolds, type GatewayHold, type Priority, type RoutingValue } from "@arena/riot";
+import { type GatewayHold, hearsHolds, PRIORITIES, type Priority, type RoutingValue } from "@arena/riot";
 import type { BucketWait } from "../riotApi/rateLimiting/rateBucket.js";
 import type { RiotRateLimiter } from "../riotApi/rateLimiting/rateLimiter.js";
 import type { RiotCall } from "../riotApi/types.js";

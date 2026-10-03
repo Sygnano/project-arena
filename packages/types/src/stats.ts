@@ -97,7 +97,7 @@ export interface KillsStats {
   flawlessAces: number;
 }
 
-/** Anvil purchases split by type (see CLAUDE.md §2 on why these three
+/** Anvil purchases split by type (see .claude/rules/arena-data.md on why these three
  * columns exist rather than one total), summed across every tracked match. */
 export interface AnvilsBreakdown {
   stat: number;
@@ -145,7 +145,7 @@ export interface UtilityBreakdown {
   /** "CC Score" per the in-client scoreboard (matches.timeCCingOthers). */
   ccScoreSeconds: number;
   /** Raw summed CC duration — can exceed `ccScoreSeconds` since it doesn't
-   * de-duplicate overlapping CC effects (see CLAUDE.md §2). */
+   * de-duplicate overlapping CC effects (see .claude/rules/arena-data.md). */
   ccTimeDealt: number;
   savesFromDeath: number;
 }
@@ -282,7 +282,7 @@ export interface FunStats {
   bestSkillshotsDodged: number;
 }
 
-/** All 14 of Riot's ping counters (see CLAUDE.md §2 — stored as one
+/** All 14 of Riot's ping counters (see .claude/rules/arena-data.md — stored as one
  * smallint array on match_participants, not 14 columns), summed across
  * every tracked match. */
 export interface PingBreakdown {
@@ -308,7 +308,7 @@ export interface PingsStats {
 
 export interface TimePlayedStats {
   /** Sum of match_participants.timePlayedSeconds across every tracked match —
-   * real per-participant playtime, not gameDuration (see CLAUDE.md §2 on why
+   * real per-participant playtime, not gameDuration (see .claude/rules/arena-data.md on why
    * those differ in Arena). */
   timePlayedSeconds: number;
   /** timePlayedSeconds / matchesPlayed, 0 if there are no tracked matches. */
@@ -351,7 +351,7 @@ export interface PlacementStats {
   top1Finishes: number;
   /** Count of tracked matches finished at each placement, keyed by placement
    * number (1st, 2nd, ...). Deliberately not assumed to run 1-N of any fixed
-   * length — Arena's team count has changed before (see CLAUDE.md §2), so
+   * length — Arena's team count has changed before (see .claude/rules/arena-data.md), so
    * this only contains whatever placements actually appear in the data. */
   byPlacement: Record<number, number>;
   /** Averages over the matches finished at each placement, keyed like
@@ -373,7 +373,7 @@ export interface PlacementStats {
  * (`top3ExclTop1` covers 2nd-3rd only), and `remaining` covers every
  * placement after that — not hardcoded to "4th-6th", since Arena's team
  * count (and therefore the worst possible placement) has changed before,
- * see CLAUDE.md §2.
+ * see .claude/rules/arena-data.md.
  */
 export interface TeamSlotBreakdown {
   teamId: number;
@@ -433,8 +433,8 @@ export interface ChampionKdaStats {
 }
 
 /** Damage dealt to champions, split by type — physical/magical/trueDamage
- * always sum to the match's `damageDealtToChampions` total (see CLAUDE.md
- * §2). Named `trueDamage` rather than `true` since the latter isn't usable
+ * always sum to the match's `damageDealtToChampions` total (see
+ * .claude/rules/arena-data.md). Named `trueDamage` rather than `true` since the latter isn't usable
  * as a plain destructured identifier in TS/JS. */
 export interface DamageBreakdown {
   physical: number;
@@ -473,7 +473,7 @@ export interface ChampionStats {
   /** Summed `match_participants.timePlayedSeconds` across every tracked
    * match played as this champion — Riot's own per-participant figure, which
    * already accounts for a team being eliminated before the match's overall
-   * `gameDuration` ends (see CLAUDE.md §2). */
+   * `gameDuration` ends (see .claude/rules/arena-data.md). */
   timePlayedSeconds: number;
   /** Longest single tracked match on this champion, same
    * `timePlayedSeconds` source as the sum above. */
@@ -484,7 +484,7 @@ export interface ChampionStats {
   /** How many tracked matches on this champion finished in each place —
    * index 0 is 1st. Its length is the worst placement seen across ALL of
    * the summoner's tracked matches (not a hardcoded team count, see
-   * CLAUDE.md §2), so every champion's array has the same length and a
+   * .claude/rules/arena-data.md), so every champion's array has the same length and a
    * champion that never finished last still gets a zero there. */
   placementCounts: number[];
   kda: ChampionKdaStats;
@@ -567,7 +567,7 @@ export interface ChampionCombatStats {
 /**
  * A champion's gold/shop stats. The three anvil counters are the same
  * `220000` / `220001`-`220006` / `220007` split `match_participants` stores
- * (see CLAUDE.md §2) and are null-coalesced to 0 here, so a champion only
+ * (see .claude/rules/arena-data.md) and are null-coalesced to 0 here, so a champion only
  * played in matches ingested before timelines were fetched reads as 0 anvils
  * rather than breaking the sum.
  */
@@ -597,7 +597,7 @@ export interface ChampionEconomyStats {
  * "dedupe per match" way as augments/bans elsewhere in this file (a player
  * somehow holding the same item in two slots still counts once for that
  * match), from `match_participants.items`. Empty slots (`0`) and Arena's
- * anvil/voucher consumables (`220000`-`220011`, see CLAUDE.md §2) are
+ * anvil/voucher consumables (`220000`-`220011`, see .claude/rules/arena-data.md) are
  * excluded — they're shop mechanics rather than a build.
  */
 export interface ChampionItemStats {
@@ -631,7 +631,7 @@ export interface ChampionItemStats {
  *
  * `special` is the Shardblade plus the special upgrade items (Golden
  * Spatula, Wooglet's Witchcap, Void Immolation), held at the end — none of
- * them is ever bought (see CLAUDE.md §2).
+ * them is ever bought (see .claude/rules/arena-data.md).
  */
 export interface ChampionItemBuckets {
   legendary: ChampionItemStats[];
@@ -684,7 +684,7 @@ export interface BannedChampionStats {
 /**
  * `totalBans` is every filled ban slot across every tracked match, counting
  * duplicates (the same champion banned twice in one match counts twice) —
- * `-1` ("no ban locked in", see CLAUDE.md §2) slots are excluded.
+ * `-1` ("no ban locked in", see .claude/rules/arena-data.md) slots are excluded.
  * `noBanCount` is the count of those excluded `-1` slots — how often a
  * player in a tracked match didn't lock in a ban at all.
  * `duplicateBanCount` is, per match, `max(timesChampionBanned - 1, 0)`
@@ -701,7 +701,7 @@ export interface BannedChampionsStats {
 
 /**
  * One entry in the full Arena augment catalog (currently 225 augments,
- * sourced from Community Dragon — see CLAUDE.md §2, Data Dragon doesn't
+ * sourced from Community Dragon — see .claude/rules/arena-data.md, Data Dragon doesn't
  * publish augment data at all), enriched with how often the summoner
  * actually picked it. Unlike `ChampionStats`/`BannedChampionStats`, this
  * covers every augment that exists, not just ones the summoner has picked —
@@ -719,7 +719,7 @@ export interface AugmentStats {
    * identified. */
   rarity: number;
   /** Number of tracked matches where the summoner picked this augment.
-   * Players hold up to 4 augments per match (see CLAUDE.md §2), so this
+   * Players hold up to 4 augments per match (see .claude/rules/arena-data.md), so this
    * can exceed `SummonerProfile.matchesPlayed`. */
   timesPicked: number;
 }
@@ -732,7 +732,7 @@ export interface AugmentsStats {
  * One augment's placement breakdown across the summoner's tracked matches —
  * same `top1`/`top3ExclTop1`/`remaining` split as `ChampionPickBreakdown`,
  * grouped by augment instead of champion. An augment is picked alongside up
- * to 3 others in the same match (see CLAUDE.md §2), so its breakdown is
+ * to 3 others in the same match (see .claude/rules/arena-data.md), so its breakdown is
  * built from the CONTAINING match's placement, not a per-augment placement
  * field (there isn't one). Unlike `AugmentStats`, this only covers augments
  * actually picked (an augment with zero picks has no placements to break
@@ -831,7 +831,7 @@ export interface MetaAugmentsStats {
 
 /**
  * One entry in the full Arena Prismatic Item catalog (49 items, see
- * CLAUDE.md §2 for how this list was verified — there's no field anywhere
+ * .claude/rules/arena-data.md for how this list was verified — there's no field anywhere
  * in Riot's API or Data Dragon that flags item rarity, so it's a curated ID
  * list), enriched with how often the summoner has held it at match end.
  * Same "full catalog, not just picked ones" shape as `AugmentStats`.
@@ -970,7 +970,7 @@ export interface ChampionPicksStats {
 /**
  * One teammate the summoner has shared an Arena team with — found by
  * self-joining match_participants on (matchId, teamId), since Arena teams
- * are per-match groups, not durable rosters (see CLAUDE.md §2 on team size).
+ * are per-match groups, not durable rosters (see .claude/rules/arena-data.md on team size).
  * `riotIdGameName`/`riotIdTagline` come from that teammate's most recent
  * tracked-match row rather than an arbitrary one, in case they've since
  * renamed. Same `top1`/`top3ExclTop1`/`remaining` split as
@@ -1082,11 +1082,11 @@ export interface VersusStats {
  * possible, though not observed) would still count once for that match, the
  * same "dedupe per match" approach as bans/augments/items elsewhere in this
  * file. Team membership is derived per match from Riot's `playerSubteamId`
- * (see CLAUDE.md §2 — never assume a fixed team size), not a hardcoded
+ * (see .claude/rules/arena-data.md — never assume a fixed team size), not a hardcoded
  * roster size.
  *
  * `championId: -1` is a reserved sentinel (the same convention Riot's own
- * ban data uses `-1` for "no champion", see CLAUDE.md §2) for the aggregate
+ * ban data uses `-1` for "no champion", see .claude/rules/arena-data.md) for the aggregate
  * "Other" node covering every champion past the chart's per-arc cap — see
  * `apps/api/src/routes/summoners.ts`'s `TEAM_SYNERGY_MAX_CHAMPIONS`.
  * `championCount` distinguishes the two cases: always 1 for a real champion,
@@ -1109,7 +1109,7 @@ export interface TeamSynergyChampionNode {
  * summoner's team together (as teammates, or one of them being the
  * summoner's own pick) in `gamesTogether` matches. `top1`/`top3ExclTop1`/
  * `remaining` are tallied from the CONTAINING match's team placement (shared
- * by the whole team, not per-participant — see CLAUDE.md §2), so
+ * by the whole team, not per-participant — see .claude/rules/arena-data.md), so
  * `top3Rate` reflects how that pairing's matches actually finished, not an
  * individual's placement. Champion A is always the one with the smaller
  * champion ID — an arbitrary but stable tie-break so the same pair is never
@@ -1180,7 +1180,7 @@ export interface TeammateChampionStats {
  * Response shape for GET /summoners/:puuid/stats (apps/api), consumed by
  * apps/web. Nested by category rather than one flat object — each category
  * here corresponds to a CategorySection + module on the summoner page (see
- * CLAUDE.md's component layering notes), so a module takes exactly its
+ * apps/web/CLAUDE.md's component layering notes), so a module takes exactly its
  * slice (e.g. `<KDA {...stats.kda} />`) instead of the page hand-picking
  * individual fields out of a large flat response. `profile` holds identity/
  * overview fields shared across the whole page, not owned by one category.

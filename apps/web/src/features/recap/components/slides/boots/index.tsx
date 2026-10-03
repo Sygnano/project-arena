@@ -1,18 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { ResponsivePie } from "@nivo/pie";
-import { HoverStatCard, HoverCardSection, HoverCardRows } from "@/features/recap/components/hover-stat-card";
 import type { BootsStats } from "@arena/types";
-import { CategorySection } from "@/features/recap/components/category-section";
-import { HextechPanel } from "@/components/hextech-panel";
+import { ResponsivePie } from "@nivo/pie";
+import { useState } from "react";
 import { Dial } from "@/components/dial";
 import { DiamondTabs } from "@/components/diamond-tabs";
+import { HextechPanel } from "@/components/hextech-panel";
 import { PanelToolbar } from "@/components/panel-toolbar";
 import { SidebarStatRows } from "@/components/sidebar-stat-rows";
-import { tierGradient } from "@/utils/tier-bars";
-import { formatCompact } from "@/utils/format";
+import { CategorySection } from "@/features/recap/components/category-section";
+import { HoverCardRows, HoverCardSection, HoverStatCard } from "@/features/recap/components/hover-stat-card";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
+import { formatCompact } from "@/utils/format";
+import { tierGradient } from "@/utils/tier-bars";
 import { BootsOutcomeStrip } from "./components/boots-outcome-strip";
 import type { Mode } from "./types";
 import { modeValue } from "./utils";

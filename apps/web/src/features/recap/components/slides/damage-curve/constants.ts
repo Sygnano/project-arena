@@ -8,4 +8,4 @@ const MODE_LABEL: Record<Mode, string> = {
 
 const LIST_ICON_SIZE = 34;
 
-export { MODE_LABEL, LIST_ICON_SIZE };
+export { LIST_ICON_SIZE, MODE_LABEL };

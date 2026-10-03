@@ -1,18 +1,18 @@
 "use client";
 
-import { useMemo } from "react";
 import type { PlacementStats } from "@arena/types";
-import { CategorySection } from "@/features/recap/components/category-section";
-import { HextechPanel } from "@/components/hextech-panel";
-import { type BarColumn, HextechBarChart } from "@/components/hextech-bar-chart";
-import { useChartHover } from "@/hooks/use-chart-hover";
+import { useMemo } from "react";
 import { CursorTooltip } from "@/components/cursor-tooltip";
-import { FadingRule } from "@/components/fading-rule";
 import { Dial } from "@/components/dial";
+import { FadingRule } from "@/components/fading-rule";
+import { type BarColumn, HextechBarChart } from "@/components/hextech-bar-chart";
+import { HextechPanel } from "@/components/hextech-panel";
 import { SidebarStatRows } from "@/components/sidebar-stat-rows";
-import { TIER_STYLE } from "@/utils/tier-bars";
-import { ordinal } from "@/utils/format";
+import { CategorySection } from "@/features/recap/components/category-section";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
+import { useChartHover } from "@/hooks/use-chart-hover";
+import { ordinal } from "@/utils/format";
+import { TIER_STYLE } from "@/utils/tier-bars";
 import { PlacementCard } from "./components/placement-card";
 import { BAR_MAX_HEIGHT, COLUMN_GAP, COLUMN_WIDTH } from "./constants";
 import { placementTier } from "./utils";
@@ -28,7 +28,7 @@ type Props = {
  * each placement's own count. Built from whichever placements are actually
  * present in `byPlacement` rather than a hardcoded 1..8 — Arena's team count
  * (and therefore its range of possible placements) has changed before, see
- * CLAUDE.md §2.
+ * .claude/rules/arena-data.md.
  */
 const Placement = ({ gamesPlayed, placements }: Props) => {
   const ranked = useMemo(

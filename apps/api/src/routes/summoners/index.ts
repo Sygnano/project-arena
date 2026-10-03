@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { refreshRoutes } from "./refreshRoutes.js";
 import { readRoutes } from "./readRoutes.js";
+import { refreshRoutes } from "./refreshRoutes.js";
 
 /**
  * Summoner routes. Reads (`readRoutes.ts`) only touch our database; the

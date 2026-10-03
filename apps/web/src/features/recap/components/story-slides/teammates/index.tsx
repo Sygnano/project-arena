@@ -1,6 +1,6 @@
 "use client";
 
-import type { TeammatesStats, TeammateStats } from "@arena/types";
+import type { TeammateStats, TeammatesStats } from "@arena/types";
 import { Em, StoryFrame, StoryKicker, StoryText, StoryTitle } from "@/features/recap/components/story-frame";
 import { StoryStat } from "@/features/recap/components/story-stat";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";

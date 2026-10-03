@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useRef, useState, useLayoutEffect } from "react";
+import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { HoverPoint } from "@/components/hextech-bar-chart";
 import { EDGE_MARGIN, OFFSET } from "./constants";

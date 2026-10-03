@@ -1,7 +1,7 @@
-import type { FastifyInstance } from "fastify";
 import { desc, isNotNull, sql, summoners } from "@arena/db";
 import { isPlatform, matchRegion, toPlatform } from "@arena/riot";
 import type { DevSummonerList } from "@arena/types";
+import type { FastifyInstance } from "fastify";
 import { db } from "../db.js";
 
 // The crawler refreshes thousands of summoners; the page is for checking
@@ -31,10 +31,7 @@ export async function devRoutes(app: FastifyInstance) {
         .where(isNotNull(summoners.lastRefreshedAt))
         .orderBy(desc(summoners.lastRefreshedAt))
         .limit(MAX_ROWS),
-      db
-        .select({ total: sql<number>`count(*)::int` })
-        .from(summoners)
-        .where(isNotNull(summoners.lastRefreshedAt)),
+      db.select({ total: sql<number>`count(*)::int` }).from(summoners).where(isNotNull(summoners.lastRefreshedAt)),
     ]);
     return {
       total,

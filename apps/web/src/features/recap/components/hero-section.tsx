@@ -1,11 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { cn } from "cn";
+import type { ReactNode } from "react";
 import { Reveal } from "@/components/reveal";
 import { SectionEdgeFade } from "@/components/section-background";
-import { useNearViewport } from "@/hooks/use-near-viewport";
 import { useSlide } from "@/features/recap/stores/slide-position";
+import { useNearViewport } from "@/hooks/use-near-viewport";
 
 type Props = {
   imageUrl: string;

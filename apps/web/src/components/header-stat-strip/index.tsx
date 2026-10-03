@@ -6,5 +6,5 @@ function HeaderStatStrip({ children }: { children: ReactNode }) {
   return <div className="flex items-end">{children}</div>;
 }
 
-export { HeaderStatStrip };
 export { StatCell } from "./components/stat-cell";
+export { HeaderStatStrip };

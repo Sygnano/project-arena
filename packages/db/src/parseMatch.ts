@@ -1,5 +1,5 @@
 import type { RiotArenaMatchDto, RiotArenaParticipantDto, RiotMatchTimelineDto } from "@arena/types";
-import { PING_TYPES, type matches, type matchParticipants } from "./schema.js";
+import { type matches, type matchParticipants, PING_TYPES } from "./schema.js";
 
 /** A `matches` row without its `raw`/`timeline` blobs: the caller compresses
  * those (`compressJson`, async), and backfills that only re-derive rows
@@ -19,7 +19,7 @@ const PRISMATIC_ANVIL_ITEM_ID = 220007; // "Prismatic Item"
  * tier-1 `1001` "Boots", no `3006`/`3020`/etc. — it serves its own
  * `2230xx`/`2231xx` variants, one flat 500g purchase each (the same
  * `22xxxx`-prefixed re-skinning Arena applies to ordinary items, see
- * CLAUDE.md §2). Verified against every ingested match: across 333 matches /
+ * .claude/rules/arena-data.md). Verified against every ingested match: across 333 matches /
  * ~6000 participants, these 8 ids are the ONLY items Data Dragon tags
  * `Boots` that ever appear in a timeline event — no other boot id was seen
  * once. Kept here as a literal set rather than read off Data Dragon's tag
@@ -203,7 +203,7 @@ function buildFrameSeries(
   });
 }
 
-export { ARENA_BOOT_ITEM_IDS, STAT_ANVIL_ITEM_ID, LEGENDARY_ANVIL_ITEM_IDS, PRISMATIC_ANVIL_ITEM_ID };
+export { ARENA_BOOT_ITEM_IDS, LEGENDARY_ANVIL_ITEM_IDS, PRISMATIC_ANVIL_ITEM_ID, STAT_ANVIL_ITEM_ID };
 
 export function parseMatch(
   matchId: string,

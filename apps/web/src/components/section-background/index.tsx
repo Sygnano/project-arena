@@ -64,5 +64,5 @@ function SectionBackground({ imageUrl, backgroundPosition = "center 38%" }: Prop
   );
 }
 
-export { SectionBackground };
 export { SectionEdgeFade } from "./components/section-edge-fade";
+export { SectionBackground };

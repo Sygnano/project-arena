@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { cn } from "cn";
+import { useEffect, useRef, useState } from "react";
 import { HexComb, type HexCombCell } from "@/components/hex-comb";
 
 type Props = {

@@ -15,5 +15,5 @@ async function getOverview(): Promise<Overview> {
   return res.json();
 }
 
-export { getOverview };
 export type { Overview };
+export { getOverview };

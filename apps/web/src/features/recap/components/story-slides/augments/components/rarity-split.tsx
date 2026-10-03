@@ -1,7 +1,7 @@
 "use client";
 
-import { motion } from "motion/react";
 import { cn } from "cn";
+import { motion } from "motion/react";
 import { RARITIES } from "@/features/recap/components/story-slides/augments/constants";
 
 type Props = {

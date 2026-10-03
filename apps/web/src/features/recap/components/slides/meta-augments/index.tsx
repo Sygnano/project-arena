@@ -1,9 +1,9 @@
 "use client";
 
 import type { MetaAugmentsStats } from "@arena/types";
-import { CategorySection } from "@/features/recap/components/category-section";
 import { HextechPanel } from "@/components/hextech-panel";
 import { AugmentFramedCard } from "@/features/recap/components/augment-framed-card";
+import { CategorySection } from "@/features/recap/components/category-section";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
 import { CARD_GAP, CARD_WIDTH } from "./constants";
 import { useFitZoom } from "./hooks";

@@ -1,22 +1,22 @@
 "use client";
 
-import { useState, useRef, useMemo, useEffect } from "react";
+import type { TeammateStats, TeammatesStats } from "@arena/types";
 import { cn } from "cn";
-import type { TeammatesStats, TeammateStats } from "@arena/types";
-import { CategorySection } from "@/features/recap/components/category-section";
-import { HextechPanel } from "@/components/hextech-panel";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { DeltaCell, formatSignedPoints } from "@/components/delta-cell";
+import { DetailBand } from "@/components/detail-band";
 import { Dial } from "@/components/dial";
 import { DiamondTabs } from "@/components/diamond-tabs";
+import { HextechPanel } from "@/components/hextech-panel";
 import { PanelToolbar } from "@/components/panel-toolbar";
-import { LowSampleSwitch } from "@/features/recap/components/low-sample-switch";
-import { DetailBand } from "@/components/detail-band";
 import { SidebarStatRows } from "@/components/sidebar-stat-rows";
 import { SortHeaderLabel } from "@/components/sort-header-label";
-import { DeltaCell, formatSignedPoints } from "@/components/delta-cell";
-import { pressable } from "@/utils/a11y";
-import { useDragScroll } from "@/hooks/use-drag-scroll";
-import { sortByRate, MIN_SAMPLE, isLowSample } from "@/features/recap/utils/sample";
+import { CategorySection } from "@/features/recap/components/category-section";
+import { LowSampleSwitch } from "@/features/recap/components/low-sample-switch";
+import { isLowSample, MIN_SAMPLE, sortByRate } from "@/features/recap/utils/sample";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
+import { useDragScroll } from "@/hooks/use-drag-scroll";
+import { pressable } from "@/utils/a11y";
 import { InitialAvatar } from "./components/initial-avatar";
 import { LegendSwatch } from "./components/legend-swatch";
 import {

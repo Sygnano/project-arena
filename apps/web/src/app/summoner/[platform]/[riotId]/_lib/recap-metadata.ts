@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import { describeRecap } from "@/features/recap/utils/describe-recap";
 import { isKnownPlatform } from "@/utils/riot";
 import { parseRiotIdSlug, summonerPath } from "@/utils/riot-id";
-import { describeRecap } from "@/features/recap/utils/describe-recap";
 import { loadSummonerPage } from "./load-summoner-page";
 
 /** The tab title and link preview of a summoner's recap, either view. */

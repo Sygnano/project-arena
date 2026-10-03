@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from "react";
+import { type MouseEvent, type PointerEvent, useEffect, useRef, useState } from "react";
 import { BACK_ZONE, HOLD_MS } from "./constants";
 
 type KeyHandlers = {
@@ -112,4 +112,4 @@ function useTapAndHold(onTap: (back: boolean) => void) {
   return [holding, handlers] as const;
 }
 
-export { useStoryKeys, usePageHidden, useTapAndHold };
+export { usePageHidden, useStoryKeys, useTapAndHold };

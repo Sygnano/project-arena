@@ -1,4 +1,4 @@
-import { useRef, useState, useLayoutEffect } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { FLOW_GAP, HEX_HEIGHT_RATIO, ROW_PITCH_RATIO } from "./constants";
 import type { Layout, Props } from "./types";
 import { combRows } from "./utils";

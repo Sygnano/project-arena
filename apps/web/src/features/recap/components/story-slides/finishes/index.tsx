@@ -2,12 +2,12 @@
 
 import type { PlacementStats, TeamSlotStats, TimePlayedStats } from "@arena/types";
 import { Appear } from "@/components/appear";
-import { formatDuration } from "@/utils/format";
-import { Em, StoryFrame, StoryKicker, StoryText, StoryTitle } from "@/features/recap/components/story-frame";
 import { StoryFact } from "@/features/recap/components/story-fact";
+import { Em, StoryFrame, StoryKicker, StoryText, StoryTitle } from "@/features/recap/components/story-frame";
 import { StoryStat } from "@/features/recap/components/story-stat";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
 import { teamIconUrl, teamName } from "@/features/recap/utils/team-crests";
+import { formatDuration } from "@/utils/format";
 import { PlacementBars } from "./components/placement-bars";
 import { crestHighlights, finishHeadline, slotGames, slotWinRate } from "./utils";
 

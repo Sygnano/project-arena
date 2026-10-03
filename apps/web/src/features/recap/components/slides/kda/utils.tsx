@@ -1,9 +1,9 @@
 import type { ChampionStats } from "@arena/types";
 import type { BarColumn } from "@/components/hextech-bar-chart";
-import { championIconUrl } from "@/utils/riot";
-import { type TierStyle, TIER_STYLE } from "@/utils/tier-bars";
-import { barHeight } from "@/utils/bar-scale";
 import { isLowSample, sortByRate } from "@/features/recap/utils/sample";
+import { barHeight } from "@/utils/bar-scale";
+import { championIconUrl } from "@/utils/riot";
+import { TIER_STYLE, type TierStyle } from "@/utils/tier-bars";
 import { BAR_MAX_HEIGHT, BAR_MIN_HEIGHT, METRIC_LABEL } from "./constants";
 import type { ChampionRosterEntry, ChartRow, Metric, Mode } from "./types";
 
@@ -180,4 +180,4 @@ function buildChartRows(
   }));
 }
 
-export { toBarColumns, buildRoster, buildChartRows };
+export { buildChartRows, buildRoster, toBarColumns };

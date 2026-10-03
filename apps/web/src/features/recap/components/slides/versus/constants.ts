@@ -15,4 +15,4 @@ const SORT_NOUN: Record<SortMode, string> = {
   worst: "WORST MATCHUPS",
 };
 
-export { WON_COLOR, LOST_COLOR, ROW_GRID, SORT_NOUN };
+export { LOST_COLOR, ROW_GRID, SORT_NOUN, WON_COLOR };

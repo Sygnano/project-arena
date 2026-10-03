@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, type CSSProperties } from "react";
 import { cn } from "cn";
+import { type CSSProperties, useMemo } from "react";
 import { useSectionInView } from "@/hooks/use-section-in-view";
 import { TIER_STYLE } from "@/utils/tier-bars";
 import { HEX_CLIP, HEX_HEIGHT_RATIO, RIM_WIDTH, RIPPLE_STEP_MS, ROW_PITCH_RATIO } from "./constants";
@@ -126,7 +126,6 @@ function HexComb({
             inset: `${rim * HEX_HEIGHT_RATIO}px ${rim}px`,
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             loading="lazy"
             decoding="async"
@@ -181,5 +180,5 @@ function HexComb({
   );
 }
 
-export { HexComb };
 export type { HexCombCell } from "./types";
+export { HexComb };

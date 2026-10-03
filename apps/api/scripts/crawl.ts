@@ -40,13 +40,13 @@
  * they only go out when no visitor lookup, refresh or first fetch is waiting.
  */
 import { parseArgs } from "node:util";
+import { and, asc, eq, inArray, isNull, lt, or, type Summoner, sql, summoners } from "@arena/db";
+import { matchRegion, PLATFORMS, type Platform, type Region } from "@arena/riot";
 import type { Logger } from "pino";
-import { and, asc, eq, inArray, isNull, lt, or, sql, summoners, type Summoner } from "@arena/db";
 import { db } from "../src/db.js";
-import { logger, riotIdLabel } from "../src/logger.js";
-import { PLATFORMS, matchRegion, type Platform, type Region } from "@arena/riot";
-import { ingestSummoner, type BadMatch, type SkippedMatch } from "../src/ingestion/ingestSummoner.js";
+import { type BadMatch, ingestSummoner, type SkippedMatch } from "../src/ingestion/ingestSummoner.js";
 import { refreshSummonerProfile, resolveSummonerByRiotId } from "../src/ingestion/resolveSummoner.js";
+import { logger, riotIdLabel } from "../src/logger.js";
 import { riotGateway } from "../src/riot.js";
 import { CRAWL_SEEDS } from "./crawl-seeds.js";
 import { errorMessage, isFatal, progressLogger } from "./script-helpers.js";

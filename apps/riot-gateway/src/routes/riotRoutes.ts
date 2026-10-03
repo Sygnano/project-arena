@@ -1,6 +1,6 @@
+import { GATEWAY_PRIORITY_HEADER, isPlatform, isPriority, type Platform, platformOfMatch } from "@arena/riot";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { GATEWAY_PRIORITY_HEADER, isPlatform, isPriority, platformOfMatch, type Platform } from "@arena/riot";
 import { riotHttp } from "../riot.js";
 import { getAccountByPuuid, getAccountByRiotId } from "../riotApi/endpoints/accountV1.js";
 import { getMatch, getMatchIdsByPuuid, getMatchTimeline } from "../riotApi/endpoints/matchV5.js";

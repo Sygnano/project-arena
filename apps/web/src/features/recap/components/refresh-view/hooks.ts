@@ -1,6 +1,6 @@
-import { useEffect } from "react";
-import { usePathname } from "next/navigation";
 import type { SummonerView } from "@arena/types";
+import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 import { summonerPath } from "@/utils/riot-id";
 
 /**

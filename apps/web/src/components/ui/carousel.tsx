@@ -1,11 +1,10 @@
 "use client";
 
-import * as React from "react";
 import { cn } from "cn";
 import useEmblaCarousel, { type UseEmblaCarouselType } from "embla-carousel-react";
-
-import { Button } from "@/components/ui/button";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import * as React from "react";
+import { Button } from "@/components/ui/button";
 
 type CarouselApi = UseEmblaCarouselType[1];
 type UseCarouselParameters = Parameters<typeof useEmblaCarousel>;
@@ -93,10 +92,6 @@ function Carousel({
 
   React.useEffect(() => {
     if (!api) return;
-    // Syncing local state to the just-created Embla instance on mount, not
-    // reacting to a render — shadcn's own carousel template hasn't caught
-    // up to this newer, stricter lint rule yet.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     onSelect(api);
     api.on("reInit", onSelect);
     api.on("select", onSelect);
@@ -246,4 +241,4 @@ function CarouselNext({
   );
 }
 
-export { type CarouselApi, Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, useCarousel };
+export { Carousel, type CarouselApi, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, useCarousel };

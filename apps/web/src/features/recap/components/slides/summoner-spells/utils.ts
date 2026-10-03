@@ -18,4 +18,4 @@ function formatCasts(value: number, mode: Mode): string {
   return mode === "perGame" ? value.toFixed(1) : formatCompact(value);
 }
 
-export { sumCasts, perGameCasts, formatCasts };
+export { formatCasts, perGameCasts, sumCasts };

@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
 import type { RefreshErrorCode } from "@arena/types";
-import { NewSearchLink, StatusScreen, actionClass } from "@/components/status-screen";
+import type { ReactNode } from "react";
+import { actionClass, NewSearchLink, StatusScreen } from "@/components/status-screen";
 import { formatRetryAfter } from "@/features/recap/api/summoner-query";
 
 type Props = {

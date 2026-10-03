@@ -1,7 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { cn } from "cn";
+import type { ReactNode } from "react";
 import { Caret } from "./components/caret";
 import { ALIGN } from "./constants";
 

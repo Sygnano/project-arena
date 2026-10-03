@@ -43,7 +43,7 @@ header validation all follow the list.
 refused or timed out for waiting: a lower bucket simply waits as long as the buckets above it
 keep receiving requests (decided with the user). The heartbeats keep its callers' streams open
 meanwhile. Limiting how much a caller sends is the caller's business (the API caps its own lanes
-and lookups, see CLAUDE.md §1).
+and lookups, see apps/api/CLAUDE.md).
 
 ## Protocol
 
@@ -154,7 +154,7 @@ Up to 5 tries per call, each retry back at the front of its bucket. 429: wait ou
 5xx and network errors (incl. the 30s timeout, and a response cut off while its body downloads):
 back off 2s, 4s, 8s, 16s. Anything else fails at once. The final failure goes to the caller as an
 `error` event with `status` (0 = no response) and `fatal: true` for a bad or expired key
-(401/403) and for a PUUID from another Riot app (400 "Exception decrypting", see CLAUDE.md §2).
+(401/403) and for a PUUID from another Riot app (400 "Exception decrypting", see .claude/rules/arena-data.md).
 The client throws it as `RiotApiError`; batch jobs stop on `fatal`. The client itself retries only
 reaching the gateway, with the same backoff.
 
@@ -190,12 +190,11 @@ PUUIDs are shortened on info/debug lines and printed in full on warn/error lines
 
 ## Lint and format
 
-Like every package: ESLint through the shared `base` profile (`packages/eslint-config`), and the
-repo's one Prettier config at the root (see CLAUDE.md §6).
+Like every package: Biome, with the repo's one `biome.jsonc` at the root (see the root CLAUDE.md).
 
 ```
-pnpm --filter @arena/riot-gateway lint   # also part of the root `pnpm lint`
-pnpm format                              # from the root: Prettier on the whole repo
+pnpm lint     # from the root: format, import order and lint rules on the whole repo
+pnpm format   # from the root: apply formatting, import order and safe fixes
 ```
 
 ## Running it
@@ -204,7 +203,7 @@ pnpm format                              # from the root: Prettier on the whole 
   `apps/riot-gateway/.env` (see `.env.example`). The API and the scripts find it at
   `RIOT_GATEWAY_URL`, default `http://localhost:3002`.
 - Hosted (Railway): a `riot-gateway` service, the whole repo, deployed as an esbuild bundle
-  (install, build and start commands in CLAUDE.md §3's Railway table: `pnpm --filter
+  (install, build and start commands in docs/deployment.md's Railway table: `pnpm --filter
   @arena/riot-gateway build`, then `node --enable-source-maps apps/riot-gateway/dist/index.mjs`),
   **no public domain**. Env: `RIOT_API_KEY`,
   `RIOT_GATEWAY_SECRET` (32+ characters, same value in the API and crawler services), `PORT=3002`.

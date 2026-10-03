@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
-import { ImageResponse } from "next/og";
 import type { SummonerView } from "@arena/types";
+import { ImageResponse } from "next/og";
 import { getSummonerPage } from "@/features/recap/api/get-summoner-page";
 import { formatUtcDateTime } from "@/utils/format";
 import { isKnownPlatform, platformRegionName, profileIconUrl } from "@/utils/riot";
@@ -110,7 +110,6 @@ export default async function Image({ params }: { params: Promise<{ platform: st
 
       <div style={{ display: "flex", alignItems: "center", marginTop: 44 }}>
         {icon ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img src={icon} alt="" width={150} height={150} style={{ border: `2px solid ${GOLD}`, marginRight: 44 }} />
         ) : null}
         <div style={{ display: "flex", flexDirection: "column" }}>
@@ -126,7 +125,7 @@ export default async function Image({ params }: { params: Promise<{ platform: st
 
       <div style={{ display: "flex", alignItems: "center", marginTop: 56 }}>
         <div style={{ width: 120, height: 1, background: `linear-gradient(270deg, ${GOLD}, transparent)` }} />
-        {summoner && summoner.lastRefreshedAt && summoner.matchCount > 0 ? (
+        {summoner?.lastRefreshedAt && summoner.matchCount > 0 ? (
           <div style={{ display: "flex", alignItems: "baseline", margin: "0 28px" }}>
             <span style={{ fontFamily: "Beaufort", fontSize: 56, color: GOLD_LIGHT }}>
               {summoner.matchCount.toLocaleString("en-US")}

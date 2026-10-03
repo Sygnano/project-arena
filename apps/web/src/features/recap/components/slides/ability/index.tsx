@@ -1,34 +1,34 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import type { AbilityStats, ChampionStats } from "@arena/types";
 import { cn } from "cn";
 import { MotionConfig, motion } from "motion/react";
-import type { AbilityStats, ChampionStats } from "@arena/types";
-import { CategorySection } from "@/features/recap/components/category-section";
-import { HextechPanel } from "@/components/hextech-panel";
+import { useMemo, useRef, useState } from "react";
+import { DetailBand } from "@/components/detail-band";
 import { Dial } from "@/components/dial";
 import { DiamondTabs } from "@/components/diamond-tabs";
+import { HextechPanel } from "@/components/hextech-panel";
 import { PanelToolbar, ToolbarDivider } from "@/components/panel-toolbar";
-import { LowSampleSwitch } from "@/features/recap/components/low-sample-switch";
-import { DetailBand } from "@/components/detail-band";
 import { SidebarStatRows } from "@/components/sidebar-stat-rows";
-import { ValuePercentRow } from "@/components/value-percent-row";
 import { SortHeaderLabel } from "@/components/sort-header-label";
-import { championIconUrl } from "@/utils/riot";
-import { formatCompact } from "@/utils/format";
-import { pressable } from "@/utils/a11y";
-import { useChampionName } from "@/features/recap/stores/champion-names";
+import { ValuePercentRow } from "@/components/value-percent-row";
+import { CategorySection } from "@/features/recap/components/category-section";
 import { DossierLink } from "@/features/recap/components/dossier-link";
-import { useDragScroll } from "@/hooks/use-drag-scroll";
+import { LowSampleSwitch } from "@/features/recap/components/low-sample-switch";
+import { useChampionName } from "@/features/recap/stores/champion-names";
 import { perGame } from "@/features/recap/utils/per-game";
-import { sortByRate, isLowSample, MIN_SAMPLE } from "@/features/recap/utils/sample";
+import { isLowSample, MIN_SAMPLE, sortByRate } from "@/features/recap/utils/sample";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
+import { useDragScroll } from "@/hooks/use-drag-scroll";
+import { pressable } from "@/utils/a11y";
+import { formatCompact } from "@/utils/format";
+import { championIconUrl } from "@/utils/riot";
 import {
   BREAKDOWN_KEYS,
   COLORS,
   ICON_SIZE,
-  METRICS,
   METRIC_LABEL,
+  METRICS,
   ROW_GAP,
   ROW_HEIGHT,
   ROW_PADDING_X,

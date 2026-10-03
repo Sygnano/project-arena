@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { NewSearchLink, StatusScreen, actionClass } from "@/components/status-screen";
+import { actionClass, NewSearchLink, StatusScreen } from "@/components/status-screen";
 import { SummonerEmblem } from "./summoner-emblem";
 
 type Props = {

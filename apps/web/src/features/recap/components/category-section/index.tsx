@@ -4,8 +4,8 @@ import { cn } from "cn";
 import { Reveal } from "@/components/reveal";
 import { SectionBackground } from "@/components/section-background";
 import { SlideCue } from "@/features/recap/components/slide-cue";
-import { useSectionInView } from "@/hooks/use-section-in-view";
 import { useSlide } from "@/features/recap/stores/slide-position";
+import { useSectionInView } from "@/hooks/use-section-in-view";
 import { PANEL_REVEAL_DELAY_MS } from "./constants";
 
 interface CategorySectionProps {

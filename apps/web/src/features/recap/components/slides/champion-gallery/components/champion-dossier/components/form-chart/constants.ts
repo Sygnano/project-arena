@@ -9,4 +9,4 @@ const FORM_PAD_PX = 8;
 
 const FORM_PAD_X_PX = 16;
 
-export { FORM_STEP_PX, FORM_PAD_PX, FORM_PAD_X_PX };
+export { FORM_PAD_PX, FORM_PAD_X_PX, FORM_STEP_PX };

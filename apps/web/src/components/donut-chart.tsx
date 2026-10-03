@@ -1,7 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { motion, useReducedMotion } from "motion/react";
+import type { ReactNode } from "react";
 
 type Segment = {
   key: string;
@@ -90,5 +90,5 @@ function DonutChart({ segments, size, thickness = 18, delay = 0, children, label
   );
 }
 
-export { DonutChart };
 export type { Segment as DonutSegment };
+export { DonutChart };

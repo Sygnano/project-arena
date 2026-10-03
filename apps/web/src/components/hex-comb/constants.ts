@@ -17,4 +17,4 @@ const RIPPLE_STEP_MS = 55;
  * slanted edges read thinner at the same width. Unheld cells get a hairline. */
 const RIM_WIDTH: Record<Tier, number> = { silver: 2, gold: 3, prismatic: 4 };
 
-export { HEX_HEIGHT_RATIO, ROW_PITCH_RATIO, HEX_CLIP, FLOW_GAP, RIPPLE_STEP_MS, RIM_WIDTH };
+export { FLOW_GAP, HEX_CLIP, HEX_HEIGHT_RATIO, RIM_WIDTH, RIPPLE_STEP_MS, ROW_PITCH_RATIO };

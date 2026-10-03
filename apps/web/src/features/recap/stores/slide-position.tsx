@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, type ReactNode, useContext } from "react";
 
 /**
  * Where a summoner-page section sits in the scroll sequence. Provided by
@@ -25,5 +25,5 @@ function useSlide(): SlidePosition | null {
   return useContext(SlideContext);
 }
 
-export { SlideProvider, useSlide };
 export type { SlidePosition };
+export { SlideProvider, useSlide };

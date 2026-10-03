@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
-import { useReducedMotion } from "motion/react";
-import { type ColorScale, ResponsiveTimeRange } from "@/vendor/nivo-calendar";
 import type { CalendarStats } from "@arena/types";
-import { tierForDayGames, tierForDayBestPlacement } from "@/utils/tier-bars";
+import { useReducedMotion } from "motion/react";
+import { useMemo } from "react";
+import { tierForDayBestPlacement, tierForDayGames } from "@/utils/tier-bars";
+import { type ColorScale, ResponsiveTimeRange } from "@/vendor/nivo-calendar";
 import { DayHoverCard } from "./components/day-hover-card";
 import { TierFillDefs } from "./components/tier-fill-defs";
 import { TIER_FILL, TIER_ORDER } from "./constants";

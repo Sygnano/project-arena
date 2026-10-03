@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowRight, RotateCcw } from "lucide-react";
 import type { PlacementStats } from "@arena/types";
+import { ArrowRight, RotateCcw } from "lucide-react";
+import Link from "next/link";
 import { AnimatedNumber } from "@/components/animated-number";
 import { Appear } from "@/components/appear";
 import { IdentityRing } from "@/components/dial";
@@ -46,7 +46,6 @@ function StoryFarewell({ totalFistBumps, placements, matchesPlayed, advancedHref
     >
       <Appear from="scale" delay={0.2}>
         <IdentityRing size={170} className="[@media(max-height:820px)]:[zoom:0.6]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/images/fistbump.jpg"
             alt=""

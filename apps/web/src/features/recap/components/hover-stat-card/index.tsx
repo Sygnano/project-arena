@@ -36,8 +36,8 @@ function HoverStatCard({
   );
 }
 
-export { HoverStatCard };
-export { HoverCardSection } from "./components/hover-card-section";
-export { HoverCardRows } from "./components/hover-card-rows";
 export { HoverCardChampions } from "./components/hover-card-champions";
 export { HoverCardPlacementBars } from "./components/hover-card-placement-bars";
+export { HoverCardRows } from "./components/hover-card-rows";
+export { HoverCardSection } from "./components/hover-card-section";
+export { HoverStatCard };

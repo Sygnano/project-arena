@@ -20,7 +20,7 @@ const spells = await getSummonerSpells();    // Map<id, { name, iconUrl }>
 
 Everything comes from **CommunityDragon**, `latest` (the live patch). Data Dragon was dropped:
 it has no Arena augments, and on every item, champion and spell we use, CommunityDragon had the
-same data (checked 2026-09 on every item id in the database, see CLAUDE.md §2). `latest` means
+same data (checked 2026-09 on every item id in the database, see .claude/rules/arena-data.md). `latest` means
 no version to bump after a patch. Each catalog is downloaded on first use and kept for the
 process's lifetime (`memoize.ts`). A failed download isn't cached, so the next request retries.
 

@@ -1,7 +1,7 @@
-import type { ChampionItemStats, ChampionAugmentStats, DamageBreakdown, AbilityCastBreakdown } from "@arena/types";
+import type { AbilityCastBreakdown, ChampionAugmentStats, ChampionItemStats, DamageBreakdown } from "@arena/types";
 import type { DonutSlice } from "@/features/recap/components/slides/champion-gallery/components/composition-donut";
-import { DAMAGE_TYPE_KEYS, DAMAGE_TYPE_LABELS, DAMAGE_TYPE_COLORS } from "@/features/recap/utils/damage-types";
-import { ABILITY_KEYS, ABILITY_COLORS } from "@/features/recap/utils/ability-colors";
+import { ABILITY_COLORS, ABILITY_KEYS } from "@/features/recap/utils/ability-colors";
+import { DAMAGE_TYPE_COLORS, DAMAGE_TYPE_KEYS, DAMAGE_TYPE_LABELS } from "@/features/recap/utils/damage-types";
 import type { PickEntry } from "./types";
 
 function percent(part: number, whole: number): string {
@@ -55,4 +55,4 @@ function sumCasts(breakdown: AbilityCastBreakdown): number {
   return breakdown.q + breakdown.w + breakdown.e + breakdown.r;
 }
 
-export { percent, itemEntries, augmentEntries, damageSlices, castSlices, sumCasts };
+export { augmentEntries, castSlices, damageSlices, itemEntries, percent, sumCasts };

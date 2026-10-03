@@ -64,5 +64,5 @@ function DetailBand({ icon, title, subtitle, action, stats, statsGrid }: Props) 
   );
 }
 
-export { DetailBand };
 export type { Stat } from "./types";
+export { DetailBand };

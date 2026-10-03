@@ -1,7 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { cn } from "cn";
+import type { ReactNode } from "react";
 import { AnimatedNumber } from "@/components/animated-number";
 import { Appear } from "@/components/appear";
 

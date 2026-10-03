@@ -79,4 +79,4 @@ type BarColumn = {
 
 type HoverPoint = { x: number; y: number };
 
-export type { BarSegment, BarColumn, HoverPoint };
+export type { BarColumn, BarSegment, HoverPoint };

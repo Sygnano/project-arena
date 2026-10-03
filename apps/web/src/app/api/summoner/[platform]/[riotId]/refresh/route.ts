@@ -1,7 +1,7 @@
 import { fetchRefreshStream } from "@/features/recap/api/fetch-refresh-stream";
+import { visitorIp } from "@/lib/visitor-ip";
 import { isKnownPlatform } from "@/utils/riot";
 import { parseRiotIdSlug } from "@/utils/riot-id";
-import { visitorIp } from "@/lib/visitor-ip";
 
 /**
  * The summoner page's refresh stream, proxied as is so the API's address

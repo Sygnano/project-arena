@@ -7,12 +7,13 @@
  *
  * Usage: pnpm --filter @arena/db backfill-rounds
  */
-import { eq, isNotNull } from "drizzle-orm";
+
 import type { RiotArenaMatchDto, RiotMatchTimelineDto } from "@arena/types";
+import { eq, isNotNull } from "drizzle-orm";
 import { createDb } from "../src/client.js";
-import { matches, matchRounds } from "../src/schema.js";
 import { decompressJson } from "../src/compression.js";
 import { parseRounds } from "../src/parseRounds.js";
+import { matches, matchRounds } from "../src/schema.js";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) throw new Error("DATABASE_URL is required");

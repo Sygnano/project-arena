@@ -32,4 +32,4 @@ function sortItems(
   );
 }
 
-export { rankLabel, pickRate, sortItems };
+export { pickRate, rankLabel, sortItems };

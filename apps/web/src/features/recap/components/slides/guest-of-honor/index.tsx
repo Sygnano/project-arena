@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
 import type { GuestOfHonorStats } from "@arena/types";
-import { CategorySection } from "@/features/recap/components/category-section";
-import { HextechPanel } from "@/components/hextech-panel";
+import { useMemo } from "react";
 import { FadingRule } from "@/components/fading-rule";
-import { type AccordionGalleryItem, AccordionGallery } from "./components/accordion-gallery";
-import { championSplashUrl } from "@/utils/riot";
+import { HextechPanel } from "@/components/hextech-panel";
+import { CategorySection } from "@/features/recap/components/category-section";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
+import { championSplashUrl } from "@/utils/riot";
+import { AccordionGallery, type AccordionGalleryItem } from "./components/accordion-gallery";
 import { ChampionAugments } from "./components/champion-augments";
 import { ChampionCrest } from "./components/champion-crest";
 import { iconName } from "./utils";

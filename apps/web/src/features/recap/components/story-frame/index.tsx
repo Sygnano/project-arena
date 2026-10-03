@@ -1,7 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { cn } from "cn";
+import type { ReactNode } from "react";
 
 type Props = {
   /** Background art, shown heavily blurred. */
@@ -53,8 +53,8 @@ function StoryFrame({ imageUrl, tone, labelledBy, children, className }: Props) 
   );
 }
 
-export { StoryFrame };
-export { StoryKicker } from "./components/story-kicker";
-export { StoryTitle } from "./components/story-title";
-export { StoryText } from "./components/story-text";
 export { Em } from "./components/em";
+export { StoryKicker } from "./components/story-kicker";
+export { StoryText } from "./components/story-text";
+export { StoryTitle } from "./components/story-title";
+export { StoryFrame };

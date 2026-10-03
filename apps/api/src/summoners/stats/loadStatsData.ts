@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, matches, matchParticipants, matchRounds, sql, type MatchParticipant } from "@arena/db";
+import { and, asc, eq, inArray, type MatchParticipant, matches, matchParticipants, matchRounds, sql } from "@arena/db";
 import { db } from "../../db.js";
 
 /** One of the summoner's own games: their `match_participants` row plus the

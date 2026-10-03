@@ -1,6 +1,6 @@
-import type { CSSProperties } from "react";
 import { cn } from "cn";
-import { type Tier, TIER_STYLE } from "@/utils/tier-bars";
+import type { CSSProperties } from "react";
+import { TIER_STYLE, type Tier } from "@/utils/tier-bars";
 import {
   CARD_FILL_BACKGROUND,
   CARD_FRAME_SLICE,
@@ -63,6 +63,6 @@ function CardFrame({
   );
 }
 
-export { CardFrame };
-export { CARD_ASPECT_RATIO, CARD_INNER_INSET, CARD_FILL_BACKGROUND, RING_WIDTH } from "./constants";
+export { CARD_ASPECT_RATIO, CARD_FILL_BACKGROUND, CARD_INNER_INSET, RING_WIDTH } from "./constants";
 export { frameRingClassName } from "./utils";
+export { CardFrame };

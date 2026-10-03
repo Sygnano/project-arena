@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { formatSignedPoints } from "@/components/delta-cell";
-import { HoverStatCard, HoverCardSection, HoverCardRows } from "@/features/recap/components/hover-stat-card";
+import { HoverCardRows, HoverCardSection, HoverStatCard } from "@/features/recap/components/hover-stat-card";
 import { isLowSample } from "@/features/recap/utils/sample";
 import { TIER_STYLE } from "@/utils/tier-bars";
 import { percent } from "./utils";
@@ -78,7 +78,6 @@ function PickHoverCard({
     <HoverStatCard
       title={
         <span className="flex items-center gap-2.5">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={iconUrl}
             alt=""

@@ -2,8 +2,8 @@
 
 import type { RefreshProgress, SummonerView } from "@arena/types";
 import { NewSearchLink, StatusScreen } from "@/components/status-screen";
-import { platformRegionName } from "@/utils/riot";
 import { RecapRefresh } from "@/features/recap/components/recap-refresh";
+import { platformRegionName } from "@/utils/riot";
 
 type Props = {
   platform: string;

@@ -1,5 +1,5 @@
-import type { FastifyReply } from "fastify";
 import type { RefreshEvent } from "@arena/types";
+import type { FastifyReply } from "fastify";
 
 /** Proxies drop an idle connection; a comment line every 15s keeps it open. */
 const HEARTBEAT_MS = 15_000;

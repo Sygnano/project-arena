@@ -2,4 +2,4 @@ type SortMetric = "ownTop1" | "ownTop3" | "roundsWon" | "games" | "roundsLost" |
 
 type SortDir = "asc" | "desc";
 
-export type { SortMetric, SortDir };
+export type { SortDir, SortMetric };

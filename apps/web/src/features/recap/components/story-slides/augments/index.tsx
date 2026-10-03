@@ -3,8 +3,8 @@
 import type { AugmentPicksStats, AugmentsStats } from "@arena/types";
 import { cn } from "cn";
 import { Appear } from "@/components/appear";
-import { Em, StoryFrame, StoryKicker, StoryText, StoryTitle } from "@/features/recap/components/story-frame";
 import { StoryComb } from "@/features/recap/components/story-comb";
+import { Em, StoryFrame, StoryKicker, StoryText, StoryTitle } from "@/features/recap/components/story-frame";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
 import { RaritySplit } from "./components/rarity-split";
 import { FRAME_CLASS } from "./constants";
@@ -48,7 +48,6 @@ function StoryAugments({ augments, augmentPicks }: Props) {
           </Appear>
           {favorite && favoriteInfo ? (
             <Appear delay={1.6} from="left" className="mt-[clamp(16px,3.5vh,32px)] flex items-center gap-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={favoriteInfo.iconUrl}
                 alt=""

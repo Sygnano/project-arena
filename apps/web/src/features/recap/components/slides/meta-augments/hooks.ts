@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CARD_GAP, CARD_HEIGHT, CARD_WIDTH, DECK_QUERY, GLOW_MARGIN } from "./constants";
 
 /**

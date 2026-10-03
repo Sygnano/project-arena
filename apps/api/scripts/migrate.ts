@@ -14,10 +14,17 @@
  *   pnpm --filter @arena/api build:scripts && node --env-file=apps/api/.env apps/api/dist/scripts/migrate.mjs
  *     locally, though `pnpm dev` migrates at startup anyway
  */
+import { env } from "../src/env.js";
 import { logger } from "../src/logger.js";
 import { applyMigrations } from "../src/migrations.js";
 
 const log = logger.child({ module: "migrate" });
+// The database may be missing or mid-copy; a failure here would block the deploy that turns
+// maintenance on.
+if (env.MAINTENANCE_MODE) {
+  log.warn("MAINTENANCE_MODE is on: migrations skipped");
+  process.exit(0);
+}
 const startedAt = performance.now();
 log.info("applying pending migrations");
 try {

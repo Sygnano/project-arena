@@ -21,4 +21,4 @@ type Findings = {
   peak: { minute: number; dealt: number };
 };
 
-export type { Mode, Selection, DamageCurvePoint, Findings };
+export type { DamageCurvePoint, Findings, Mode, Selection };

@@ -6,4 +6,4 @@ const TICKS = 72;
 
 const TICK_RADIUS = 150;
 
-export { RINGS, TICKS, TICK_RADIUS };
+export { RINGS, TICK_RADIUS, TICKS };

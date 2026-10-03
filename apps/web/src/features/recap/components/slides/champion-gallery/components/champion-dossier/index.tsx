@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import type { ChampionPickBreakdown, ChampionStats } from "@arena/types";
+import { useState } from "react";
 import { AnimatedNumber } from "@/components/animated-number";
 import { DiamondTabs } from "@/components/diamond-tabs";
 import { PanelToolbar } from "@/components/panel-toolbar";
@@ -9,7 +9,7 @@ import { SidebarStatRows } from "@/components/sidebar-stat-rows";
 import { ChampionCard } from "@/features/recap/components/slides/champion-gallery/components/champion-card";
 import { CompositionDonut } from "@/features/recap/components/slides/champion-gallery/components/composition-donut";
 import { sumDamageBreakdown } from "@/features/recap/utils/damage-types";
-import { formatCompact, formatHoursMinutes, formatDuration } from "@/utils/format";
+import { formatCompact, formatDuration, formatHoursMinutes } from "@/utils/format";
 import { FinishesChart } from "./components/finishes-chart";
 import { FormChart } from "./components/form-chart";
 import { Num } from "./components/num";
@@ -46,7 +46,7 @@ import { augmentEntries, castSlices, damageSlices, itemEntries, percent, sumCast
  *
  * Deliberately covers only what happens in a fight on this champion. Page-
  * level sections that aren't champion-scoped — bans (lobby-wide, with no
- * participant attached, see CLAUDE.md §2), teammates and nemesis (accounts,
+ * participant attached, see .claude/rules/arena-data.md), teammates and nemesis (accounts,
  * not champions) and pings — have no meaningful per-champion reading and
  * are left out rather than shown as noise.
  */
@@ -172,7 +172,7 @@ function ChampionDossier({
           height is left so the grid fills the panel and the lists scroll
           inside it. Every gap is the panel's own 24px padding. Columns kick in earlier than a typical
           card grid (@sm/@lg/@2xl rather than @2xl/@6xl) — at the 1280×860
-          deck-mode floor (CLAUDE.md's own minimum test size) the stat area
+          deck-mode floor (apps/web/CLAUDE.md's own minimum test size) the stat area
           is ~776px wide, so @2xl (672px) is what actually reaches 4 columns
           there instead of needing a much wider monitor — so this fits inside
           the panel's single-screen height on realistic window widths instead

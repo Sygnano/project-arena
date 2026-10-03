@@ -1,5 +1,5 @@
 import type { Db } from "@arena/db";
-import { REGION_LABEL, matchRegion, toPlatform, type GatewayHold, type Region, type RiotGateway } from "@arena/riot";
+import { type GatewayHold, matchRegion, REGION_LABEL, type Region, type RiotGateway, toPlatform } from "@arena/riot";
 import type { RefreshProgress } from "@arena/types";
 import { logger } from "../logger.js";
 import { ingestSummoner } from "./ingestSummoner.js";

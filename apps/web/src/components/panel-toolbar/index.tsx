@@ -1,8 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { AnimatePresence, motion } from "motion/react";
 import { cn } from "cn";
+import { AnimatePresence, motion } from "motion/react";
+import type { ReactNode } from "react";
 import { FadingRule } from "@/components/fading-rule";
 
 type Props = {
@@ -74,5 +74,5 @@ function PanelToolbar({ children, trailing, caption, captionKey, className }: Pr
   );
 }
 
-export { PanelToolbar };
 export { ToolbarDivider } from "./components/toolbar-divider";
+export { PanelToolbar };

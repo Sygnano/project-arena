@@ -27,4 +27,4 @@ function sortChampions(rows: VersusChampionStats[], sort: SortMode, mixLowSample
   );
 }
 
-export { duels, winShare, pct, sortChampions };
+export { duels, pct, sortChampions, winShare };

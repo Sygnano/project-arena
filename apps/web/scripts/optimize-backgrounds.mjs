@@ -10,8 +10,9 @@
 // larger output. Originals stay in place as the source of truth; rerun this
 // after adding or replacing art, then point lib/section-backgrounds.ts at
 // the `optimized/` file.
-import { createRequire } from "node:module";
+
 import { mkdir, readdir, stat } from "node:fs/promises";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 

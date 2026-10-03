@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
-import { useReducedMotion, motion } from "motion/react";
 import type { ChampionFormStats } from "@arena/types";
+import { motion, useReducedMotion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
 import { ordinal } from "@/utils/format";
 import { TIER_STYLE } from "@/utils/tier-bars";
 import { FORM_PAD_PX, FORM_PAD_X_PX, FORM_STEP_PX } from "./constants";

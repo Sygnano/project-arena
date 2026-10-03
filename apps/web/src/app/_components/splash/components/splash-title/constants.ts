@@ -6,4 +6,4 @@ const SPIN_IN_PLACE = "[transform-box:fill-box] origin-center";
 
 const CYAN_GLOW = { filter: "drop-shadow(0 0 4px rgba(10,196,217,.9))" };
 
-export { MIRROR, SPIN_IN_PLACE, CYAN_GLOW };
+export { CYAN_GLOW, MIRROR, SPIN_IN_PLACE };

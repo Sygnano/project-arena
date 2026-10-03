@@ -1,8 +1,8 @@
 "use client";
 
 import type { TeammateStats } from "@arena/types";
-import { motion } from "motion/react";
 import { cn } from "cn";
+import { motion } from "motion/react";
 import { TIER_STYLE } from "@/utils/tier-bars";
 
 type Props = {

@@ -63,7 +63,7 @@ function StatusScreen({ emblem, eyebrow, title, children, actions, busy }: Props
   );
 }
 
-export { StatusScreen };
 export { HextechEmblem } from "./components/hextech-emblem";
 export { NewSearchLink } from "./components/new-search-link";
 export { actionClass } from "./constants";
+export { StatusScreen };
