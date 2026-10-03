@@ -1,8 +1,8 @@
 "use client";
 
 import type { ChampionStats } from "@arena/types";
-import { isLowSample } from "@/features/recap/utils/sample";
 import { ChampionResultsCard } from "@/features/recap/components/champion-results-card";
+import { isLowSample } from "@/features/recap/utils/sample";
 
 /** Hover card for one KDA column: the champion's name (the chart shows only
  * an icon) and how its games FINISHED. Complements the detail band below,

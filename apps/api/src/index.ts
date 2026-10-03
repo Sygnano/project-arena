@@ -4,15 +4,15 @@ import { db } from "./db.js";
 import { env } from "./env.js";
 import { logger } from "./logger.js";
 import { applyMigrations } from "./migrations.js";
-import { healthRoutes } from "./routes/health.js";
 import { catalogRoutes } from "./routes/catalog.js";
-import { overviewRoutes } from "./routes/overview.js";
 import { devRoutes } from "./routes/dev.js";
+import { healthRoutes } from "./routes/health.js";
+import { overviewRoutes } from "./routes/overview.js";
 import { endAllEventStreams } from "./routes/summoners/eventStream.js";
 import { summonerRoutes } from "./routes/summoners/index.js";
 
 // No CORS: browsers never call this API directly. The web app's server
-// does, over the host's private network (see CLAUDE.md §3).
+// does, over the host's private network (see docs/deployment.md).
 const app = Fastify({
   loggerInstance: logger,
   // Fastify's own replies to a malformed URL (bad escape, overlong param)
@@ -26,8 +26,22 @@ const app = Fastify({
 // Brings the database schema up to date before serving anything. In
 // production the pre-deploy command (scripts/migrate.ts) has already run
 // them, so this finds nothing; locally it's how `pnpm dev` migrates.
-await applyMigrations();
-app.log.info("Database migrations applied");
+// Skipped in maintenance: the database may be missing or mid-copy.
+if (env.MAINTENANCE_MODE) {
+  app.log.warn("MAINTENANCE_MODE is on: every route but /health answers 503");
+} else {
+  await applyMigrations();
+  app.log.info("Database migrations applied");
+}
+
+// Maintenance answers before anything touches the database. /health stays
+// green without it, so the host keeps this instance running.
+if (env.MAINTENANCE_MODE) {
+  app.addHook("onRequest", async (request, reply) => {
+    if (request.url === "/health") return reply.send({ status: "maintenance" });
+    return reply.code(503).send({ error: "maintenance" });
+  });
+}
 
 // Only the web app's server may call this API: it sends the shared secret.
 // Without this, anyone who could reach the API could pick their own

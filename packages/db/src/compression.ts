@@ -9,8 +9,8 @@ const brotliCompressAsync = promisify(brotliCompress);
  * own automatic TOAST/pglz compression, which only manages ~2-5x on the
  * same data) in about 25 ms for a 1.5 MB timeline. Quality 11 (the zlib
  * default) shaves off another ~20-25% but takes ~1.5 seconds on a large
- * timeline — not worth it for a one-time ingestion-time cost. See CLAUDE.md
- * for the full measurements this was chosen from.
+ * timeline — not worth it for a one-time ingestion-time cost. The
+ * measurements this was chosen from are in git history (CLAUDE.md before 2026-10).
  */
 const BROTLI_QUALITY = 9;
 

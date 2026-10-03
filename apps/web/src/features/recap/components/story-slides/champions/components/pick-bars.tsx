@@ -1,11 +1,11 @@
 "use client";
 
 import type { ChampionPickBreakdown } from "@arena/types";
-import { motion } from "motion/react";
 import { cn } from "cn";
+import { motion } from "motion/react";
+import { useChampionName } from "@/features/recap/stores/champion-names";
 import { championIconUrl } from "@/utils/riot";
 import { TIER_STYLE, tierForRank } from "@/utils/tier-bars";
-import { useChampionName } from "@/features/recap/stores/champion-names";
 
 type Props = {
   picks: ChampionPickBreakdown[];
@@ -29,7 +29,6 @@ function PickBars({ picks, delay = 0.8 }: Props) {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: delay + i * 0.14, duration: 0.5 }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={championIconUrl(pick.championName)}
               alt=""

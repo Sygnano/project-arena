@@ -30,4 +30,4 @@ function sortChampions(rows: ChampionPickBreakdown[], sort: SortMode, mixLowSamp
   );
 }
 
-export { rankLabel, championRate, sortChampions };
+export { championRate, rankLabel, sortChampions };

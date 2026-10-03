@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { COLUMN_STAGGER_MS, ENTRANCE_MS, ROW_STAGGER_MS } from "./constants";
 
 function useCellEntrance(enabled: boolean, replayKey: string) {

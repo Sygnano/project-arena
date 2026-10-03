@@ -3,10 +3,10 @@
 import type { TeamSlotBreakdown, TeamSlotStats } from "@arena/types";
 import { formatSignedPoints } from "@/components/delta-cell";
 import {
-  HoverStatCard,
-  HoverCardSection,
-  HoverCardRows,
   HoverCardPlacementBars,
+  HoverCardRows,
+  HoverCardSection,
+  HoverStatCard,
 } from "@/features/recap/components/hover-stat-card";
 import { isLowSample } from "@/features/recap/utils/sample";
 import { TEAM_NAME } from "@/features/recap/utils/team-crests";

@@ -1,8 +1,8 @@
-import { hostFor, type GatewayHold } from "@arena/riot";
+import { type GatewayHold, hostFor } from "@arena/riot";
 import type { RiotScheduler } from "../scheduler/riotScheduler.js";
-import { RiotCallError, errorFromResponse } from "./errors.js";
+import { errorFromResponse, RiotCallError } from "./errors.js";
 import { formatDuration, formatUsage, type RiotLogger } from "./logger.js";
-import { readRateLimitHeaders, type RateLimitScope } from "./rateLimiting/headers.js";
+import { type RateLimitScope, readRateLimitHeaders } from "./rateLimiting/headers.js";
 import type { RiotRateLimiter } from "./rateLimiting/rateLimiter.js";
 import type { RiotCall } from "./types.js";
 

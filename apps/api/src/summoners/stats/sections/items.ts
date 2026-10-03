@@ -1,6 +1,6 @@
 import { ARENA_BOOT_ITEM_IDS } from "@arena/db";
 import type { BootsStats } from "@arena/types";
-import { SHARDBLADE_ITEM_ID, SPECIAL_ITEM_IDS, type ItemCatalog } from "../../../leagueData/index.js";
+import { type ItemCatalog, SHARDBLADE_ITEM_ID, SPECIAL_ITEM_IDS } from "../../../leagueData/index.js";
 import {
   addToSplit,
   addToTally,
@@ -30,7 +30,7 @@ function tallyChampionItem(byChampion: ChampionItems, game: OwnGame, itemId: num
  * Items and boots. Arena players sell items mid-match, so "had this item"
  * means bought at any point (`purchasedItemIds`, from the timeline) or held
  * at the end (`items`), except the granted-only items, which only `items`
- * shows. Boots come from the timeline's purchases and sales (CLAUDE.md §2).
+ * shows. Boots come from the timeline's purchases and sales (.claude/rules/arena-data.md).
  * Items are sent as ids: names and icons come from the web app's catalog.
  */
 export function buildItemStats(games: readonly OwnGame[], catalog: ItemCatalog) {

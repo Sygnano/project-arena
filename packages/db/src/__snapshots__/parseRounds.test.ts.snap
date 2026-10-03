@@ -1,0 +1,162 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`parseRounds on a real match > matches the stored derivation 1`] = `
+[
+  {
+    "loserTeamId": 3,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 1,
+    "winnerTeamId": 6,
+  },
+  {
+    "loserTeamId": 2,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 1,
+    "winnerTeamId": 4,
+  },
+  {
+    "loserTeamId": 1,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 1,
+    "winnerTeamId": 5,
+  },
+  {
+    "loserTeamId": 3,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 2,
+    "winnerTeamId": 5,
+  },
+  {
+    "loserTeamId": 6,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 2,
+    "winnerTeamId": 2,
+  },
+  {
+    "loserTeamId": 1,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 2,
+    "winnerTeamId": 4,
+  },
+  {
+    "loserTeamId": 3,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 3,
+    "winnerTeamId": 4,
+  },
+  {
+    "loserTeamId": 1,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 3,
+    "winnerTeamId": 2,
+  },
+  {
+    "loserTeamId": 5,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 3,
+    "winnerTeamId": 6,
+  },
+  {
+    "loserTeamId": 5,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 4,
+    "winnerTeamId": 2,
+  },
+  {
+    "loserTeamId": 6,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 4,
+    "winnerTeamId": 4,
+  },
+  {
+    "loserTeamId": 6,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 5,
+    "winnerTeamId": 1,
+  },
+  {
+    "loserTeamId": 5,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 5,
+    "winnerTeamId": 4,
+  },
+  {
+    "loserTeamId": 4,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 6,
+    "winnerTeamId": 2,
+  },
+  {
+    "loserTeamId": 5,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 6,
+    "winnerTeamId": 1,
+  },
+  {
+    "loserTeamId": 6,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 7,
+    "winnerTeamId": 2,
+  },
+  {
+    "loserTeamId": 4,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 7,
+    "winnerTeamId": 1,
+  },
+  {
+    "loserTeamId": 1,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 8,
+    "winnerTeamId": 2,
+  },
+  {
+    "loserTeamId": 6,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 8,
+    "winnerTeamId": 5,
+  },
+  {
+    "loserTeamId": 6,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 9,
+    "winnerTeamId": 4,
+  },
+  {
+    "loserTeamId": 5,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 9,
+    "winnerTeamId": 2,
+  },
+  {
+    "loserTeamId": 1,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 10,
+    "winnerTeamId": 4,
+  },
+  {
+    "loserTeamId": 1,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 11,
+    "winnerTeamId": 2,
+  },
+  {
+    "loserTeamId": 2,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 12,
+    "winnerTeamId": 4,
+  },
+  {
+    "loserTeamId": 2,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 13,
+    "winnerTeamId": 4,
+  },
+  {
+    "loserTeamId": 2,
+    "matchId": "EUW1_7990999348",
+    "roundNumber": 14,
+    "winnerTeamId": 4,
+  },
+]
+`;

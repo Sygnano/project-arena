@@ -1,6 +1,6 @@
 "use client";
 
-import { NewSearchLink, StatusScreen, actionClass } from "@/components/status-screen";
+import { actionClass, NewSearchLink, StatusScreen } from "@/components/status-screen";
 
 /**
  * Anything that throws outside the summoner page, which has its own

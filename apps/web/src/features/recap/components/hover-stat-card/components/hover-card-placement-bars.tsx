@@ -5,7 +5,7 @@ import { TIER_STYLE } from "@/utils/tier-bars";
 
 /** One small bar per finishing place (index 0 = 1st), tier-colored like the
  * stacked charts and scaled to the most common place. Its length comes from
- * the data, never a fixed team count (CLAUDE.md §2). */
+ * the data, never a fixed team count (.claude/rules/arena-data.md). */
 function HoverCardPlacementBars({ counts }: { counts: readonly number[] }) {
   const max = Math.max(1, ...counts);
   return (

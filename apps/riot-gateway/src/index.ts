@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
-import Fastify, { LogController, type FastifyReply } from "fastify";
 import { GATEWAY_SECRET_HEADER } from "@arena/riot";
+import Fastify, { type FastifyReply, LogController } from "fastify";
 import { env } from "./env.js";
 import { logger } from "./logger.js";
 import { healthRoutes } from "./routes/health.js";

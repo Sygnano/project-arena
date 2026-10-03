@@ -1,14 +1,14 @@
 "use client";
 
-import type { KillsStats, ChampionStats } from "@arena/types";
+import type { ChampionStats, KillsStats } from "@arena/types";
 import { CursorTooltip } from "@/components/cursor-tooltip";
-import { useChartHover } from "@/hooks/use-chart-hover";
-import { CategorySection } from "@/features/recap/components/category-section";
 import { HextechPanel } from "@/components/hextech-panel";
-import { RecordColumn } from "./components/record-column";
+import { CategorySection } from "@/features/recap/components/category-section";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
+import { useChartHover } from "@/hooks/use-chart-hover";
 import { MultikillCard } from "./components/multikill-card";
 import { Plate } from "./components/plate";
+import { RecordColumn } from "./components/record-column";
 import type { MultikillKey, PlateTier } from "./types";
 
 type Props = KillsStats & {

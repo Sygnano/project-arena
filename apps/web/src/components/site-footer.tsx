@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { cn } from "cn";
+import Link from "next/link";
 
 /**
  * The footer of the splash, about and status screens: one link to the about page, which

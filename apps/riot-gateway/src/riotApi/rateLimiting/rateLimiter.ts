@@ -1,6 +1,6 @@
 import type { RiotCall } from "../types.js";
 import type { RateLimitHeaders, RateLimitScope, WindowLimit } from "./headers.js";
-import { RateBucket, type BucketWait, type WindowUsage } from "./rateBucket.js";
+import { type BucketWait, RateBucket, type WindowUsage } from "./rateBucket.js";
 
 /**
  * Riot's rate limits, per its developer portal: every limit is enforced

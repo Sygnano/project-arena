@@ -1,16 +1,16 @@
+import { relations } from "drizzle-orm";
 import {
-  pgTable,
-  text,
-  integer,
   boolean,
-  timestamp,
-  jsonb,
-  smallint,
-  primaryKey,
   customType,
   index,
+  integer,
+  jsonb,
+  pgTable,
+  primaryKey,
+  smallint,
+  text,
+  timestamp,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
 
 /** Riot's 14 ping counters, in the order `matchParticipants.pings` stores
  * them (`<type>Pings` on the participant DTO). Append new types at the end:

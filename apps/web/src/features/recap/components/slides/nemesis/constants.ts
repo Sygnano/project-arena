@@ -27,4 +27,4 @@ const YOU_COLOR = "var(--color-lol-blue-300)";
  * span is the number of rounds fought against that opponent. */
 const ROW_GRID = "72px 64px 36px minmax(0,1fr) 190px minmax(0,1fr) 36px 64px 72px";
 
-export { COUNT_METRICS, MIN_GAMES_FOR_NEMESIS, TOP3_RATE_COLOR, VS_YOU_COLOR, YOU_COLOR, ROW_GRID };
+export { COUNT_METRICS, MIN_GAMES_FOR_NEMESIS, ROW_GRID, TOP3_RATE_COLOR, VS_YOU_COLOR, YOU_COLOR };

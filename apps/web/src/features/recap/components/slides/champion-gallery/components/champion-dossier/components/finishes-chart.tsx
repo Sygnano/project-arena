@@ -1,13 +1,13 @@
 "use client";
 
+import { percent } from "@/features/recap/components/slides/champion-gallery/components/champion-dossier/utils";
 import { ordinal } from "@/utils/format";
 import { TIER_STYLE } from "@/utils/tier-bars";
-import { percent } from "@/features/recap/components/slides/champion-gallery/components/champion-dossier/utils";
 
 /** Games finished in each place as a column per place, 1st on the left.
  * Tier colors follow the same fixed meaning as `PlacementSplitBar` (1st
  * prismatic, 2nd-3rd gold, the rest silver), and the number of columns is
- * whatever the API sent — never a hardcoded team count (CLAUDE.md §2). */
+ * whatever the API sent — never a hardcoded team count (.claude/rules/arena-data.md). */
 function FinishesChart({ counts }: { counts: readonly number[] }) {
   const max = Math.max(1, ...counts);
   const games = counts.reduce((sum, count) => sum + count, 0);

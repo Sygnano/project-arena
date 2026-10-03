@@ -126,7 +126,7 @@ export function buildTeamSynergyStats({ games, participantsByMatch }: StatsData)
 
   // Each champion's arc index: its own, or the shared "Other" one (last).
   const arcIndex = new Map<number, number>();
-  namedIds.forEach((id, index) => arcIndex.set(id, index));
+  for (const [index, id] of namedIds.entries()) arcIndex.set(id, index);
   for (const id of otherIds) arcIndex.set(id, namedIds.length);
 
   const emptyMatrix = () => champions.map(() => new Array<number>(champions.length).fill(0));

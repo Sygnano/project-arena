@@ -4,15 +4,15 @@ import type { AbilityStats, ChampionStats, SummonerSpellsStats } from "@arena/ty
 import { AnimatedNumber } from "@/components/animated-number";
 import { Appear } from "@/components/appear";
 import { DonutChart } from "@/components/donut-chart";
-import { championIconUrl } from "@/utils/riot";
-import { formatCompact } from "@/utils/format";
-import { Em, StoryFrame, StoryKicker, StoryText, StoryTitle } from "@/features/recap/components/story-frame";
 import { StoryFact } from "@/features/recap/components/story-fact";
+import { Em, StoryFrame, StoryKicker, StoryText, StoryTitle } from "@/features/recap/components/story-frame";
 import { StoryPortrait } from "@/features/recap/components/story-portrait";
 import { useChampionName } from "@/features/recap/stores/champion-names";
 import { ABILITY_COLORS, ABILITY_KEYS } from "@/features/recap/utils/ability-colors";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
 import { topChampion } from "@/features/recap/utils/top-champion";
+import { formatCompact } from "@/utils/format";
+import { championIconUrl } from "@/utils/riot";
 import { favoriteButton, sumCasts } from "./utils";
 
 type Props = {
@@ -123,7 +123,6 @@ function StoryAbilities({ ability, summonerSpells, champions }: Props) {
               <span className="mt-0.5 flex flex-wrap gap-x-3 text-[11px] text-lol-text-muted">
                 {spells.map((spell) => (
                   <span key={spell.spellId} className="flex items-center gap-1">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={spell.iconUrl} alt="" width={14} height={14} className="size-3.5" />
                     {spell.name} {spell.casts.toLocaleString("en-US")}
                   </span>

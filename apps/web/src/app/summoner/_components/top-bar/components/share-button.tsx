@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Check, Share2 } from "lucide-react";
 import { cn } from "cn";
+import { Check, Share2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * Shares the current page's link: the system share sheet on touch devices

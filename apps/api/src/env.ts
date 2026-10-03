@@ -3,7 +3,7 @@ import { z } from "zod";
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   // Runs the startup migrations instead of DATABASE_URL when set, so the
-  // role serving requests can be one without DDL rights (CLAUDE.md §3).
+  // role serving requests can be one without DDL rights (docs/deployment.md).
   MIGRATION_DATABASE_URL: z.string().min(1).optional(),
   // The Riot gateway (apps/riot-gateway), the only way to Riot: it holds the
   // key. Private network address in production.
@@ -13,6 +13,12 @@ const envSchema = z.object({
   // Shared with the web app's server: once set, every route but /health
   // refuses requests without it (index.ts). Unset only in local dev.
   API_PROXY_SECRET: z.string().min(32, "API_PROXY_SECRET must be at least 32 characters").optional(),
+  // While the database is moved: every route but /health answers 503 `maintenance`, and startup
+  // skips the migrations. Set together with the web app's, which sends visitors to /maintenance.
+  MAINTENANCE_MODE: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
   PORT: z.coerce.number().default(3001),
   // App logs (src/logger.ts): trace | debug | info | warn | error | fatal | silent.
   LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error", "fatal", "silent"]).default("info"),

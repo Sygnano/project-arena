@@ -5,9 +5,9 @@ import {
   matchParticipants,
   riotIdColumns,
   riotIdKey,
+  type Summoner,
   sql,
   summoners,
-  type Summoner,
 } from "@arena/db";
 import type { RiotAccountDto, RiotSummonerDto, SummonerView } from "@arena/types";
 import { db } from "../db.js";

@@ -1,4 +1,4 @@
-import { GUEST_OF_HONOR_CHAMPIONS, type AugmentCatalog } from "../../../leagueData/index.js";
+import { type AugmentCatalog, GUEST_OF_HONOR_CHAMPIONS } from "../../../leagueData/index.js";
 import {
   addToSplit,
   addToTally,

@@ -1,0 +1,226 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  // Generated or third-party code is never formatted or linted; .gitignore covers builds and caches.
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    "includes": ["**", "!**/next-env.d.ts", "!packages/db/drizzle", "!apps/web/src/vendor", "!apps/web/public"]
+  },
+  "formatter": { "indentStyle": "space", "lineWidth": 120 },
+  "css": { "parser": { "tailwindDirectives": true } },
+  // Biome's recommended rules; the `next`, `react` and `turborepo` domains turn on from each
+  // package.json's dependencies.
+  "linter": {
+    "rules": {
+      "preset": "recommended",
+      "style": { "noNonNullAssertion": "off" },
+      "suspicious": {
+        // `map.set(key, (value = create()))` is the house idiom for get-or-create.
+        "noAssignInExpressions": "off",
+        "noArrayIndexKey": "off"
+      },
+      "correctness": {
+        // A dependency that only re-runs an effect (a replay key, the text to measure) is deliberate.
+        "useExhaustiveDependencies": { "level": "error", "options": { "reportUnnecessaryDependencies": false } }
+      },
+      // Stricter than the jsx-a11y rules Next's preset ran; not enforced yet.
+      "a11y": {
+        "noNoninteractiveElementToInteractiveRole": "off",
+        "noNoninteractiveTabindex": "off",
+        "noStaticElementInteractions": "off",
+        "noSvgWithoutTitle": "off",
+        "noAutofocus": "off",
+        "useAriaPropsSupportedByRole": "off",
+        "useFocusableInteractive": "off",
+        "useKeyWithClickEvents": "off",
+        "useSemanticElements": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      // <img> is deliberate: art comes from the CSP-allowlisted Riot CDNs at sizes the layout
+      // controls (often past its box, with `max-w-none`); next/image's optimizer adds nothing.
+      "includes": ["apps/web/**"],
+      "linter": { "rules": { "performance": { "noImgElement": "off" } } }
+    },
+    {
+      // Run by pnpm or Claude Code directly (drizzle-kit, the backfills, the screenshot script,
+      // the hooks), never by Turborepo: turbo.json's env doesn't apply to them.
+      "includes": [
+        "packages/db/drizzle.config.ts",
+        "packages/db/scripts/**",
+        "apps/web/scripts/**",
+        ".claude/hooks/**"
+      ],
+      "linter": { "rules": { "suspicious": { "noUndeclaredEnvVars": "off" } } }
+    },
+    // Bulletproof React's architecture for apps/web (apps/web/CLAUDE.md). Imports flow shared
+    // (components, hooks, lib, utils) → features/<name> → app, never `../`, no cycles, kebab-case
+    // file names. One block per feature: architecture.test.ts fails when a feature has none, and
+    // checks folder names, which Biome doesn't.
+    {
+      "includes": ["apps/web/src/**"],
+      "linter": {
+        "rules": {
+          "suspicious": { "noImportCycles": "error" },
+          "style": {
+            "useFilenamingConvention": { "level": "error", "options": { "filenameCases": ["kebab-case"] } },
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["../**"],
+                    "message": "Import through `@/` instead of `../` (relative imports only reach into this file's own folder)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/web/src/components/**",
+        "apps/web/src/hooks/**",
+        "apps/web/src/lib/**",
+        "apps/web/src/utils/**"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["../**"],
+                    "message": "Import through `@/` instead of `../` (relative imports only reach into this file's own folder)."
+                  },
+                  {
+                    "group": ["@/app", "@/app/**"],
+                    "message": "Only `app/` composes routes; import from features or shared code."
+                  },
+                  { "group": ["@/features", "@/features/**"], "message": "Shared code can't depend on a feature." }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/web/src/features/dev/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["../**"],
+                    "message": "Import through `@/` instead of `../` (relative imports only reach into this file's own folder)."
+                  },
+                  {
+                    "group": ["@/app", "@/app/**"],
+                    "message": "Only `app/` composes routes; import from features or shared code."
+                  },
+                  {
+                    "group": ["@/features/**", "!@/features/dev", "!@/features/dev/**"],
+                    "message": "A feature can't import another feature; compose them in `app/`."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/web/src/features/overview/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["../**"],
+                    "message": "Import through `@/` instead of `../` (relative imports only reach into this file's own folder)."
+                  },
+                  {
+                    "group": ["@/app", "@/app/**"],
+                    "message": "Only `app/` composes routes; import from features or shared code."
+                  },
+                  {
+                    "group": ["@/features/**", "!@/features/overview", "!@/features/overview/**"],
+                    "message": "A feature can't import another feature; compose them in `app/`."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/web/src/features/recap/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["../**"],
+                    "message": "Import through `@/` instead of `../` (relative imports only reach into this file's own folder)."
+                  },
+                  {
+                    "group": ["@/app", "@/app/**"],
+                    "message": "Only `app/` composes routes; import from features or shared code."
+                  },
+                  {
+                    "group": ["@/features/**", "!@/features/recap", "!@/features/recap/**"],
+                    "message": "A feature can't import another feature; compose them in `app/`."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/web/src/features/search/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["../**"],
+                    "message": "Import through `@/` instead of `../` (relative imports only reach into this file's own folder)."
+                  },
+                  {
+                    "group": ["@/app", "@/app/**"],
+                    "message": "Only `app/` composes routes; import from features or shared code."
+                  },
+                  {
+                    "group": ["@/features/**", "!@/features/search", "!@/features/search/**"],
+                    "message": "A feature can't import another feature; compose them in `app/`."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

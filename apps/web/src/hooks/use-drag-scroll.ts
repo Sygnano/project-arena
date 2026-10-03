@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type RefObject } from "react";
+import { type RefObject, useEffect } from "react";
 
 const DRAG_THRESHOLD_PX = 4;
 /** How far back to look when estimating release velocity — long enough to

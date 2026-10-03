@@ -1,4 +1,4 @@
-import { matchRegion, platformOfMatch, type Platform } from "@arena/riot";
+import { matchRegion, type Platform, platformOfMatch } from "@arena/riot";
 import type { RiotCallSpec } from "../types.js";
 
 /** Match-V5: match lists, match details and timelines. Regional (europe, americas, asia, sea). */

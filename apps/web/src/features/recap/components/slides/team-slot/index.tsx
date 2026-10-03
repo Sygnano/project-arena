@@ -1,15 +1,15 @@
 "use client";
 
 import type { TeamSlotStats } from "@arena/types";
-import { CategorySection } from "@/features/recap/components/category-section";
 import { CursorTooltip } from "@/components/cursor-tooltip";
-import { HextechPanel } from "@/components/hextech-panel";
-import { HextechBarChart } from "@/components/hextech-bar-chart";
-import { useChartHover } from "@/hooks/use-chart-hover";
 import { FadingRule } from "@/components/fading-rule";
+import { HextechBarChart } from "@/components/hextech-bar-chart";
+import { HextechPanel } from "@/components/hextech-panel";
+import { CategorySection } from "@/features/recap/components/category-section";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
-import { TeamSlotCard } from "./components/team-slot-card";
 import { TEAM_NAME } from "@/features/recap/utils/team-crests";
+import { useChartHover } from "@/hooks/use-chart-hover";
+import { TeamSlotCard } from "./components/team-slot-card";
 import { buildTeamSlotColumns } from "./utils";
 
 type Props = {

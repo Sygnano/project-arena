@@ -1,5 +1,5 @@
-import { z } from "zod";
 import { isPlatform } from "@arena/riot";
+import { z } from "zod";
 
 /** The `:region/:gameName/:tagLine` of every summoner route. */
 export type RiotIdParams = { region: string; gameName: string; tagLine: string };

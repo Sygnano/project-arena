@@ -1,9 +1,9 @@
-import { memo } from "react";
 import type { ChampionPickBreakdown } from "@arena/types";
 import { cn } from "cn";
+import { memo } from "react";
 import { CARD_ASPECT_RATIO, CARD_INNER_INSET, CardFrame } from "@/components/card-frame";
-import { championLoadingUrl } from "@/utils/riot";
 import { useChampionName } from "@/features/recap/stores/champion-names";
+import { championLoadingUrl } from "@/utils/riot";
 import { tierForChampionCard } from "./utils";
 
 /**
@@ -88,5 +88,5 @@ function ChampionCardImpl({
 
 const ChampionCard = memo(ChampionCardImpl);
 
-export { ChampionCard };
 export { tierForChampionCard } from "./utils";
+export { ChampionCard };

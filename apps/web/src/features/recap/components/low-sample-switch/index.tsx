@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "cn";
-import { HextechSwitch } from "./components/hextech-switch";
 import { MIN_SAMPLE } from "@/features/recap/utils/sample";
+import { HextechSwitch } from "./components/hextech-switch";
 
 type Props = {
   checked: boolean;

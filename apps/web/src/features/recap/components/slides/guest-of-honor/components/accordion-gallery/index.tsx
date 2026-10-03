@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
-import { motion } from "motion/react";
 import { cn } from "cn";
+import { motion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
 import { DURATION, EASE, LABEL_STAGGER, MEDIA_OVERSCAN, MIN_MEDIA_WIDTH_PX } from "./constants";
 import type { AccordionGalleryItem } from "./types";
 
@@ -262,6 +262,6 @@ function AccordionGallery({
   );
 }
 
-export { AccordionGallery };
-export type { AccordionGalleryProps };
 export type { AccordionGalleryItem } from "./types";
+export type { AccordionGalleryProps };
+export { AccordionGallery };

@@ -1,12 +1,12 @@
 "use client";
 
 import type { PlacementDetail } from "@arena/types";
-import { HoverStatCard, HoverCardSection, HoverCardRows } from "@/features/recap/components/hover-stat-card";
-import { TIER_STYLE } from "@/utils/tier-bars";
-import { formatDuration, formatCompact, ordinal } from "@/utils/format";
-import { championIconUrl } from "@/utils/riot";
-import { useChampionName } from "@/features/recap/stores/champion-names";
+import { HoverCardRows, HoverCardSection, HoverStatCard } from "@/features/recap/components/hover-stat-card";
 import { placementTier } from "@/features/recap/components/slides/placement/utils";
+import { useChampionName } from "@/features/recap/stores/champion-names";
+import { formatCompact, formatDuration, ordinal } from "@/utils/format";
+import { championIconUrl } from "@/utils/riot";
+import { TIER_STYLE } from "@/utils/tier-bars";
 
 function PlacementCard({
   placement,
@@ -49,7 +49,6 @@ function PlacementCard({
           {detail.topChampion ? (
             <HoverCardSection>
               <div className="flex items-center gap-2.5">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={championIconUrl(detail.topChampion.championName)}
                   alt=""

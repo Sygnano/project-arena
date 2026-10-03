@@ -38,4 +38,4 @@ type ChartRow = {
   isSelected: boolean;
 };
 
-export type { Metric, Mode, ChampionRosterEntry, ChartRow };
+export type { ChampionRosterEntry, ChartRow, Metric, Mode };

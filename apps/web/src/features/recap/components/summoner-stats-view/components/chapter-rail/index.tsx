@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "cn";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { scrollToSlide } from "@/features/recap/utils/scroll-to-slide";
 import type { RailSlide } from "./types";
 
@@ -224,5 +224,5 @@ function ChapterRail({ slides }: Props) {
   );
 }
 
-export { ChapterRail };
 export type { RailSlide } from "./types";
+export { ChapterRail };

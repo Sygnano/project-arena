@@ -1,17 +1,17 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
-import { MotionConfig, AnimatePresence, motion } from "motion/react";
 import type { ChampionPicksStats, ChampionStats } from "@arena/types";
-import { CategorySection } from "@/features/recap/components/category-section";
-import { HextechPanel } from "@/components/hextech-panel";
+import { AnimatePresence, MotionConfig, motion } from "motion/react";
+import { useCallback, useMemo, useState } from "react";
 import { FadingRule } from "@/components/fading-rule";
-import { CoverflowGallery } from "./components/coverflow-gallery";
+import { HextechPanel } from "@/components/hextech-panel";
+import { CategorySection } from "@/features/recap/components/category-section";
+import { useOpenDossierRequests } from "@/features/recap/stores/champion-dossier";
+import { useChampionName } from "@/features/recap/stores/champion-names";
+import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
 import { ChampionCard } from "./components/champion-card";
 import { ChampionDossier } from "./components/champion-dossier";
-import { useChampionName } from "@/features/recap/stores/champion-names";
-import { useOpenDossierRequests } from "@/features/recap/stores/champion-dossier";
-import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
+import { CoverflowGallery } from "./components/coverflow-gallery";
 import { CARD_ASPECT, VIEW_TRANSITION } from "./constants";
 
 type Props = {

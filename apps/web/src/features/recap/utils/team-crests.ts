@@ -4,7 +4,7 @@
 // this identity (only the bare numeric `playerSubteamId`), so it can't be
 // verified against our own ingested data the way everything else in this
 // codebase is — this mapping is taken on the user's own in-game knowledge,
-// confirmed 1-6 only (the current 6-team format, see CLAUDE.md §2 on team
+// confirmed 1-6 only (the current 6-team format, see .claude/rules/arena-data.md on team
 // size). 7/8 (Wolf/Gromp) are left out rather than guessed at an unconfirmed
 // order, since teamId can't currently exceed 6 anyway.
 const TEAM_ICON_SLUG: Record<number, string> = {
@@ -38,4 +38,4 @@ function teamIconUrl(teamId: number): string | null {
     : null;
 }
 
-export { TEAM_NAME, teamName, teamIconUrl };
+export { TEAM_NAME, teamIconUrl, teamName };

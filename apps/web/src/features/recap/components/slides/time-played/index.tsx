@@ -1,25 +1,25 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import type { TimePlayedStats, CalendarStats } from "@arena/types";
-import { CategorySection } from "@/features/recap/components/category-section";
-import { Dial } from "@/components/dial";
-import { Calendar } from "./components/calendar";
-import { HourStrip } from "./components/hour-strip";
-import { HextechPanel } from "@/components/hextech-panel";
-import { SidebarStatRow } from "@/components/sidebar-stat-row";
+import type { CalendarStats, TimePlayedStats } from "@arena/types";
+import { useMemo, useState } from "react";
 import { DetailBand } from "@/components/detail-band";
+import { Dial } from "@/components/dial";
 import { DiamondTabs } from "@/components/diamond-tabs";
+import { HextechPanel } from "@/components/hextech-panel";
 import { PanelToolbar } from "@/components/panel-toolbar";
-import { ordinal } from "@/utils/format";
+import { SidebarStatRow } from "@/components/sidebar-stat-row";
+import { CategorySection } from "@/features/recap/components/category-section";
 import { isLowSample } from "@/features/recap/utils/sample";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
+import { useUtcOffsetHours } from "@/hooks/use-utc-offset-hours";
+import { ordinal } from "@/utils/format";
+import { utcOffsetLabel } from "@/utils/time-zone";
+import { Calendar } from "./components/calendar";
 import { CountStat } from "./components/count-stat";
 import { DurationStat } from "./components/duration-stat";
+import { HourStrip } from "./components/hour-strip";
 import { MODE_CAPTION, MONTH_ABBREV, SORT_MODES } from "./constants";
 import type { SortMode } from "./types";
-import { useUtcOffsetHours } from "@/hooks/use-utc-offset-hours";
-import { utcOffsetLabel } from "@/utils/time-zone";
 
 type Props = {
   timePlayed: TimePlayedStats;

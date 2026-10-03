@@ -29,12 +29,12 @@ export class RiotCallError extends Error {
  * status alone, but a 400's body is the only way to tell a foreign PUUID. */
 export function errorFromResponse(call: RiotCall, status: number, body: string): RiotCallError {
   const what = `${call.api} ${call.method}(${call.args.join(", ")})`;
-  // PUUIDs are encrypted per Riot app (CLAUDE.md §2).
+  // PUUIDs are encrypted per Riot app (.claude/rules/arena-data.md).
   if (status === 400 && body.includes("Exception decrypting")) {
     return new RiotCallError(
       status,
       call,
-      `Riot API 400 for ${what}: PUUID was issued to a different Riot app than RIOT_API_KEY's; stored PUUIDs need remapping (CLAUDE.md §2)`,
+      `Riot API 400 for ${what}: PUUID was issued to a different Riot app than RIOT_API_KEY's; stored PUUIDs need remapping (.claude/rules/arena-data.md)`,
       true,
     );
   }

@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { cn } from "cn";
+import Link from "next/link";
 import { actionClass } from "@/components/status-screen/constants";
 
 /** The secondary "back to search" action most status screens offer. */

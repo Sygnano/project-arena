@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { RefreshCw } from "lucide-react";
 import type { RefreshProgress, SummonerView } from "@arena/types";
 import { cn } from "cn";
-import { isRefreshActive, useSummonerRefresh } from "@/features/recap/api/use-summoner-refresh";
+import { RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { formatRetryAfter } from "@/features/recap/api/summoner-query";
+import { isRefreshActive, useSummonerRefresh } from "@/features/recap/api/use-summoner-refresh";
 import { formatTimeAgo, formatUtcDateTime } from "@/utils/format";
 import { BUTTON_CLASS, STALE_MS } from "./constants";
 import { useMinuteClock } from "./hooks";

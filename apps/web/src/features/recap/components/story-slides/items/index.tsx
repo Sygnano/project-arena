@@ -4,10 +4,10 @@ import type { EconomyStats, ItemOutcomeStats, PrismaticItemPicksStats, Prismatic
 import { motion } from "motion/react";
 import { AnimatedNumber } from "@/components/animated-number";
 import { Appear } from "@/components/appear";
-import { formatGold } from "@/utils/format";
-import { Em, StoryFrame, StoryKicker, StoryText, StoryTitle } from "@/features/recap/components/story-frame";
 import { StoryComb } from "@/features/recap/components/story-comb";
+import { Em, StoryFrame, StoryKicker, StoryText, StoryTitle } from "@/features/recap/components/story-frame";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
+import { formatGold } from "@/utils/format";
 import { winningPrismaticCells } from "./utils";
 
 type Props = {
@@ -93,7 +93,6 @@ function StoryItems({ economy, prismaticItems, prismaticItemPicks, specialItems 
               <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-2">
                 {upgrades.map((item) => (
                   <li key={item.itemId} className="flex items-center gap-2.5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={item.iconUrl}
                       alt=""

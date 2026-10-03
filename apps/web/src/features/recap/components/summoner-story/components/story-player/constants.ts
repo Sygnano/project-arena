@@ -56,5 +56,5 @@ const HOLD_MS = 220;
 /** Taps on this share of the screen's width, from the left, go back. */
 const BACK_ZONE = 0.3;
 
-export { TRANSITIONS, FADE, HOLD_MS, BACK_ZONE };
 export type { StoryTransition };
+export { BACK_ZONE, FADE, HOLD_MS, TRANSITIONS };

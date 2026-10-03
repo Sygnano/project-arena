@@ -1,5 +1,5 @@
-import type { FastifyReply } from "fastify";
 import type { GatewayEvent } from "@arena/riot";
+import type { FastifyReply } from "fastify";
 
 /** Proxies drop an idle connection, and the client gives up after 45s of
  * silence: a comment line every 15s keeps a waiting request's stream alive. */

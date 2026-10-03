@@ -1,11 +1,11 @@
 "use client";
 
 import type { ChampionPickBreakdown, ChampionStats } from "@arena/types";
-import { championIconUrl } from "@/utils/riot";
+import { HoverCardRows, HoverCardSection, HoverStatCard } from "@/features/recap/components/hover-stat-card";
 import { useChampionName } from "@/features/recap/stores/champion-names";
-import { HoverStatCard, HoverCardSection, HoverCardRows } from "@/features/recap/components/hover-stat-card";
-import { formatCompact, formatDuration } from "@/utils/format";
 import { isLowSample } from "@/features/recap/utils/sample";
+import { formatCompact, formatDuration } from "@/utils/format";
+import { championIconUrl } from "@/utils/riot";
 
 /** Hover card for one Picks column: the champion's name (the chart shows only
  * an icon) and its average COMBAT line. Complements the sidebar, which

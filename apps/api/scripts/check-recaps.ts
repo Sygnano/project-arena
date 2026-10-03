@@ -23,8 +23,8 @@
  *
  * Usage: pnpm --filter @arena/api check-recaps
  */
-import { asc, sql, summoners, type Summoner } from "@arena/db";
-import { isPlatform, matchRegion, toPlatform, type Region } from "@arena/riot";
+import { asc, type Summoner, sql, summoners } from "@arena/db";
+import { isPlatform, matchRegion, type Region, toPlatform } from "@arena/riot";
 import { db } from "../src/db.js";
 import { ingestSummoner } from "../src/ingestion/ingestSummoner.js";
 import { logger, riotIdLabel } from "../src/logger.js";

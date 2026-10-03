@@ -1,16 +1,16 @@
 "use client";
 
+import { motion, useReducedMotion } from "motion/react";
 import { useState } from "react";
-import { useReducedMotion, motion } from "motion/react";
-import { DiamondTabs } from "@/components/diamond-tabs";
-import { pooledRate } from "@/features/recap/utils/sample";
 import { formatSignedPoints } from "@/components/delta-cell";
+import { DiamondTabs } from "@/components/diamond-tabs";
 import { StatGroup } from "@/features/recap/components/slides/champion-gallery/components/champion-dossier/components/stat-group";
 import {
   FIRST_RATE_COLOR,
   TOP3_RATE_COLOR,
 } from "@/features/recap/components/slides/champion-gallery/components/champion-dossier/constants";
 import type { PickEntry } from "@/features/recap/components/slides/champion-gallery/components/champion-dossier/types";
+import { pooledRate } from "@/features/recap/utils/sample";
 import { PICK_COLUMNS } from "./constants";
 import type { PickSortKey } from "./types";
 import { sortPicks } from "./utils";
@@ -36,7 +36,7 @@ type PickTab<K extends string> = {
  * Win rates are colored against the average pick of the rows on the active
  * tab (`pooledRate`), not the champion's per-game win rate: longer games
  * hold more augments and build more items, and longer games finish higher,
- * so nearly every row would "beat" the per-game rate (CLAUDE.md §6).
+ * so nearly every row would "beat" the per-game rate (apps/web/CLAUDE.md, "Rates and samples").
  */
 function PickListGroup<K extends string>({
   title,

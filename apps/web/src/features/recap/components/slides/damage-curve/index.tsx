@@ -1,26 +1,26 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import type { DamageCurve as Curve, DamageCurveStats } from "@arena/types";
 import { cn } from "cn";
-import type { DamageCurveStats, DamageCurve as Curve } from "@arena/types";
-import { CategorySection } from "@/features/recap/components/category-section";
-import { HextechPanel } from "@/components/hextech-panel";
+import { useMemo, useRef, useState } from "react";
 import { Dial } from "@/components/dial";
 import { DiamondTabs } from "@/components/diamond-tabs";
+import { HextechPanel } from "@/components/hextech-panel";
 import { PanelToolbar } from "@/components/panel-toolbar";
 import { SidebarStatRows } from "@/components/sidebar-stat-rows";
-import { championIconUrl } from "@/utils/riot";
-import { ordinal } from "@/utils/format";
-import { pressable } from "@/utils/a11y";
-import { useChampionName } from "@/features/recap/stores/champion-names";
-import { sortByRate, isLowSample, MIN_SAMPLE } from "@/features/recap/utils/sample";
+import { CategorySection } from "@/features/recap/components/category-section";
 import { LowSampleSwitch } from "@/features/recap/components/low-sample-switch";
-import { DAMAGE_TYPE_KEYS, DAMAGE_TYPE_COLORS, DAMAGE_TYPE_LABELS } from "@/features/recap/utils/damage-types";
+import { useChampionName } from "@/features/recap/stores/champion-names";
+import { DAMAGE_TYPE_COLORS, DAMAGE_TYPE_KEYS, DAMAGE_TYPE_LABELS } from "@/features/recap/utils/damage-types";
+import { isLowSample, MIN_SAMPLE, sortByRate } from "@/features/recap/utils/sample";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
 import { useDragScroll } from "@/hooks/use-drag-scroll";
-import { useWheelForwardsTo } from "./hooks";
+import { pressable } from "@/utils/a11y";
+import { ordinal } from "@/utils/format";
+import { championIconUrl } from "@/utils/riot";
 import { CurveChart } from "./components/curve-chart";
 import { LIST_ICON_SIZE, MODE_LABEL } from "./constants";
+import { useWheelForwardsTo } from "./hooks";
 import type { Mode, Selection } from "./types";
 import { curveDamage, findings, formatDamage, formatMinutes, toPoints } from "./utils";
 
@@ -223,7 +223,6 @@ const DamageCurve = ({ damageCurves }: Props) => {
               {sortedChampions.map((champion) =>
                 listRow(
                   champion.championId,
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     loading="lazy"
                     decoding="async"

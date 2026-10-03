@@ -9,16 +9,13 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint ."
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@arena/types": "workspace:*"
   },
   "devDependencies": {
-    "@arena/eslint-config": "workspace:*",
     "@types/node": "^22.10.5",
-    "eslint": "^10.11.0",
     "typescript": "^5.7.3"
   }
 }

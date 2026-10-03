@@ -49,6 +49,7 @@ export function useInView<T extends Element>(options?: IntersectionObserverInit)
   const ref = useRef<T>(null);
   const [isInView, setIsInView] = useState(false);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `options` is often a fresh literal per render; keying off it would recreate the observer each render.
   useEffect(() => {
     const el = ref.current;
     if (!el || isInView) return;
@@ -59,10 +60,6 @@ export function useInView<T extends Element>(options?: IntersectionObserverInit)
 
     observer.observe(el);
     return () => observer.disconnect();
-    // `options` is typically a fresh object literal per render — keying off
-    // it would tear down and recreate the observer on every render instead
-    // of once.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isInView]);
 
   return [ref, isInView] as const;

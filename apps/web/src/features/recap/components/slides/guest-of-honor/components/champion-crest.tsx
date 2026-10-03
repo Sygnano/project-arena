@@ -1,9 +1,9 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { championIconUrl } from "@/utils/riot";
 import { RING_WIDTH } from "@/features/recap/components/augment-framed-card";
 import { iconName } from "@/features/recap/components/slides/guest-of-honor/utils";
+import { championIconUrl } from "@/utils/riot";
 
 function ChampionCrest({ championName }: { championName: string }) {
   return (

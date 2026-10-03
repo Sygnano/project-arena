@@ -16,4 +16,4 @@ type Row = {
   seasonTotal: UtilityBreakdown;
 };
 
-export type { Mode, Metric, SortDir, Row };
+export type { Metric, Mode, Row, SortDir };

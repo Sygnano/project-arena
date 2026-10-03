@@ -7,11 +7,11 @@ import {
   HoverCardSection,
   HoverStatCard,
 } from "@/features/recap/components/hover-stat-card";
-import { formatDuration } from "@/utils/format";
 import { edgeFor, games } from "@/features/recap/components/slides/time-played/utils";
-import { pad, percent } from "./utils";
 import { useUtcOffsetHours } from "@/hooks/use-utc-offset-hours";
+import { formatDuration } from "@/utils/format";
 import { utcOffsetLabel } from "@/utils/time-zone";
+import { pad, percent } from "./utils";
 
 function HourHoverCard({ calendar, hour }: { calendar: CalendarStats; hour: number }) {
   const gamesPlayed = calendar.gamesByHour[hour] ?? 0;

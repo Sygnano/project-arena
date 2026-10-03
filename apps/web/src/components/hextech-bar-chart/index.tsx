@@ -1,10 +1,10 @@
 "use client";
 
-import { type ReactNode, useRef, useState, useEffect, type PointerEvent, type FocusEvent } from "react";
-import { MotionConfig, motion } from "motion/react";
 import { cn } from "cn";
-import { pressable } from "@/utils/a11y";
+import { MotionConfig, motion } from "motion/react";
+import { type FocusEvent, type PointerEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { useDragScroll } from "@/hooks/use-drag-scroll";
+import { pressable } from "@/utils/a11y";
 import {
   COLUMN_WIDTH_CLASS,
   HIGHLIGHT_FILTER,
@@ -157,6 +157,7 @@ function HextechBarChart({
     const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
     setEdges((prev) => (prev.left === left && prev.right === right ? prev : { left, right }));
   }
+  // biome-ignore lint/correctness/useExhaustiveDependencies: updateEdges reads only the ref and a state setter.
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
@@ -482,5 +483,5 @@ function HextechBarChart({
   );
 }
 
+export type { BarColumn, BarSegment, HoverPoint } from "./types";
 export { HextechBarChart };
-export type { BarSegment, BarColumn, HoverPoint } from "./types";

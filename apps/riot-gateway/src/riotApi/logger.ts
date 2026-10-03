@@ -1,7 +1,7 @@
+import { isPlatform, matchRegion, PRIORITIES, REGION_LABEL, type Region } from "@arena/riot";
 import picocolors from "picocolors";
 import { formatWindow } from "./rateLimiting/headers.js";
 import type { WindowUsage } from "./rateLimiting/rateBucket.js";
-import { PRIORITIES, REGION_LABEL, isPlatform, matchRegion, type Region } from "@arena/riot";
 import type { RiotCall } from "./types.js";
 
 /**

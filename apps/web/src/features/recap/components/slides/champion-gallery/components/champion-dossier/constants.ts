@@ -1,4 +1,4 @@
-import type { DamageBreakdown, AbilityCastBreakdown } from "@arena/types";
+import type { AbilityCastBreakdown, DamageBreakdown } from "@arena/types";
 
 /** Same two rate colors Champion Picks uses for the identical two figures,
  * so "gold = top 3, prismatic = 1st" stays consistent between the section
@@ -26,4 +26,4 @@ const NO_DAMAGE: DamageBreakdown = { physical: 0, magical: 0, trueDamage: 0 };
 
 const NO_CASTS: AbilityCastBreakdown = { q: 0, w: 0, e: 0, r: 0 };
 
-export { TOP3_RATE_COLOR, FIRST_RATE_COLOR, HEAL_COLOR, CC_COLOR, SPECIAL_COLOR, ANVIL_COLORS, NO_DAMAGE, NO_CASTS };
+export { ANVIL_COLORS, CC_COLOR, FIRST_RATE_COLOR, HEAL_COLOR, NO_CASTS, NO_DAMAGE, SPECIAL_COLOR, TOP3_RATE_COLOR };

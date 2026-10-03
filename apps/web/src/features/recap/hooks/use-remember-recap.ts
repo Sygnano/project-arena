@@ -1,5 +1,5 @@
-import { useEffect } from "react";
 import type { SummonerProfile } from "@arena/types";
+import { useEffect } from "react";
 import { rememberRecap } from "@/lib/recent-recaps";
 
 /** Adds a recap with games to this browser's own "recently viewed" list

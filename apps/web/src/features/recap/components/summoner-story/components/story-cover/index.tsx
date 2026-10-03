@@ -1,14 +1,14 @@
 "use client";
 
-import type { ReactNode } from "react";
-import Link from "next/link";
-import { ArrowRight, Play } from "lucide-react";
 import type { SummonerProfile } from "@arena/types";
+import { ArrowRight, Play } from "lucide-react";
+import Link from "next/link";
+import type { ReactNode } from "react";
 import { Appear } from "@/components/appear";
 import { IdentityRing } from "@/components/dial";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { platformRegionName, profileIconUrl } from "@/utils/riot";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
+import { platformRegionName, profileIconUrl } from "@/utils/riot";
 import { useStartGestures } from "./hooks";
 
 type Props = {

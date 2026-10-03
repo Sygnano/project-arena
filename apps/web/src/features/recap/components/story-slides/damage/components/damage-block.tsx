@@ -3,10 +3,10 @@
 import type { ChampionStats, DamageBreakdown } from "@arena/types";
 import { Appear } from "@/components/appear";
 import { DonutChart } from "@/components/donut-chart";
-import { formatCompact } from "@/utils/format";
 import { StoryPortrait } from "@/features/recap/components/story-portrait";
 import { useChampionName } from "@/features/recap/stores/champion-names";
 import { DAMAGE_TYPE_COLORS, DAMAGE_TYPE_KEYS } from "@/features/recap/utils/damage-types";
+import { formatCompact } from "@/utils/format";
 
 type Props = {
   /** "DEALT" or "TAKEN". */

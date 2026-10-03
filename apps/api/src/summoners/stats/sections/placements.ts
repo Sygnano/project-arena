@@ -52,7 +52,7 @@ function longestRun(games: readonly OwnGame[], test: (game: OwnGame) => boolean)
 export function buildPlacementStats(games: readonly OwnGame[]) {
   // Zero-filled from 1st to the worst place seen, so a place never reached
   // still gets its column. The range comes from the data, never from a team
-  // count (CLAUDE.md §2).
+  // count (.claude/rules/arena-data.md).
   const worstPlacement = Math.max(0, ...games.map((game) => game.placement));
   const byPlacement: Record<number, number> = {};
   for (let placement = 1; placement <= worstPlacement; placement++) byPlacement[placement] = 0;

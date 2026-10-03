@@ -142,7 +142,7 @@
    * same custom property at once (reproduced in isolation, unrelated to this
    * app — a real Chromium engine limitation, not a bug in that CSS). The
    * augment catalog renders up to 57 Prismatic icons on screen simultaneously
-   * (see CLAUDE.md §2), so this had to be verified at that scale, not just
+   * (see .claude/rules/arena-data.md), so this had to be verified at that scale, not just
    * with one element. */
   --gradient-augment-silver: linear-gradient(
     180deg,
@@ -831,6 +831,7 @@
 section[data-offscreen] *,
 section[data-offscreen] *::before,
 section[data-offscreen] *::after {
+  /* biome-ignore lint/complexity/noImportantStyles: must beat the animations set by utility classes and inline styles. */
   animation-play-state: paused !important;
 }
 img[data-broken] {

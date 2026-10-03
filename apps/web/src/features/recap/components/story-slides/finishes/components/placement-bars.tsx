@@ -1,10 +1,10 @@
 "use client";
 
-import { motion } from "motion/react";
 import { cn } from "cn";
-import { TIER_STYLE } from "@/utils/tier-bars";
-import { ordinal } from "@/utils/format";
+import { motion } from "motion/react";
 import { placementTier } from "@/features/recap/components/story-slides/finishes/utils";
+import { ordinal } from "@/utils/format";
+import { TIER_STYLE } from "@/utils/tier-bars";
 
 type Props = {
   /** Games per placement, keyed by placement (only those that occurred). */

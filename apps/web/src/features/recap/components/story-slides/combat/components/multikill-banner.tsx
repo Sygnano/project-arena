@@ -1,11 +1,11 @@
 "use client";
 
-import { motion } from "motion/react";
 import { cn } from "cn";
+import { motion } from "motion/react";
 import { Appear } from "@/components/appear";
-import { championIconUrl } from "@/utils/riot";
-import { useChampionName } from "@/features/recap/stores/champion-names";
 import type { MultikillHeroes } from "@/features/recap/components/story-slides/combat/types";
+import { useChampionName } from "@/features/recap/stores/champion-names";
+import { championIconUrl } from "@/utils/riot";
 
 type Props = {
   heroes: MultikillHeroes | null;
@@ -70,7 +70,6 @@ function MultikillBanner({ heroes, delay = 1.5 }: Props) {
               transition={{ delay: delay + 0.3 + i * 0.15, type: "spring", stiffness: 260, damping: 16 }}
             >
               <span className="relative">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={championIconUrl(hero.championName)}
                   alt=""

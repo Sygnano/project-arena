@@ -34,13 +34,13 @@
  * only go out when no visitor lookup, refresh or first fetch is waiting.
  */
 import { parseArgs } from "node:util";
+import { matchRegion, type Platform, type Region } from "@arena/riot";
 import type { Logger } from "pino";
 import { z } from "zod";
-import { matchRegion, type Platform, type Region } from "@arena/riot";
 import { db } from "../src/db.js";
-import { logger, riotIdLabel } from "../src/logger.js";
-import { ingestSummoner, type BadMatch, type SkippedMatch } from "../src/ingestion/ingestSummoner.js";
+import { type BadMatch, ingestSummoner, type SkippedMatch } from "../src/ingestion/ingestSummoner.js";
 import { resolveSummonerByRiotId } from "../src/ingestion/resolveSummoner.js";
+import { logger, riotIdLabel } from "../src/logger.js";
 import { riotGateway } from "../src/riot.js";
 import { findSummonerByRiotId } from "../src/summoners/summonerRepository.js";
 import { errorMessage, isFatal, progressLogger } from "./script-helpers.js";
@@ -168,7 +168,7 @@ class Leaderboard {
 
   private async fetchNextPage() {
     const from = this.nextRank;
-    let rows;
+    let rows: Awaited<ReturnType<typeof fetchLeaderboardPage>>;
     try {
       rows = await fetchLeaderboardPage(from);
     } catch (err) {

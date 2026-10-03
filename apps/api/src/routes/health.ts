@@ -1,5 +1,5 @@
-import type { FastifyInstance } from "fastify";
 import { sql } from "@arena/db";
+import type { FastifyInstance } from "fastify";
 import { db } from "../db.js";
 
 /** For the host's health check: healthy only if the database answers, so a

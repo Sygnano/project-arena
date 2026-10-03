@@ -2,10 +2,10 @@
 
 import type { SummonerPageData } from "@arena/types";
 import { isRefreshActive, useSummonerRefresh } from "@/features/recap/api/use-summoner-refresh";
-import { platformRegionName } from "@/utils/riot";
 import { SummonerRecap } from "@/features/recap/components/summoner-recap";
-import { FetchingScreen } from "./components/fetching-screen";
+import { platformRegionName } from "@/utils/riot";
 import { FetchPrompt } from "./components/fetch-prompt";
+import { FetchingScreen } from "./components/fetching-screen";
 import { RefreshError } from "./components/refresh-error";
 import { useCanonicalHistory } from "./hooks";
 

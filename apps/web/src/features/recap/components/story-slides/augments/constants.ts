@@ -11,4 +11,4 @@ const FRAME_CLASS: Record<number, string> = {
   2: "augment-frame-prismatic",
 };
 
-export { RARITIES, FRAME_CLASS };
+export { FRAME_CLASS, RARITIES };

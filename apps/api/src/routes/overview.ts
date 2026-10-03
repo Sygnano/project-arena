@@ -1,5 +1,5 @@
+import { matches, matchParticipants, sql, summoners } from "@arena/db";
 import type { FastifyInstance } from "fastify";
-import { matchParticipants, matches, sql, summoners } from "@arena/db";
 import { db } from "../db.js";
 
 export type Overview = {

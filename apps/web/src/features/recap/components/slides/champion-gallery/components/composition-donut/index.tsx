@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { ResponsivePie } from "@nivo/pie";
+import { useState } from "react";
 import type { DonutSlice } from "./types";
 
 type Props = {
@@ -121,5 +121,5 @@ function CompositionDonut({ slices, format, caption }: Props) {
   );
 }
 
-export { CompositionDonut };
 export type { DonutSlice } from "./types";
+export { CompositionDonut };

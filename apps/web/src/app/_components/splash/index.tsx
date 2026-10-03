@@ -1,8 +1,8 @@
-import { RiotIdSearch } from "@/features/search/components/riot-id-search";
 import { SiteFooter } from "@/components/site-footer";
 import type { Overview } from "@/features/overview/api/get-overview";
 import { TrackedSoFar } from "@/features/overview/components/tracked-so-far";
 import { RecentRecaps } from "@/features/search/components/recent-recaps";
+import { RiotIdSearch } from "@/features/search/components/riot-id-search";
 import { SplashTitle } from "./components/splash-title";
 import { SPLASH_BACKGROUND } from "./constants";
 

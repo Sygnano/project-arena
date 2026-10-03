@@ -1,7 +1,7 @@
-import type { FastifyBaseLogger, FastifyInstance } from "fastify";
 import { riotIdKey, type Summoner } from "@arena/db";
 import { accountRegion, toPlatform } from "@arena/riot";
 import type { RefreshProgress } from "@arena/types";
+import type { FastifyBaseLogger, FastifyInstance } from "fastify";
 import { refreshQueue } from "../../ingestion/index.js";
 import { resolveSummonerByRiotId } from "../../ingestion/resolveSummoner.js";
 import { riotIdLabel } from "../../logger.js";
@@ -14,7 +14,7 @@ import {
   getMatchSummary,
   toSummonerView,
 } from "../../summoners/summonerRepository.js";
-import { openEventStream, type EventStream } from "./eventStream.js";
+import { type EventStream, openEventStream } from "./eventStream.js";
 import { parseRiotIdParams, type RiotIdParams } from "./riotIdParams.js";
 
 // Requests that make us call Riot (a Riot ID lookup or a match fetch), per

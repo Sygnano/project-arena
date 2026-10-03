@@ -1,11 +1,11 @@
 "use client";
 
-import type { CSSProperties } from "react";
-import { cn } from "cn";
 import type { GuestOfHonorAugmentStats } from "@arena/types";
-import { TIER_STYLE } from "@/utils/tier-bars";
+import { cn } from "cn";
+import type { CSSProperties } from "react";
+import { augmentFrameClassName, RING_WIDTH, tierForAugmentCard } from "@/features/recap/components/augment-framed-card";
 import { isLowSample } from "@/features/recap/utils/sample";
-import { tierForAugmentCard, RING_WIDTH, augmentFrameClassName } from "@/features/recap/components/augment-framed-card";
+import { TIER_STYLE } from "@/utils/tier-bars";
 
 function CompactAugmentCard({ augment }: { augment: GuestOfHonorAugmentStats }) {
   const tier = tierForAugmentCard(augment);

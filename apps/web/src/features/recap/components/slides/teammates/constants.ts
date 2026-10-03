@@ -15,4 +15,4 @@ const BASELINE_COLOR = "var(--color-lol-blue-300)";
 /** avatar · name · placement strip · games · top 3 · Δ · 1st. */
 const ROW_GRID = "36px minmax(110px,190px) minmax(0,1fr) 52px 56px 76px 48px";
 
-export { MIN_GAMES_FOR_BEST_DUO, TOP3_RATE_COLOR, FIRST_RATE_COLOR, REST_COLOR, BASELINE_COLOR, ROW_GRID };
+export { BASELINE_COLOR, FIRST_RATE_COLOR, MIN_GAMES_FOR_BEST_DUO, REST_COLOR, ROW_GRID, TOP3_RATE_COLOR };

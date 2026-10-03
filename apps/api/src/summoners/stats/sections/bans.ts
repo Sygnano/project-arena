@@ -4,7 +4,7 @@ import type { StatsData } from "../loadStatsData.js";
 
 /**
  * The bans the summoner's lobbies made. Bans are lobby-wide, stored once per
- * match (`matches.bannedChampionIds`, see CLAUDE.md §2), with `-1` for a slot
+ * match (`matches.bannedChampionIds`, see .claude/rules/arena-data.md), with `-1` for a slot
  * nobody used and the same champion possibly banned twice.
  */
 export function buildBanStats({ games, participantsByMatch }: StatsData, championKey: (championId: number) => string) {

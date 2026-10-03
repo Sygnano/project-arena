@@ -1,29 +1,29 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import type { ChampionStats, DamageStats } from "@arena/types";
 import { cn } from "cn";
 import { MotionConfig, motion } from "motion/react";
-import type { DamageStats, ChampionStats } from "@arena/types";
-import { CategorySection } from "@/features/recap/components/category-section";
-import { HextechPanel } from "@/components/hextech-panel";
+import { useMemo, useRef, useState } from "react";
+import { DetailBand } from "@/components/detail-band";
 import { Dial } from "@/components/dial";
 import { DiamondTabs } from "@/components/diamond-tabs";
+import { HextechPanel } from "@/components/hextech-panel";
 import { PanelToolbar, ToolbarDivider } from "@/components/panel-toolbar";
-import { LowSampleSwitch } from "@/features/recap/components/low-sample-switch";
-import { DetailBand } from "@/components/detail-band";
 import { SidebarStatRows } from "@/components/sidebar-stat-rows";
-import { ValuePercentRow } from "@/components/value-percent-row";
 import { SortHeaderLabel } from "@/components/sort-header-label";
-import { championIconUrl } from "@/utils/riot";
-import { formatCompact } from "@/utils/format";
-import { pressable } from "@/utils/a11y";
-import { useDragScroll } from "@/hooks/use-drag-scroll";
-import { useChampionName } from "@/features/recap/stores/champion-names";
+import { ValuePercentRow } from "@/components/value-percent-row";
+import { CategorySection } from "@/features/recap/components/category-section";
 import { DossierLink } from "@/features/recap/components/dossier-link";
+import { LowSampleSwitch } from "@/features/recap/components/low-sample-switch";
+import { useChampionName } from "@/features/recap/stores/champion-names";
 import { perGame } from "@/features/recap/utils/per-game";
-import { sortByRate, isLowSample, MIN_SAMPLE } from "@/features/recap/utils/sample";
+import { isLowSample, MIN_SAMPLE, sortByRate } from "@/features/recap/utils/sample";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
-import { COLORS, ICON_SIZE, METRICS, METRIC_LABEL, ROW_GAP, ROW_HEIGHT, ROW_PADDING_X, SLOT_PITCH } from "./constants";
+import { useDragScroll } from "@/hooks/use-drag-scroll";
+import { pressable } from "@/utils/a11y";
+import { formatCompact } from "@/utils/format";
+import { championIconUrl } from "@/utils/riot";
+import { COLORS, ICON_SIZE, METRIC_LABEL, METRICS, ROW_GAP, ROW_HEIGHT, ROW_PADDING_X, SLOT_PITCH } from "./constants";
 import type { Metric, Mode, Row, SortDir } from "./types";
 import { barWidthPercent, columnValue, segmentOrder, sumBreakdown } from "./utils";
 
@@ -46,7 +46,7 @@ type Props = {
 
 /**
  * Rebuilt on the same row-list template as `BannedChampions` (see
- * design_handoff_arena_panels/README.md, "the tier-fill system" and CLAUDE.md's
+ * design_handoff_arena_panels/README.md, "the tier-fill system" and apps/web/CLAUDE.md's
  * component layering notes) rather than the earlier dealt/taken mirrored bar
  * chart — a stacked physical/magical/true bar per champion (tallying to the
  * total shown at its right, the same slot ban rate's % occupied) plus three

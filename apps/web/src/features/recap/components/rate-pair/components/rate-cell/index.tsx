@@ -1,7 +1,7 @@
 import { cn } from "cn";
-import { isLowSample } from "@/features/recap/utils/sample";
 import { SIZES } from "@/features/recap/components/rate-pair/constants";
 import type { Rate } from "@/features/recap/components/rate-pair/types";
+import { isLowSample } from "@/features/recap/utils/sample";
 import { RateDelta } from "./components/rate-delta";
 
 function RateCell({ rate, size }: { rate: Rate; size: "lg" | "md" }) {

@@ -19,4 +19,4 @@ type Row = {
 
 type SortDir = "asc" | "desc";
 
-export type { Mode, Metric, Row, SortDir };
+export type { Metric, Mode, Row, SortDir };

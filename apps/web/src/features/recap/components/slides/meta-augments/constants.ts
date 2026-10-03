@@ -13,4 +13,4 @@ const GLOW_MARGIN = 24;
 
 const DECK_QUERY = "(min-width: 1280px) and (min-height: 860px)";
 
-export { CARD_WIDTH, CARD_HEIGHT, CARD_GAP, GLOW_MARGIN, DECK_QUERY };
+export { CARD_GAP, CARD_HEIGHT, CARD_WIDTH, DECK_QUERY, GLOW_MARGIN };

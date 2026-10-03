@@ -1,29 +1,29 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { ResponsiveChord } from "@nivo/chord";
-import type { ArcTooltipComponentProps, RibbonTooltipComponentProps } from "@nivo/chord";
 import type { TeamSynergyStats } from "@arena/types";
-import { DiamondTabs } from "@/components/diamond-tabs";
-import { PanelToolbar, ToolbarDivider } from "@/components/panel-toolbar";
+import type { ArcTooltipComponentProps, RibbonTooltipComponentProps } from "@nivo/chord";
+import { ResponsiveChord } from "@nivo/chord";
+import { useMemo, useState } from "react";
 import { formatSignedPoints } from "@/components/delta-cell";
-import {
-  HoverStatCard,
-  HoverCardSection,
-  HoverCardRows,
-  HoverCardChampions,
-} from "@/features/recap/components/hover-stat-card";
-import { isLowSample, MIN_SAMPLE } from "@/features/recap/utils/sample";
-import { CategorySection } from "@/features/recap/components/category-section";
-import { HextechPanel } from "@/components/hextech-panel";
-import { Dial } from "@/components/dial";
-import { LowSampleSwitch } from "@/features/recap/components/low-sample-switch";
 import { DetailBand } from "@/components/detail-band";
+import { Dial } from "@/components/dial";
+import { DiamondTabs } from "@/components/diamond-tabs";
+import { HextechPanel } from "@/components/hextech-panel";
+import { PanelToolbar, ToolbarDivider } from "@/components/panel-toolbar";
 import { SidebarStatRows } from "@/components/sidebar-stat-rows";
+import { CategorySection } from "@/features/recap/components/category-section";
+import {
+  HoverCardChampions,
+  HoverCardRows,
+  HoverCardSection,
+  HoverStatCard,
+} from "@/features/recap/components/hover-stat-card";
+import { LowSampleSwitch } from "@/features/recap/components/low-sample-switch";
+import { useChampionName } from "@/features/recap/stores/champion-names";
+import { isLowSample, MIN_SAMPLE } from "@/features/recap/utils/sample";
+import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
 import { championIconUrl } from "@/utils/riot";
 import { tierGradient } from "@/utils/tier-bars";
-import { useChampionName } from "@/features/recap/stores/champion-names";
-import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
 import { TeammatePicks } from "./components/teammate-picks";
 import type { PickSort, View } from "./types";
 

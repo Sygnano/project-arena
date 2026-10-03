@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ChevronLeft, ChevronRight, Pause, Play, X } from "lucide-react";
-import { cn } from "cn";
 import type { SummonerProfile } from "@arena/types";
+import { cn } from "cn";
+import { ChevronLeft, ChevronRight, Pause, Play, X } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { profileIconUrl } from "@/utils/riot";
 import { StoryProgress } from "./components/story-progress";
@@ -180,6 +180,6 @@ function StoryPlayer({ slides, profile, onClose }: Props) {
   );
 }
 
-export { StoryPlayer };
-export type { StorySlide, StoryControls } from "./types";
 export type { StoryTransition } from "./constants";
+export type { StoryControls, StorySlide } from "./types";
+export { StoryPlayer };

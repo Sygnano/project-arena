@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState, useLayoutEffect } from "react";
 import { cn } from "cn";
+import { useLayoutEffect, useRef, useState } from "react";
 import { RingFrame } from "./components/ring-frame";
 import {
   LABEL_MAX_WIDTH,
@@ -108,6 +108,6 @@ function Dial({ value, label, formatValue, className, labelPosition = "bottom" }
   );
 }
 
-export { Dial };
-export { RingFrame } from "./components/ring-frame";
 export { IdentityRing } from "./components/identity-ring";
+export { RingFrame } from "./components/ring-frame";
+export { Dial };

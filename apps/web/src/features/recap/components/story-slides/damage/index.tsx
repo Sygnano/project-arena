@@ -2,7 +2,6 @@
 
 import type { ChampionStats, DamageCurveStats, DamageStats } from "@arena/types";
 import { Appear } from "@/components/appear";
-import { formatCompact } from "@/utils/format";
 import { Em, StoryFrame, StoryKicker, StoryText, StoryTitle } from "@/features/recap/components/story-frame";
 import {
   DAMAGE_TYPE_COLORS,
@@ -12,6 +11,7 @@ import {
 } from "@/features/recap/utils/damage-types";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
 import { topChampion } from "@/features/recap/utils/top-champion";
+import { formatCompact } from "@/utils/format";
 import { DamageBlock } from "./components/damage-block";
 import { DamageLines } from "./components/damage-lines";
 import { damageLines } from "./utils";

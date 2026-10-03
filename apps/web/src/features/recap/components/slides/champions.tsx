@@ -1,18 +1,18 @@
 "use client";
 
-import { useMemo } from "react";
-import { tierForBestFinish } from "@/utils/tier-bars";
 import type { ChampionCatalogStats, ChampionPicksStats, ChampionStats } from "@arena/types";
+import { useMemo } from "react";
 import { CursorTooltip } from "@/components/cursor-tooltip";
-import { useChartHover } from "@/hooks/use-chart-hover";
-import { ChampionResultsCard } from "@/features/recap/components/champion-results-card";
-import { CategorySection } from "@/features/recap/components/category-section";
-import { HextechPanel } from "@/components/hextech-panel";
 import { HeaderStatStrip, StatCell } from "@/components/header-stat-strip";
 import { HexComb, type HexCombCell } from "@/components/hex-comb";
-import { championIconUrl } from "@/utils/riot";
+import { HextechPanel } from "@/components/hextech-panel";
+import { CategorySection } from "@/features/recap/components/category-section";
+import { ChampionResultsCard } from "@/features/recap/components/champion-results-card";
 import { useChampionName } from "@/features/recap/stores/champion-names";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
+import { useChartHover } from "@/hooks/use-chart-hover";
+import { championIconUrl } from "@/utils/riot";
+import { tierForBestFinish } from "@/utils/tier-bars";
 
 type Props = {
   championCatalog: ChampionCatalogStats;

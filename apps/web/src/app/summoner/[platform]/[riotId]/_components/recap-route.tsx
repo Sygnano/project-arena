@@ -1,6 +1,7 @@
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { loadSummonerPage } from "@/app/summoner/[platform]/[riotId]/_lib/load-summoner-page";
 import { getSummonerStatsByRiotId, RecapRateLimitedError } from "@/features/recap/api/get-summoner-stats";
 import { hasRecap, summonerStatsQueryKey } from "@/features/recap/api/summoner-query";
 import { RateLimitedView } from "@/features/recap/components/rate-limited-view";
@@ -10,7 +11,6 @@ import { getQueryClient } from "@/lib/query-client";
 import { visitorIp } from "@/lib/visitor-ip";
 import { isKnownPlatform } from "@/utils/riot";
 import { parseRiotIdSlug, summonerAdvancedPath, summonerPath } from "@/utils/riot-id";
-import { loadSummonerPage } from "@/app/summoner/[platform]/[riotId]/_lib/load-summoner-page";
 
 type Props = {
   params: { platform: string; riotId: string };
@@ -59,7 +59,7 @@ export async function RecapRoute({ params: { platform, riotId }, view }: Props) 
   const ip = visitorIp(await headers());
   // query() (not the deprecated fetchQuery/prefetchQuery pair) runs the
   // fetch and returns it, filling the cache that dehydrate() ships.
-  let stats;
+  let stats: Awaited<ReturnType<typeof getSummonerStatsByRiotId>>;
   try {
     stats = await queryClient.query({
       queryKey: summonerStatsQueryKey(platform, parsed.gameName, parsed.tagLine),

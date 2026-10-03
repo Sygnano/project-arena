@@ -6,4 +6,4 @@ const START_SWIPE_PX = 40;
  * ignored for this long: a trackpad's inertial scroll would restart it. */
 const REARM_MS = 900;
 
-export { START_WHEEL_PX, START_SWIPE_PX, REARM_MS };
+export { REARM_MS, START_SWIPE_PX, START_WHEEL_PX };

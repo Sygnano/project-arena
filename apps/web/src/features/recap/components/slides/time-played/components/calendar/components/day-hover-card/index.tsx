@@ -7,8 +7,8 @@ import {
   HoverCardSection,
   HoverStatCard,
 } from "@/features/recap/components/hover-stat-card";
-import { formatDuration, ordinal } from "@/utils/format";
 import { edgeFor, games } from "@/features/recap/components/slides/time-played/utils";
+import { formatDuration, ordinal } from "@/utils/format";
 import { PlacementPips } from "./components/placement-pips";
 import { DAY_TITLE } from "./constants";
 

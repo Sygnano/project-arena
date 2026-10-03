@@ -1,9 +1,9 @@
-import type { ReactNode } from "react";
 import type { RefreshProgress } from "@arena/types";
+import type { ReactNode } from "react";
 import { StatusScreen } from "@/components/status-screen";
+import { describeProgress } from "@/features/recap/components/refresh-view/utils";
 import { MatchProgressBar } from "./match-progress-bar";
 import { ProgressEmblem } from "./progress-emblem";
-import { describeProgress } from "@/features/recap/components/refresh-view/utils";
 
 type Props = {
   title: ReactNode;

@@ -21,4 +21,4 @@ const MONTH_ABBREV = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
 });
 
-export { SORT_MODES, MODE_CAPTION, MONTH_ABBREV };
+export { MODE_CAPTION, MONTH_ABBREV, SORT_MODES };

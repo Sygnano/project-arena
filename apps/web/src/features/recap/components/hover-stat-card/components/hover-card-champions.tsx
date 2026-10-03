@@ -1,9 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
 import type { ChampionGames } from "@arena/types";
-import { championIconUrl } from "@/utils/riot";
+import type { ReactNode } from "react";
 import { useChampionName } from "@/features/recap/stores/champion-names";
+import { championIconUrl } from "@/utils/riot";
 
 /** Champion icons, each with its name and a count underneath ("games" by
  * default; `noun` for other counts, e.g. "kill"). `detail` adds a line under
@@ -22,7 +22,6 @@ function HoverCardChampions<T extends ChampionGames>({
     <div className="flex gap-3">
       {champions.map((champion) => (
         <div key={champion.championName} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={championIconUrl(champion.championName)}
             alt=""

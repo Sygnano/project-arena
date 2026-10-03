@@ -1,5 +1,5 @@
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 /**
  * Section links (`/summoner/.../#augments`) predate the story: they point at

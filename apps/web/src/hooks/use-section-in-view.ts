@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * True while the returned ref's element covers the middle of the summoner

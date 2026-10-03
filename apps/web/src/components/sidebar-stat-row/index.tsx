@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
 import { cn } from "cn";
+import type { ReactNode } from "react";
 import { SIZE_CLASSES } from "./constants";
 import type { Size } from "./types";
 
@@ -54,5 +54,5 @@ function SidebarStatRow({ label, children, last = false, size = "default", value
   );
 }
 
-export { SidebarStatRow };
 export type { Size } from "./types";
+export { SidebarStatRow };

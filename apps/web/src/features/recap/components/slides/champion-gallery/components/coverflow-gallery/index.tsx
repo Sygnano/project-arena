@@ -1,15 +1,15 @@
 "use client";
 
+import { cn } from "cn";
 import {
   type ReactNode,
+  type PointerEvent as ReactPointerEvent,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
   useRef,
   useState,
-  useEffect,
-  useCallback,
-  useLayoutEffect,
-  type PointerEvent as ReactPointerEvent,
 } from "react";
-import { cn } from "cn";
 import {
   ARRIVE_EPSILON,
   CARDS_PER_SIDE,
@@ -499,5 +499,5 @@ function CoverflowGallery<T>({
   );
 }
 
-export { CoverflowGallery };
 export type { CoverflowGalleryProps };
+export { CoverflowGallery };

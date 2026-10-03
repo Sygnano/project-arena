@@ -2,10 +2,10 @@
 
 import type { ChampionStats } from "@arena/types";
 import {
-  HoverStatCard,
-  HoverCardSection,
   HoverCardChampions,
   HoverCardRows,
+  HoverCardSection,
+  HoverStatCard,
 } from "@/features/recap/components/hover-stat-card";
 import type { PlateTier } from "@/features/recap/components/slides/kills/types";
 import { exactMultikills } from "./utils";

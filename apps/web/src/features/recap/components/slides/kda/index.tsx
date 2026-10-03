@@ -1,25 +1,25 @@
 "use client";
 
-import { useState, useMemo } from "react";
 import type { ChampionStats } from "@arena/types";
-import { CategorySection } from "@/features/recap/components/category-section";
-import { HextechPanel } from "@/components/hextech-panel";
-import { HextechBarChart } from "@/components/hextech-bar-chart";
-import { championIconUrl } from "@/utils/riot";
-import { Dial } from "@/components/dial";
-import { DetailBand } from "@/components/detail-band";
-import { DiamondTabs } from "@/components/diamond-tabs";
-import { LowSampleSwitch } from "@/features/recap/components/low-sample-switch";
-import { PanelToolbar, ToolbarDivider } from "@/components/panel-toolbar";
-import { MIN_SAMPLE } from "@/features/recap/utils/sample";
-import { useChampionName } from "@/features/recap/stores/champion-names";
-import { DossierLink } from "@/features/recap/components/dossier-link";
+import { useMemo, useState } from "react";
 import { CursorTooltip } from "@/components/cursor-tooltip";
-import { useChartHover } from "@/hooks/use-chart-hover";
-import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
+import { DetailBand } from "@/components/detail-band";
+import { Dial } from "@/components/dial";
+import { DiamondTabs } from "@/components/diamond-tabs";
+import { HextechBarChart } from "@/components/hextech-bar-chart";
+import { HextechPanel } from "@/components/hextech-panel";
+import { PanelToolbar, ToolbarDivider } from "@/components/panel-toolbar";
 import { SidebarStatRows } from "@/components/sidebar-stat-rows";
+import { CategorySection } from "@/features/recap/components/category-section";
+import { DossierLink } from "@/features/recap/components/dossier-link";
+import { LowSampleSwitch } from "@/features/recap/components/low-sample-switch";
+import { useChampionName } from "@/features/recap/stores/champion-names";
+import { MIN_SAMPLE } from "@/features/recap/utils/sample";
+import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
+import { useChartHover } from "@/hooks/use-chart-hover";
+import { championIconUrl } from "@/utils/riot";
 import { KdaHoverCard } from "./components/kda-hover-card";
-import { METRICS, METRIC_LABEL } from "./constants";
+import { METRIC_LABEL, METRICS } from "./constants";
 import type { Metric, Mode } from "./types";
 import { buildChartRows, buildRoster, toBarColumns } from "./utils";
 
@@ -224,5 +224,5 @@ const KDA = ({ kills, deaths, assists, kda, mostKills, bestKda, champions }: Pro
   );
 };
 
+export type { ChampionRosterEntry, ChartRow, Metric, Mode } from "./types";
 export { KDA };
-export type { Metric, Mode, ChampionRosterEntry, ChartRow } from "./types";

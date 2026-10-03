@@ -1,9 +1,9 @@
 "use client";
 
 import type { RefreshProgress, SummonerView } from "@arena/types";
-import { NoArenaGames } from "./components/no-arena-games";
 import { SummonerStatsView } from "@/features/recap/components/summoner-stats-view";
 import { SummonerStory } from "@/features/recap/components/summoner-story";
+import { NoArenaGames } from "./components/no-arena-games";
 
 type Props = {
   platform: string;

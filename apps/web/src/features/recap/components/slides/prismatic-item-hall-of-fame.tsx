@@ -1,17 +1,17 @@
 "use client";
 
-import { useMemo } from "react";
-import { tierForBestFinish } from "@/utils/tier-bars";
 import type { PrismaticItemPicksStats, PrismaticItemsStats } from "@arena/types";
-import { CategorySection } from "@/features/recap/components/category-section";
-import { HextechPanel } from "@/components/hextech-panel";
+import { useMemo } from "react";
+import { CursorTooltip } from "@/components/cursor-tooltip";
 import { HeaderStatStrip, StatCell } from "@/components/header-stat-strip";
 import { HexComb, type HexCombCell } from "@/components/hex-comb";
-import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
-import { pooledRate } from "@/features/recap/utils/sample";
-import { CursorTooltip } from "@/components/cursor-tooltip";
+import { HextechPanel } from "@/components/hextech-panel";
+import { CategorySection } from "@/features/recap/components/category-section";
 import { PickHoverCard } from "@/features/recap/components/pick-hover-card";
+import { pooledRate } from "@/features/recap/utils/sample";
+import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
 import { useChartHover } from "@/hooks/use-chart-hover";
+import { tierForBestFinish } from "@/utils/tier-bars";
 
 type Props = {
   prismaticItems: PrismaticItemsStats;
@@ -19,7 +19,7 @@ type Props = {
 };
 
 /**
- * The full Prismatic Item catalog (49 items — see CLAUDE.md §2) as a
+ * The full Prismatic Item catalog (49 items — see .claude/rules/arena-data.md) as a
  * honeycomb (`HexComb`), same layout as `Champions`/`AugmentHallOfFame` —
  * fixed alphabetical order, each hexagon rimmed by the summoner's best-ever
  * finish while holding it.

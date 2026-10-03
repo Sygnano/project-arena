@@ -41,7 +41,7 @@ interface Kill {
  *
  * Teams on a bye in an odd round fight a ghost, which emits no kill events,
  * so those never appear as duels. Team size comes from the match itself,
- * never a constant (CLAUDE.md §2).
+ * never a constant (.claude/rules/arena-data.md).
  */
 export function parseRounds(
   matchId: string,

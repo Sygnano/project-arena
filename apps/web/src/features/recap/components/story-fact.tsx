@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
 import { cn } from "cn";
+import type { ReactNode } from "react";
 import { Appear } from "@/components/appear";
 
 type Props = {
@@ -19,7 +19,6 @@ function StoryFact({ label, children, iconUrl, roundIcon = false, delay = 1, cla
     <Appear delay={delay} className={cn("min-w-0", className)}>
       <div className="flex h-full items-center gap-3 border-l border-[rgba(200,170,110,.35)] bg-[linear-gradient(90deg,rgba(4,12,20,.6),transparent)] py-2 pr-3 pl-3.5">
         {iconUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={iconUrl}
             alt=""

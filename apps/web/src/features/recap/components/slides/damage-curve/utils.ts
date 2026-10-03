@@ -1,4 +1,4 @@
-import type { DamageCurveSeries, DamageCurve as Curve } from "@arena/types";
+import type { DamageCurve as Curve, DamageCurveSeries } from "@arena/types";
 import { formatCompact } from "@/utils/format";
 import type { DamageCurvePoint, Findings, Mode } from "./types";
 
@@ -59,4 +59,4 @@ function curveDamage(curve: Curve, mode: Mode): number {
   return mode === "average" ? total / curve.games : total;
 }
 
-export { toPoints, pointTotal, formatDamage, formatMinutes, findings, curveDamage };
+export { curveDamage, findings, formatDamage, formatMinutes, pointTotal, toPoints };

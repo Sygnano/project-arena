@@ -3,7 +3,7 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "env": ["NODE_ENV", "NEXT_DIST_DIR", "SITE_URL", "API_URL", "API_PROXY_SECRET"]
+      "env": ["NODE_ENV", "NEXT_DIST_DIR", "SITE_URL", "API_URL", "API_PROXY_SECRET", "MAINTENANCE_MODE"]
     }
   }
 }

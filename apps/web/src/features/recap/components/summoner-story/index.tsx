@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { AnimatePresence } from "motion/react";
 import type { RefreshProgress, SummonerView } from "@arena/types";
-import { summonerAdvancedPath } from "@/utils/riot-id";
+import { AnimatePresence } from "motion/react";
+import { useState } from "react";
 import { RecapRefresh } from "@/features/recap/components/recap-refresh";
 import { StoryAbilities } from "@/features/recap/components/story-slides/abilities";
 import { StoryAugments } from "@/features/recap/components/story-slides/augments";
@@ -20,6 +19,7 @@ import { useRememberRecap } from "@/features/recap/hooks/use-remember-recap";
 import { ChampionNamesProvider } from "@/features/recap/stores/champion-names";
 import { firstTrackedDate, seasonPeriod } from "@/features/recap/utils/season-period";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
+import { summonerAdvancedPath } from "@/utils/riot-id";
 import { StoryCover } from "./components/story-cover";
 import { StoryPlayer, type StorySlide } from "./components/story-player";
 import { useFullStatsHash } from "./hooks";

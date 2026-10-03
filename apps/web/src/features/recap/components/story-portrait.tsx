@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
 import { cn } from "cn";
+import type { ReactNode } from "react";
 import { Appear } from "@/components/appear";
 import { championLoadingUrl } from "@/utils/riot";
 
@@ -42,7 +42,6 @@ function StoryPortrait({
         className={cn("relative h-[clamp(160px,40vh,440px)]", className)}
         style={{ aspectRatio: "308 / 560", boxShadow: `0 0 48px rgba(${glow},.35)` }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={championLoadingUrl(championName)}
           alt=""

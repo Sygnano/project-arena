@@ -1,5 +1,5 @@
-import type { FastifyInstance } from "fastify";
 import type { SummonerPageData } from "@arena/types";
+import type { FastifyInstance } from "fastify";
 import { refreshQueue } from "../../ingestion/index.js";
 import { riotIdLabel } from "../../logger.js";
 import { clientIp, SlidingWindowLimiter } from "../../rateLimit.js";

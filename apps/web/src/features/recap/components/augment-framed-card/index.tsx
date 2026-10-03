@@ -1,5 +1,5 @@
-import type { ReactNode, CSSProperties } from "react";
 import { cn } from "cn";
+import type { CSSProperties, ReactNode } from "react";
 import { CARD_ASPECT_RATIO, CardFrame, RING_WIDTH } from "@/components/card-frame";
 import { AugmentStatsRow } from "./components/augment-stats-row";
 import { augmentFrameClassName } from "./constants";
@@ -74,9 +74,9 @@ function AugmentFramedCard({
   );
 }
 
-export { AugmentFramedCard };
 export { RING_WIDTH } from "@/components/card-frame";
+export { AugmentStatsRow } from "./components/augment-stats-row";
+export { augmentFrameClassName } from "./constants";
 export type { AugmentFramedCardStats } from "./types";
 export { tierForAugmentCard } from "./utils";
-export { augmentFrameClassName } from "./constants";
-export { AugmentStatsRow } from "./components/augment-stats-row";
+export { AugmentFramedCard };

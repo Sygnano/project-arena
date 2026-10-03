@@ -15,7 +15,7 @@ export function errorMessage(err: unknown) {
 /** Errors that will fail every summoner the same way. */
 export function isFatal(err: unknown) {
   // 401/403: missing or expired key (or the wrong gateway secret). 400
-  // "decrypting": PUUIDs from another Riot app (see CLAUDE.md §2).
+  // "decrypting": PUUIDs from another Riot app (see .claude/rules/arena-data.md).
   return err instanceof RiotApiError && err.fatal;
 }
 

@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import type { RefreshErrorCode, RefreshEvent, RefreshProgress, SummonerView } from "@arena/types";
-import { summonerStatsQueryKey } from "./summoner-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { summonerPath } from "@/utils/riot-id";
+import { summonerStatsQueryKey } from "./summoner-query";
 
 export type SummonerRefreshState =
   | { status: "idle" }
@@ -116,11 +116,10 @@ export function useSummonerRefresh({ platform, gameName, tagLine, autoStart = fa
     connect();
   }, [connect]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount, joining a running fetch is a one-time decision.
   useEffect(() => {
     if (autoStart) connect();
     return () => controller.current?.abort();
-    // Only on mount: joining a running fetch is a one-time decision.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return { state, start };

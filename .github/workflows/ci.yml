@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads the pnpm version from package.json's packageManager.
+      - uses: pnpm/action-setup@v4
+
+      # Same Node major as Railway (RAILPACK_NODE_VERSION, docs/deployment.md).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      # Format, import order and lint, with GitHub annotations.
+      - run: pnpm exec biome ci .
+      - run: pnpm typecheck
+      - run: pnpm test

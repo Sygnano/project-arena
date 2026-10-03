@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
 import type { GameCatalog } from "@arena/types";
+import { createContext, type ReactNode, useContext } from "react";
 
 /** Used when the catalog couldn't be loaded: ids then show as placeholders. */
 const EMPTY_CATALOG: GameCatalog = { champions: {}, items: {}, augments: {} };

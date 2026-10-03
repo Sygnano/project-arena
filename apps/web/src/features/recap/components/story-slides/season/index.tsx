@@ -3,11 +3,11 @@
 import type { CalendarStats, TimePlayedStats } from "@arena/types";
 import { AnimatedNumber } from "@/components/animated-number";
 import { Appear } from "@/components/appear";
-import { formatHoursMinutes } from "@/utils/format";
-import { Em, StoryFrame, StoryKicker, StoryText, StoryTitle } from "@/features/recap/components/story-frame";
 import { StoryFact } from "@/features/recap/components/story-fact";
+import { Em, StoryFrame, StoryKicker, StoryText, StoryTitle } from "@/features/recap/components/story-frame";
 import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
 import { useUtcOffsetHours } from "@/hooks/use-utc-offset-hours";
+import { formatHoursMinutes } from "@/utils/format";
 import { utcOffsetLabel } from "@/utils/time-zone";
 import { HourClock } from "./components/hour-clock";
 import { SeasonHeatmap } from "./components/season-heatmap";

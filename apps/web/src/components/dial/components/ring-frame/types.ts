@@ -1,4 +1,4 @@
-import { RING_METRICS } from "./constants";
+import type { RING_METRICS } from "./constants";
 
 type RingSize = keyof typeof RING_METRICS;
 

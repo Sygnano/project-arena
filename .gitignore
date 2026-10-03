@@ -10,3 +10,6 @@ out/
 # Leftover progress file of the deleted remap-puuids script: PUUIDs, never commit.
 .puuid-remap.json
 .DS_Store
+# Personal Claude Code files, never shared.
+.claude/settings.local.json
+CLAUDE.local.md

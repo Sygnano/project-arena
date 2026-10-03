@@ -48,4 +48,4 @@ function playtimeComparison(seconds: number): string {
   return films === 1 ? "about one movie" : `about ${films} movies back to back`;
 }
 
-export { seasonWeeks, playtimeComparison };
+export { playtimeComparison, seasonWeeks };

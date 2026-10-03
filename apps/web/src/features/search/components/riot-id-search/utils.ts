@@ -1,4 +1,4 @@
-import { SEARCH_PLATFORMS, DEFAULT_SEARCH_PLATFORM } from "@/utils/riot";
+import { DEFAULT_SEARCH_PLATFORM, SEARCH_PLATFORMS } from "@/utils/riot";
 import { PLATFORM_STORAGE_KEY } from "./constants";
 
 function readStoredPlatform(): string {
@@ -20,4 +20,4 @@ function platformLabel(id: string) {
   return SEARCH_PLATFORMS.find((platform) => platform.id === id)?.label ?? id.toUpperCase();
 }
 
-export { readStoredPlatform, subscribeToStorage, platformLabel };
+export { platformLabel, readStoredPlatform, subscribeToStorage };

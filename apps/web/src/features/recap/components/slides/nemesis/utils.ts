@@ -43,4 +43,4 @@ function metricValue(row: OpponentStats, metric: SortMetric): number {
   }
 }
 
-export { top3Rate, vsYouRate, ownTop3Rate, ownTop1Rate, metricValue };
+export { metricValue, ownTop1Rate, ownTop3Rate, top3Rate, vsYouRate };

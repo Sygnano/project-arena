@@ -1,14 +1,14 @@
 "use client";
 
+import { motion, useReducedMotion } from "motion/react";
 import { useId } from "react";
-import { useReducedMotion, motion } from "motion/react";
 import { CursorTooltip } from "@/components/cursor-tooltip";
-import { HoverStatCard, HoverCardSection, HoverCardRows } from "@/features/recap/components/hover-stat-card";
-import { DAMAGE_TYPE_KEYS, DAMAGE_TYPE_COLORS, DAMAGE_TYPE_LABELS } from "@/features/recap/utils/damage-types";
-import { useChartHover } from "@/hooks/use-chart-hover";
-import { useSectionInView } from "@/hooks/use-section-in-view";
+import { HoverCardRows, HoverCardSection, HoverStatCard } from "@/features/recap/components/hover-stat-card";
 import type { DamageCurvePoint } from "@/features/recap/components/slides/damage-curve/types";
 import { formatDamage, pointTotal } from "@/features/recap/components/slides/damage-curve/utils";
+import { DAMAGE_TYPE_COLORS, DAMAGE_TYPE_KEYS, DAMAGE_TYPE_LABELS } from "@/features/recap/utils/damage-types";
+import { useChartHover } from "@/hooks/use-chart-hover";
+import { useSectionInView } from "@/hooks/use-section-in-view";
 import { FILL_DURATION_S, MARGIN } from "./constants";
 import { useElementSize } from "./hooks";
 import { yAxisTicks } from "./utils";

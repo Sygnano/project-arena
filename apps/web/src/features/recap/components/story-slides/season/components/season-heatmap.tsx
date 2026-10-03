@@ -1,9 +1,9 @@
-import type { CSSProperties } from "react";
 import type { CalendarDayStats } from "@arena/types";
 import { cn } from "cn";
-import { TIER_STYLE, tierForDayBestPlacement } from "@/utils/tier-bars";
+import type { CSSProperties } from "react";
 import { MONTH } from "@/features/recap/components/story-slides/season/constants";
 import { seasonWeeks } from "@/features/recap/components/story-slides/season/utils";
+import { TIER_STYLE, tierForDayBestPlacement } from "@/utils/tier-bars";
 
 type Props = {
   days: CalendarDayStats[];

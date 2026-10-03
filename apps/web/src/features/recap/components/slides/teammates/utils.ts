@@ -15,4 +15,4 @@ function metricValue(row: TeammateStats, metric: SortMetric): number {
   return firstRate(row);
 }
 
-export { top3Rate, firstRate, metricValue };
+export { firstRate, metricValue, top3Rate };

@@ -1,23 +1,23 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import type { PrismaticItemsStats, PrismaticItemPicksStats } from "@arena/types";
-import { CategorySection } from "@/features/recap/components/category-section";
-import { HextechPanel } from "@/components/hextech-panel";
-import { type BarColumn, HextechBarChart } from "@/components/hextech-bar-chart";
+import type { PrismaticItemPicksStats, PrismaticItemsStats } from "@arena/types";
+import { useMemo, useState } from "react";
+import { CursorTooltip } from "@/components/cursor-tooltip";
+import { formatSignedPoints } from "@/components/delta-cell";
 import { RingFrame } from "@/components/dial";
 import { DiamondTabs } from "@/components/diamond-tabs";
+import { type BarColumn, HextechBarChart } from "@/components/hextech-bar-chart";
+import { HextechPanel } from "@/components/hextech-panel";
 import { PanelToolbar } from "@/components/panel-toolbar";
-import { LowSampleSwitch } from "@/features/recap/components/low-sample-switch";
 import { SidebarStatRows } from "@/components/sidebar-stat-rows";
-import { TIER_STYLE } from "@/utils/tier-bars";
-import { barHeight } from "@/utils/bar-scale";
-import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
-import { isLowSample, pooledRate, MIN_SAMPLE } from "@/features/recap/utils/sample";
-import { formatSignedPoints } from "@/components/delta-cell";
-import { CursorTooltip } from "@/components/cursor-tooltip";
+import { CategorySection } from "@/features/recap/components/category-section";
+import { LowSampleSwitch } from "@/features/recap/components/low-sample-switch";
 import { PickHoverCard } from "@/features/recap/components/pick-hover-card";
+import { isLowSample, MIN_SAMPLE, pooledRate } from "@/features/recap/utils/sample";
+import { SECTION_BACKGROUNDS } from "@/features/recap/utils/section-backgrounds";
 import { useChartHover } from "@/hooks/use-chart-hover";
+import { barHeight } from "@/utils/bar-scale";
+import { TIER_STYLE } from "@/utils/tier-bars";
 import { BAR_MAX_HEIGHT, BAR_MIN_HEIGHT, FIRST_RATE_COLOR, SORT_NOUN, TOP3_RATE_COLOR } from "./constants";
 import type { SortMode } from "./types";
 import { pickRate, rankLabel, sortItems } from "./utils";
@@ -32,7 +32,7 @@ type Props = {
  * Prismatic Items instead — replaces the old catalog-grid `PrismaticItems`
  * panel at this spot on the page (the full-catalog view moved to
  * `PrismaticItemHallOfFame`, placed right after this one). Unlike augments,
- * every entry here already IS the rarest tier (see CLAUDE.md §2 on how the
+ * every entry here already IS the rarest tier (see .claude/rules/arena-data.md on how the
  * Prismatic Item catalog was verified) — there's no Silver/Gold/Prismatic
  * rarity to filter by, so this is a plain sortable chart with no filter row.
  */
