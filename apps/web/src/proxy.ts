@@ -20,6 +20,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Not the build's assets, public images or icons: the maintenance page needs them.
-  matcher: ["/((?!_next/static|_next/image|images/|favicon.ico|icon.svg|apple-icon.png).*)"],
+  // Not the build's assets, public images or icons: the maintenance page needs them. Not
+  // /robots.txt either: it's Railway's health check path, which must stay 200 during maintenance.
+  matcher: ["/((?!_next/static|_next/image|images/|favicon.ico|icon.svg|apple-icon.png|robots.txt).*)"],
 };

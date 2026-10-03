@@ -58,6 +58,8 @@ bundle.
   web redirects every page to `/maintenance` and its API routes answer 503; the API answers 503
   on every route but `/health` (200 `maintenance`) and skips migrations, so it runs without a
   database. Pause the crawler and cron services yourself.
+- Health check paths: web `/robots.txt`, api `/health`. Both stay 200 in maintenance; a web
+  health check path must be left out of `apps/web/src/proxy.ts`'s matcher, or it gets the redirect.
 - Each app's `.env.example` lists its variables for local development.
 
 ## Runtime behavior worth knowing
