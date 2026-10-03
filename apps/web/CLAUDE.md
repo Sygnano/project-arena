@@ -55,6 +55,7 @@ Server Component can't pass a function prop to a Client Component: a module that
 
 - `src/proxy.ts`: with `MAINTENANCE_MODE=true` (set with the API's), every page redirects to
   `/maintenance` and the app's API routes answer 503. Off, `/maintenance` redirects home.
+  `/robots.txt` is Railway's health check and stays out of the matcher.
 - The splash (`app/page.tsx`) searches any Riot ID. A search only navigates to the summoner URL;
   nothing on a page read calls Riot. Below it, "recent recaps" is per browser
   (`lib/recent-recaps.ts`, localStorage, max 12). Never add a site-wide recent or trending list of

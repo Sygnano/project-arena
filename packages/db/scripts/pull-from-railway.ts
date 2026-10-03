@@ -1,16 +1,14 @@
 /**
- * One-off migration: copies the hosted (Railway) database into the two local databases, in
- * primary-key batches, so a dropped connection costs one batch and a restart resumes where the
- * local data stops.
- *
- * - `arena` (DATABASE_URL): every table, with `matches` minus `raw`/`timeline`.
- * - `arena_archive` (ARCHIVE_DATABASE_URL): `matches` as it is on Railway, blobs included.
+ * One-off migration: copies the hosted (Railway) database 1:1 into the local `arena`
+ * (DATABASE_URL), every table and column, in primary-key batches, so a dropped connection costs
+ * one batch and a restart resumes after the last batch that landed. Reshaping it (the raw data
+ * split, the optimizations in docs/database-optimization.md) comes after, locally.
  *
  * Each batch is a binary `COPY` from the source piped into a `COPY` on the target, so values move
- * byte for byte with no parsing. A batch is one `COPY`, so it lands whole or not at all, and the
- * resume point is the highest primary key already stored locally. Tables are created with their
- * primary key only (they make resuming cheap); `--finish` adds the other indexes and the foreign
- * keys once everything is in.
+ * byte for byte with no parsing. A batch and its resume point (`pull_progress`, the batch's last
+ * key in the source's order) commit in one transaction, so a batch lands whole or not at all.
+ * Tables are created with their primary key only; `--finish` adds the other indexes and the
+ * foreign keys once everything is in.
  *
  * Batches walk the primary key, so a row the source inserts below the cursor during the run is
  * missed: a later delta pass has to compare id sets before the cutover.
@@ -30,7 +28,6 @@ import postgres from "postgres";
 const SOURCE_DATABASE_URL = process.env.SOURCE_DATABASE_URL;
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) throw new Error("DATABASE_URL is required");
-const ARCHIVE_DATABASE_URL = process.env.ARCHIVE_DATABASE_URL ?? withDatabase(DATABASE_URL, "arena_archive");
 
 const args = process.argv.slice(2);
 const useTunnel = args.includes("--tunnel");
@@ -39,13 +36,10 @@ const onlyJob = args.includes("--only") ? args[args.indexOf("--only") + 1] : und
 
 const MAX_CONSECUTIVE_FAILURES = 20;
 
-type Target = "arena" | "archive";
-
 interface Job {
   name: string;
   /** Source table (schema-qualified). */
   table: string;
-  target: Target;
   /** Primary key columns, in index order: the batch cursor. */
   key: string[];
   /** Columns copied, in the same order on both sides. */
@@ -53,8 +47,6 @@ interface Job {
   /** Rows per batch: about 10-40 MB each. */
   batch: number;
 }
-
-const MATCH_LIGHT_COLUMNS = ["match_id", "region", "game_creation", "banned_champion_ids"];
 
 const PARTICIPANT_COLUMNS = [
   "match_id",
@@ -117,12 +109,11 @@ const PARTICIPANT_COLUMNS = [
   "summoner_spell_2_id",
 ];
 
-// Smallest first, so `arena` is complete hours before the archive is.
+// Smallest first; `matches` (65 GB of blobs) last.
 const JOBS: Job[] = [
   {
     name: "migrations",
     table: "drizzle.__drizzle_migrations",
-    target: "arena",
     key: ["id"],
     columns: ["id", "hash", "created_at"],
     batch: 1000,
@@ -130,7 +121,6 @@ const JOBS: Job[] = [
   {
     name: "bad_matches",
     table: "public.bad_matches",
-    target: "arena",
     key: ["match_id"],
     columns: ["match_id", "platform", "end_of_game_result", "seen_in_puuid", "found_at"],
     batch: 50_000,
@@ -138,7 +128,6 @@ const JOBS: Job[] = [
   {
     name: "skipped_matches",
     table: "public.skipped_matches",
-    target: "arena",
     key: ["match_id"],
     columns: [
       "match_id",
@@ -156,7 +145,6 @@ const JOBS: Job[] = [
   {
     name: "summoners",
     table: "public.summoners",
-    target: "arena",
     key: ["puuid"],
     columns: [
       "puuid",
@@ -171,17 +159,8 @@ const JOBS: Job[] = [
     batch: 100_000,
   },
   {
-    name: "matches",
-    table: "public.matches",
-    target: "arena",
-    key: ["match_id"],
-    columns: MATCH_LIGHT_COLUMNS,
-    batch: 100_000,
-  },
-  {
     name: "match_rounds",
     table: "public.match_rounds",
-    target: "arena",
     key: ["match_id", "round_number", "winner_team_id"],
     columns: ["match_id", "round_number", "winner_team_id", "loser_team_id"],
     batch: 500_000,
@@ -189,22 +168,22 @@ const JOBS: Job[] = [
   {
     name: "match_participants",
     table: "public.match_participants",
-    target: "arena",
     key: ["match_id", "puuid"],
     columns: PARTICIPANT_COLUMNS,
     batch: 20_000,
   },
   {
-    name: "archive",
+    name: "matches",
     table: "public.matches",
-    target: "archive",
     key: ["match_id"],
-    columns: [...MATCH_LIGHT_COLUMNS, "raw", "timeline"],
+    columns: ["match_id", "region", "game_creation", "raw", "timeline", "banned_champion_ids"],
     batch: 300,
   },
 ];
 
 const ARENA_DDL = `
+-- This script's resume points (see copyBatch). Dropped once the pull is verified.
+create table if not exists pull_progress (job text primary key, last_key jsonb not null, rows bigint not null default 0);
 create schema if not exists drizzle;
 create table if not exists drizzle.__drizzle_migrations (
   id serial primary key,
@@ -243,6 +222,8 @@ create table if not exists matches (
   match_id text primary key,
   region text not null,
   game_creation timestamptz not null,
+  raw bytea not null,
+  timeline bytea,
   banned_champion_ids integer[]
 );
 create table if not exists match_rounds (
@@ -315,17 +296,6 @@ create table if not exists match_participants (
 );
 `;
 
-const ARCHIVE_DDL = `
-create table if not exists matches (
-  match_id text primary key,
-  region text not null,
-  game_creation timestamptz not null,
-  banned_champion_ids integer[],
-  raw bytea not null,
-  timeline bytea
-);
-`;
-
 // What Railway has beyond the primary keys. Built once after the load: cheaper than maintaining
 // them row by row, and the foreign keys would reject participants copied before their match.
 const ARENA_FINISH_DDL = `
@@ -339,12 +309,6 @@ alter table match_rounds add constraint match_rounds_match_id_matches_match_id_f
   foreign key (match_id) references matches (match_id) on delete cascade;
 analyze;
 `;
-
-function withDatabase(url: string, database: string): string {
-  const parsed = new URL(url);
-  parsed.pathname = `/${database}`;
-  return parsed.toString();
-}
 
 function log(message: string) {
   console.log(`${new Date().toISOString()} ${message}`);
@@ -364,11 +328,6 @@ function keyTuple(job: Job): string {
 
 function valueTuple(job: Job, row: Record<string, unknown>): string {
   return `(${job.key.map((column) => literal(row[column])).join(", ")})`;
-}
-
-/** The local table a job writes to: same name as the source, in the target's own database. */
-function localTable(job: Job): string {
-  return job.target === "archive" ? "matches" : job.table;
 }
 
 // --- Railway tunnel ---------------------------------------------------------------------------
@@ -420,38 +379,46 @@ function connect(url: string) {
 
 type Sql = ReturnType<typeof connect>;
 
-async function localCursor(local: Sql, job: Job): Promise<Record<string, unknown> | undefined> {
-  const [row] = await local.unsafe(
-    `select ${job.key.join(", ")} from ${localTable(job)} order by ${job.key.join(" desc, ")} desc limit 1`,
-  );
-  return row;
-}
-
-/** Copies the next batch after the local cursor. Returns the rows copied (0 once done). */
+/** Copies the next batch after the job's saved cursor. Returns the rows copied (0 once done).
+ *
+ * The cursor is kept in `pull_progress`, in the source's key order, and never re-derived from the
+ * local rows: the two servers' text collations sort differently (Railway's glibc locale against
+ * this machine's), so "the highest local key" isn't the source's last copied key. The rows and
+ * the new cursor commit in one transaction. */
 async function copyBatch(source: Sql, local: Sql, job: Job): Promise<number> {
-  const cursor = await localCursor(local, job);
+  const [progress] = await local`select last_key from pull_progress where job = ${job.name}`;
+  const cursor = progress?.last_key as Record<string, unknown> | undefined;
   const after = cursor ? `${keyTuple(job)} > ${valueTuple(job, cursor)}` : "true";
+  const keys = job.key.join(", ");
 
-  // The batch's last key: an index-only walk of the primary key, no row data read.
-  const [last] = await source.unsafe(
-    `select ${job.key.join(", ")} from ${job.table} where ${after}
-     order by ${job.key.join(", ")} offset ${job.batch - 1} limit 1`,
+  // The batch's last key: an index-only walk of the primary key, no row data read. Short of a
+  // full batch, the source's highest key (a backward walk of the same index).
+  const [full] = await source.unsafe(
+    `select ${keys} from ${job.table} where ${after} order by ${keys} offset ${job.batch - 1} limit 1`,
   );
-  const upTo = last ? ` and ${keyTuple(job)} <= ${valueTuple(job, last)}` : "";
+  const [last] = full
+    ? [full]
+    : await source.unsafe(
+        `select ${keys} from ${job.table} where ${after} order by ${job.key.join(" desc, ")} desc limit 1`,
+      );
+  if (!last) return 0;
+  const range = `${after} and ${keyTuple(job)} <= ${valueTuple(job, last)}`;
+  const rows = full
+    ? job.batch
+    : Number((await source.unsafe(`select count(*) as n from ${job.table} where ${range}`))[0]?.n ?? 0);
 
   const columns = job.columns.join(", ");
-  const reader = await source
-    .unsafe(`copy (select ${columns} from ${job.table} where ${after}${upTo}) to stdout (format binary)`)
-    .readable();
-  const writer = await local.unsafe(`copy ${localTable(job)} (${columns}) from stdin (format binary)`).writable();
-  await pipeline(reader, writer);
-
-  if (last) return job.batch;
-  // Last batch: count what landed rather than assume a full one.
-  const [{ count }] = await local.unsafe(
-    `select count(*)::int as count from ${localTable(job)} where ${cursor ? `${keyTuple(job)} > ${valueTuple(job, cursor)}` : "true"}`,
-  );
-  return count;
+  const lastKey = Object.fromEntries(job.key.map((column) => [column, last[column]]));
+  await local.begin(async (tx) => {
+    const reader = await source
+      .unsafe(`copy (select ${columns} from ${job.table} where ${range}) to stdout (format binary)`)
+      .readable();
+    const writer = await tx.unsafe(`copy ${job.table} (${columns}) from stdin (format binary)`).writable();
+    await pipeline(reader, writer);
+    await tx`insert into pull_progress (job, last_key, rows) values (${job.name}, ${tx.json(lastKey)}, ${rows})
+      on conflict (job) do update set last_key = excluded.last_key, rows = pull_progress.rows + excluded.rows`;
+  });
+  return rows;
 }
 
 async function estimatedRows(source: Sql, table: string): Promise<number> {
@@ -463,7 +430,7 @@ async function estimatedRows(source: Sql, table: string): Promise<number> {
 
 async function runJob(job: Job) {
   if (!SOURCE_DATABASE_URL) throw new Error("SOURCE_DATABASE_URL is required");
-  const targetUrl = job.target === "archive" ? ARCHIVE_DATABASE_URL : DATABASE_URL;
+  const targetUrl = DATABASE_URL;
   let source = connect(SOURCE_DATABASE_URL);
   let local = connect(targetUrl as string);
   let failures = 0;
@@ -519,14 +486,14 @@ async function main() {
   }
 
   await runDdl(DATABASE_URL as string, ARENA_DDL);
-  // `create table if not exists` keeps whatever is there: a database created by the app's
-  // migrations (blobs in `matches`) is not the one this fills.
+  // `create table if not exists` keeps whatever is there: rows without a pull in progress mean
+  // DATABASE_URL isn't the freshly created database.
   const arena = connect(DATABASE_URL as string);
-  const [blobColumn] = await arena`select 1 from information_schema.columns
-    where table_schema = 'public' and table_name = 'matches' and column_name = 'raw'`;
+  const [state] = await arena`select (select count(*) from pull_progress)::int as progress,
+    exists (select from summoners) or exists (select from matches) or exists (select from match_participants) as has_rows`;
   await arena.end();
-  if (blobColumn) throw new Error("arena.matches has a raw column: DATABASE_URL isn't the freshly emptied database");
-  await runDdl(ARCHIVE_DATABASE_URL, ARCHIVE_DDL);
+  if (state?.progress === 0 && state.has_rows)
+    throw new Error("arena has rows but no pull in progress: not a fresh database");
   if (useTunnel) await startTunnel();
 
   const jobs = onlyJob ? JOBS.filter((job) => job.name === onlyJob) : JOBS;
