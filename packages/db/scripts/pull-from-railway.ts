@@ -386,7 +386,7 @@ async function startTunnel() {
   stopTunnel();
   const port = new URL(SOURCE_DATABASE_URL ?? "").port;
   log(`starting railway tunnel on port ${port}`);
-  const child = spawn("railway", ["connect", "postgres", "--tunnel-only", "--port", port], {
+  const child = spawn(`railway connect postgres --tunnel-only --port ${port}`, {
     // `railway link` was run at the repository root.
     cwd: new URL("../../..", import.meta.url),
     shell: true,
@@ -519,6 +519,13 @@ async function main() {
   }
 
   await runDdl(DATABASE_URL as string, ARENA_DDL);
+  // `create table if not exists` keeps whatever is there: a database created by the app's
+  // migrations (blobs in `matches`) is not the one this fills.
+  const arena = connect(DATABASE_URL as string);
+  const [blobColumn] = await arena`select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'matches' and column_name = 'raw'`;
+  await arena.end();
+  if (blobColumn) throw new Error("arena.matches has a raw column: DATABASE_URL isn't the freshly emptied database");
   await runDdl(ARCHIVE_DATABASE_URL, ARCHIVE_DDL);
   if (useTunnel) await startTunnel();
 
