@@ -18,11 +18,14 @@ import { bundle } from "@arena/bundle";
 
 const target = process.argv[2];
 
-// packages/db's runMigrations looks for them in dist/drizzle, next to the
-// server bundle and one level up from the scripts' (dist/scripts/*.mjs).
+// packages/db's runMigrations looks for them in dist/drizzle (the archive
+// database's in dist/drizzle-archive), next to the server bundle and one
+// level up from the scripts' (dist/scripts/*.mjs).
 async function copyMigrations() {
-  await rm("dist/drizzle", { recursive: true, force: true });
-  await cp("../../packages/db/drizzle", "dist/drizzle", { recursive: true });
+  for (const folder of ["drizzle", "drizzle-archive"]) {
+    await rm(`dist/${folder}`, { recursive: true, force: true });
+    await cp(`../../packages/db/${folder}`, `dist/${folder}`, { recursive: true });
+  }
 }
 
 if (target === "server") {

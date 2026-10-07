@@ -1,5 +1,6 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import * as archiveSchema from "./archiveSchema.js";
 import * as schema from "./schema.js";
 
 export interface DbOptions {
@@ -15,8 +16,8 @@ export interface DbOptions {
   lockTimeoutMs?: number;
 }
 
-export function createDb(connectionString: string, options: DbOptions = {}) {
-  const client = postgres(connectionString, {
+function connect(connectionString: string, options: DbOptions) {
+  return postgres(connectionString, {
     // postgres.js prints every server notice to the console as a multi-line
     // object, outside the JSON logs. The only ones sent are the migrator's
     // "schema/table already exists, skipping" at each startup.
@@ -30,7 +31,25 @@ export function createDb(connectionString: string, options: DbOptions = {}) {
       ...(options.lockTimeoutMs !== undefined ? { lock_timeout: options.lockTimeoutMs } : {}),
     },
   });
-  return drizzle(client, { schema });
+}
+
+export function createDb(connectionString: string, options: DbOptions = {}) {
+  return drizzle(connect(connectionString, options), { schema });
+}
+
+/** ARCHIVE_DATABASE_URL, else DATABASE_URL with its database renamed `arena_archive`: the
+ * local setup, one server and one role for both databases. */
+export function archiveDatabaseUrl(databaseUrl: string, archiveUrl?: string): string {
+  if (archiveUrl) return archiveUrl;
+  const url = new URL(databaseUrl);
+  url.pathname = "/arena_archive";
+  return url.toString();
+}
+
+/** The archive database: Riot's payloads, see `archiveSchema.ts`. */
+export function createArchiveDb(connectionString: string, options: DbOptions = {}) {
+  return drizzle(connect(connectionString, options), { schema: archiveSchema });
 }
 
 export type Db = ReturnType<typeof createDb>;
+export type ArchiveDb = ReturnType<typeof createArchiveDb>;

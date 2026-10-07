@@ -16,7 +16,7 @@ function withEvents(timeline: RiotMatchTimelineDto, events: Partial<TimelineEven
 
 describe("parseMatch on a real match", () => {
   const { dto, timeline } = loadFixtureMatch();
-  const { match, participants } = parseMatch(FIXTURE_MATCH_ID, "euw1", dto, timeline);
+  const { match, participants } = parseMatch(FIXTURE_MATCH_ID, dto, timeline);
 
   it("takes team size, team count and placements from the match itself", () => {
     const teams = groupBy(participants, (p) => p.teamId);
@@ -27,6 +27,16 @@ describe("parseMatch on a real match", () => {
     }
     const placements = [...teams.values()].map((members) => members[0]!.placement).sort((a, b) => a - b);
     expect(placements).toEqual(Array.from({ length: teams.size }, (_, i) => i + 1));
+  });
+
+  it("keeps one damage frame per timeline frame, at its nearest minute", () => {
+    const minutes = timeline.info.frames.map((frame) => Math.round(frame.timestamp / 60_000));
+    for (const p of participants) {
+      expect(p.frames?.map(([minute]) => minute)).toEqual(minutes);
+      for (const [, physical, magical, trueDamage] of p.frames ?? []) {
+        expect([physical, magical, trueDamage].every(Number.isInteger)).toBe(true);
+      }
+    }
   });
 
   it("drops empty augment slots", () => {
@@ -59,7 +69,7 @@ describe("parseMatch item events", () => {
   function playerOne(events: Partial<TimelineEvent>[]) {
     const { dto, timeline } = loadFixtureMatch();
     const id = timeline.info.participants[0]!;
-    const { participants } = parseMatch(FIXTURE_MATCH_ID, "euw1", dto, withEvents(timeline, events));
+    const { participants } = parseMatch(FIXTURE_MATCH_ID, dto, withEvents(timeline, events));
     return participants.find((p) => p.puuid === id.puuid)!;
   }
 
@@ -95,7 +105,7 @@ describe("parseMatch item events", () => {
 
   it("reports unknown (null), not zero, without a timeline", () => {
     const { dto } = loadFixtureMatch();
-    const [p] = parseMatch(FIXTURE_MATCH_ID, "euw1", dto, null).participants;
+    const [p] = parseMatch(FIXTURE_MATCH_ID, dto, null).participants;
     expect(p!.bootsBought).toBeNull();
     expect(p!.purchasedItemIds).toBeNull();
     expect(p!.statAnvilsBought).toBeNull();

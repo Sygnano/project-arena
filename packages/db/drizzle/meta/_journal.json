@@ -148,6 +148,27 @@
       "when": 1790206651866,
       "tag": "0020_pings_smallint_array",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791350597725,
+      "tag": "0021_raw_to_archive",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791361716021,
+      "tag": "0022_storage_optimizations",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791366035697,
+      "tag": "0023_planner_distinct_counts",
+      "breakpoints": true
     }
   ]
 }

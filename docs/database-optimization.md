@@ -53,40 +53,23 @@ is never read: `loadStatsData` selects only `winner_team_id` and `loser_team_id`
 
 Estimates: 1 + 3 + 4 take `arena` from ~23.5 GB to ~15 GB; adding 2 to ~12 GB.
 
-## Recommendation
+## What was done (2026-10-07)
 
-- First pass: 1, 3, 4 (mostly mechanical), and 8.
-- Second pass, after measuring: 2 and 5.
-- 6 and 7 only if still worth it; 7 changes what pages show.
-- `arena_archive` stays 1:1.
+The hosted database was copied 1:1 to local Postgres over the Railway SSH tunnel (resumable
+batches; a single `pg_dump` could not survive hours without a network drop), verified row by row,
+then reshaped locally:
 
-## Raw data split: target layout (discussed, to settle before writing the migrations)
+| Step | Migration | Result |
+| ---- | --------- | ------ |
+| `raw`/`timeline` to the `arena_archive` database; `matches.region` dropped (the match id's prefix) | `0021_raw_to_archive`, `drizzle-archive/0000_archived_matches` | `arena` 88 GB → 23 GB |
+| Candidates 1, 3, 4: `frames` packed `bytea` (135 bytes a row against 440), `match_rounds` folded into `matches.rounds`, jsonb id lists to `integer[]` | `0022_storage_optimizations` | → 13 GB (`match_participants` 19 → 12 GB) |
+| `n_distinct` pinned on `match_participants.match_id`/`puuid` (ANALYZE's page sampling underestimated them 15×, and the smaller table tipped big recaps into full scans) | `0023_planner_distinct_counts` | |
 
-- `arena`: `summoners`, `match_participants`, `match_rounds`, `bad_matches`, `skipped_matches`,
-  Drizzle's migrations table. `arena_archive`: one `matches` table, `match_id`, `raw`, `timeline`.
-- Open: `matches` also holds `game_creation` (orders a summoner's games, gives recap dates) and
-  `banned_champion_ids` (the bans section), and `match_participants`/`match_rounds` have foreign
-  keys to it. Options: (a) keep a slim `matches` in `arena` with those two columns (~150 MB,
-  foreign keys kept; recommended), (b) copy them onto every participant row (18 copies a match,
-  no foreign keys), (c) re-derive from the archive (the archive would then be read at runtime).
-- `region` can go: it is the `match_id` prefix (`VN2_…` → `vn2`).
-- To confirm: the archive keeps `timeline` (raw Riot data too, 52 of its 62 GB).
-- Today's migrations create the current shape. `arena` needs a `schema.ts` change plus a new
-  migration; `arena_archive` needs its own Drizzle schema, config and migrations folder in
-  `packages/db`. Ingestion then writes the blobs to the archive (a later step).
+Checks: the archive's blobs match the originals by MD5, every one; six real recaps (229 to 2,156
+games) are byte-identical before and after; 500 matches re-derived from the archive with the new
+parsers equal the migrated rows (frames, rounds, items, augments, purchases, boots).
 
-## Order of work
+Not done, by decision: 2 (puuid surrogate key), 5 (smallint), 6 (pings), 7 (names), 8
+(`champion_name`). The database now runs locally, so size matters less than it did on Railway.
 
-1. Copy the hosted database 1:1 into the local `arena`
-   (`packages/db/scripts/pull-from-railway.ts`: primary-key batches over the Railway SSH tunnel,
-   resumable, free of egress charges). A single `pg_dump` failed twice: the 66 GB `matches` copy
-   can't survive hours without one network drop.
-2. Settle the layout above, write the schema changes and migrations, split the raw data out.
-3. Apply the optimizations, measure, push the light database to a new Railway Postgres.
-
-## How to apply
-
-Load `arena` in the hosted shape (`packages/db/scripts/pull-from-railway.ts`), then convert it
-locally with Drizzle migrations, so each change is tried on real data without re-downloading
-and the same migrations ship with the code. The light database pushed back to Railway is a dump
-of the converted local one.
+Next: run the apps against the local databases, then reach them from Railway through a tunnel.

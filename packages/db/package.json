@@ -9,14 +9,12 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "generate": "drizzle-kit generate",
-    "migrate": "drizzle-kit migrate",
+    "generate": "drizzle-kit generate && drizzle-kit generate --config drizzle.archive.config.ts",
+    "migrate": "drizzle-kit migrate && drizzle-kit migrate --config drizzle.archive.config.ts",
     "studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit",
-    "backfill-compress-matches": "tsx --env-file=.env scripts/backfill-compress-matches.ts",
     "backfill-reparse-participants": "tsx --env-file=.env scripts/backfill-reparse-participants.ts",
     "backfill-rounds": "tsx --env-file=.env scripts/backfill-rounds.ts",
-    "pull-from-railway": "tsx --env-file=.env scripts/pull-from-railway.ts",
     "query": "tsx --env-file=.env scripts/query.ts",
     "match-json": "tsx --env-file=.env scripts/match-json.ts",
     "test": "vitest run"

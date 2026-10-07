@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, type MatchParticipant, matches, matchParticipants, matchRounds, sql } from "@arena/db";
+import { and, asc, eq, inArray, type MatchParticipant, matches, matchParticipants, sql } from "@arena/db";
 import { db } from "../../db.js";
 
 /** One of the summoner's own games: their `match_participants` row plus the
@@ -49,12 +49,13 @@ export async function loadStatsData(puuid: string): Promise<StatsData> {
   const ownGame = and(eq(matchParticipants.puuid, puuid), sql`${matchParticipants.placement} > 0`);
   const ownMatchIds = db.select({ matchId: matchParticipants.matchId }).from(matchParticipants).where(ownGame);
 
-  const [games, participants, rounds] = await Promise.all([
+  const [games, participants] = await Promise.all([
     db
       .select({
         participant: matchParticipants,
         gameCreation: matches.gameCreation,
         bannedChampionIds: matches.bannedChampionIds,
+        rounds: matches.rounds,
       })
       .from(matchParticipants)
       .innerJoin(matches, eq(matchParticipants.matchId, matches.matchId))
@@ -73,14 +74,6 @@ export async function loadStatsData(puuid: string): Promise<StatsData> {
       })
       .from(matchParticipants)
       .where(inArray(matchParticipants.matchId, ownMatchIds)),
-    db
-      .select({
-        matchId: matchRounds.matchId,
-        winnerTeamId: matchRounds.winnerTeamId,
-        loserTeamId: matchRounds.loserTeamId,
-      })
-      .from(matchRounds)
-      .where(inArray(matchRounds.matchId, ownMatchIds)),
   ]);
 
   return {
@@ -90,6 +83,15 @@ export async function loadStatsData(puuid: string): Promise<StatsData> {
       bannedChampionIds: row.bannedChampionIds,
     })),
     participantsByMatch: groupByMatch(participants),
-    roundsByMatch: groupByMatch(rounds),
+    roundsByMatch: new Map(
+      games.map((row) => [
+        row.participant.matchId,
+        row.rounds.map(([winnerTeamId, loserTeamId]) => ({
+          matchId: row.participant.matchId,
+          winnerTeamId,
+          loserTeamId,
+        })),
+      ]),
+    ),
   };
 }

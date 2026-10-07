@@ -26,7 +26,8 @@ Scoped instructions load on their own when you open files in their folder.
 ## Commands
 
 - `pnpm dev`: web :3000, api :3001, gateway :3002. Needs the local Postgres 18 Windows service
-  `postgresql-x64-18` (database and role `arena`), plus `.env` files from each `.env.example`.
+  `postgresql-x64-18` (role `arena`, databases `arena` and `arena_archive`), plus `.env` files
+  from each `.env.example`.
 - `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm format`: Turbo-cached. `lint` is `biome check`
   (format, import order, lint rules); `format` applies its fixes. A Stop hook runs
   typecheck, lint and test when code changed, and Biome formats every file Claude writes.
@@ -48,9 +49,9 @@ Scoped instructions load on their own when you open files in their folder.
   summoner's first full fetch only ever starts from a click.
 - **PUUIDs and raw error messages never leave the server** (Riot's policies; they also made the
   database easy to crawl).
-- **Store only what a page reads.** `matches.raw`/`matches.timeline` (brotli `bytea`) are the
-  archive any dropped field can be re-derived from. Check `packages/db/TRIMMED_DATA.md` before
-  adding a column.
+- **Store only what a page reads.** Riot's payloads (brotli `raw`/`timeline`) live in a second
+  database, `arena_archive`, the archive any dropped field can be re-derived from; nothing a page
+  reads touches it. Check `packages/db/TRIMMED_DATA.md` before adding a column.
 - **Only `packages/db` depends on `drizzle-orm`**: import `eq`, `and`, `sql`... from `@arena/db`.
 - **No auth, accounts or sessions**, and no speculative infrastructure for them.
 - **A recap sends ids**; names and icons come from the game catalog (`GET /catalog`).

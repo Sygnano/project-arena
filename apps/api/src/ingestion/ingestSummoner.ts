@@ -1,4 +1,6 @@
 import {
+  type ArchiveDb,
+  archivedMatches,
   badMatches,
   compressJson,
   type Db,
@@ -6,10 +8,10 @@ import {
   inArray,
   matches,
   matchParticipants,
-  matchRounds,
   parseMatch,
   parseRounds,
   riotIdColumns,
+  roundsColumn,
   skippedMatches,
   sql,
   summoners,
@@ -148,7 +150,7 @@ function participantSummoners(dto: RiotArenaMatchDto, region: string) {
  * the game didn't end normally, `FailedMatchError` when this match failed
  * to store, anything else when something is down.
  */
-async function ingestMatch(db: Db, riot: RiotClient, matchId: string) {
+async function ingestMatch(db: Db, archive: ArchiveDb, riot: RiotClient, matchId: string) {
   // The match's own platform, not the summoner's: their history lists
   // their games on every platform of the cluster (an ME1 player's EUW1
   // games too), and everyone met in an EUW1 game is on EUW1. A prefix we
@@ -172,22 +174,24 @@ async function ingestMatch(db: Db, riot: RiotClient, matchId: string) {
     if (dto.info.participants.length === 0) {
       throw new Error(`no participants (endOfGameResult: ${dto.info.endOfGameResult ?? "missing"})`);
     }
-    const { match, participants } = parseMatch(matchId, platform, dto, timelineDto);
+    const { match, participants } = parseMatch(matchId, dto, timelineDto);
     // Side by side, off the main thread (about 25 ms for a timeline).
     const [raw, timeline] = await Promise.all([compressJson(dto), compressJson(timelineDto)]);
     return {
-      match: { ...match, raw, timeline },
+      match: { ...match, rounds: roundsColumn(parseRounds(matchId, dto, timelineDto)) },
+      archived: { matchId, raw, timeline },
       participants,
-      rounds: parseRounds(matchId, dto, timelineDto),
       players: participantSummoners(dto, platform),
     };
   });
 
-  return step("store", () =>
-    db.transaction(async (tx) => {
+  return step("store", async () => {
+    // The archive first, so a stored match always has its payloads. A store that then fails
+    // leaves them archived alone, and the match's next fetch finds them already there.
+    await archive.insert(archivedMatches).values(parsed.archived).onConflictDoNothing();
+    return db.transaction(async (tx) => {
       await tx.insert(matches).values(parsed.match).onConflictDoNothing({ target: matches.matchId });
       await tx.insert(matchParticipants).values(parsed.participants).onConflictDoNothing();
-      if (parsed.rounds.length > 0) await tx.insert(matchRounds).values(parsed.rounds).onConflictDoNothing();
       // Skipped by an earlier refresh, fine now.
       await tx.delete(skippedMatches).where(eq(skippedMatches.matchId, matchId));
       if (parsed.players.length === 0) return 0;
@@ -197,8 +201,8 @@ async function ingestMatch(db: Db, riot: RiotClient, matchId: string) {
         .onConflictDoNothing({ target: summoners.puuid })
         .returning({ puuid: summoners.puuid });
       return inserted.length;
-    }),
-  );
+    });
+  });
 }
 
 /** Records a bad match in `bad_matches`, which keeps it from being fetched
@@ -259,6 +263,7 @@ export type MatchOutcome =
  */
 export async function fetchMatch(
   db: Db,
+  archive: ArchiveDb,
   riot: RiotClient,
   matchId: string,
   seenInPuuid: string,
@@ -269,7 +274,7 @@ export async function fetchMatch(
     return { kind: "known" };
   }
   try {
-    return { kind: "stored", discovered: await ingestMatch(db, riot, matchId) };
+    return { kind: "stored", discovered: await ingestMatch(db, archive, riot, matchId) };
   } catch (err) {
     if (err instanceof BadMatchError) {
       const badMatch: BadMatch = { matchId, endOfGameResult: err.endOfGameResult };
@@ -351,6 +356,7 @@ export class FailureBreaker {
  */
 export async function ingestSummoner(
   db: Db,
+  archive: ArchiveDb,
   riot: RiotClient,
   summoner: { puuid: string; region: string },
   onProgress?: (progress: IngestProgress) => void,
@@ -391,7 +397,7 @@ export async function ingestSummoner(
   for (const matchId of newMatchIds) {
     if (options.shouldStop?.()) return { ingested, skipped, bad, discovered, stopped: true };
 
-    const outcome = await fetchMatch(db, riot, matchId, summoner.puuid);
+    const outcome = await fetchMatch(db, archive, riot, matchId, summoner.puuid);
     if (outcome.kind === "stored") {
       discovered += outcome.discovered;
       ingested += 1;

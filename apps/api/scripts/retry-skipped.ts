@@ -28,7 +28,7 @@
  */
 import { asc, skippedMatches } from "@arena/db";
 import { matchRegion, platformOfMatch, type Region } from "@arena/riot";
-import { db } from "../src/db.js";
+import { archiveDb, db } from "../src/db.js";
 import { FailureBreaker, fetchMatch, type MatchOutcome } from "../src/ingestion/ingestSummoner.js";
 import { logger } from "../src/logger.js";
 import { riotGateway } from "../src/riot.js";
@@ -85,7 +85,7 @@ async function retryLane(lane: Region, list: RetryTarget[]) {
     const position = `${index + 1}/${list.length}`;
     let outcome: MatchOutcome;
     try {
-      outcome = await fetchMatch(db, riot, matchId, seenInPuuid);
+      outcome = await fetchMatch(db, archiveDb, riot, matchId, seenInPuuid);
     } catch (err) {
       if (isFatal(err)) throw err;
       totals.errors += 1;
@@ -155,11 +155,11 @@ async function main() {
   );
   const failures = results.flatMap((result) => (result.status === "rejected" ? [errorMessage(result.reason)] : []));
   if (failures.length > 0) throw new Error(failures.join("; "));
-  await db.$client.end();
+  await Promise.all([db.$client.end(), archiveDb.$client.end()]);
 }
 
 main().catch(async (err) => {
   scriptLog.error(`aborted: ${errorMessage(err)}`);
-  await db.$client.end().catch(() => {});
+  await Promise.all([db.$client.end().catch(() => {}), archiveDb.$client.end().catch(() => {})]);
   process.exit(1);
 });
