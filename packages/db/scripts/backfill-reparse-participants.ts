@@ -1,12 +1,9 @@
 /**
  * One-off maintenance script: re-derives match_participants rows (and
- * matches.bannedChampionIds) from the already-stored, already-compressed
- * `raw`/`timeline` blobs — no Riot API calls needed. Run this after adding
+ * matches.bannedChampionIds) from the archived `raw`/`timeline` blobs (the
+ * archive database) — no Riot API calls needed. Run this after adding
  * new columns/fields to parseMatch() that existing rows don't have yet.
- *
- * Does NOT touch matches.raw/matches.timeline — only re-runs the parts of
- * parseMatch() that produce match_participants rows and bannedChampionIds,
- * so it doesn't pay the cost of recompressing every match's raw payload.
+ * Reads the archive a batch at a time; never writes to it.
  *
  * Usage: pnpm --filter @arena/db backfill-reparse-participants
  */
@@ -17,97 +14,96 @@ import { createDb } from "../src/client.js";
 import { decompressJson } from "../src/compression.js";
 import { parseMatch } from "../src/parseMatch.js";
 import { matches, matchParticipants } from "../src/schema.js";
+import { archivedMatchBatches, connectArchive } from "./archived-matches.js";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) throw new Error("DATABASE_URL is required");
 
 async function main() {
   const db = createDb(DATABASE_URL!);
+  const archive = connectArchive(DATABASE_URL!);
 
-  const rows = await db
-    .select({ matchId: matches.matchId, region: matches.region, raw: matches.raw, timeline: matches.timeline })
-    .from(matches);
-
-  console.log(`Re-parsing ${rows.length} matches...`);
+  console.log("Re-parsing every archived match...");
 
   let done = 0;
   let missingTimeline = 0;
 
-  for (const row of rows) {
-    const dto = decompressJson<RiotArenaMatchDto>(row.raw);
-    const timelineDto = row.timeline ? decompressJson<RiotMatchTimelineDto>(row.timeline) : null;
-    if (!timelineDto) missingTimeline++;
+  for await (const batch of archivedMatchBatches(archive))
+    for (const row of batch) {
+      const dto = decompressJson<RiotArenaMatchDto>(row.raw);
+      const timelineDto = row.timeline ? decompressJson<RiotMatchTimelineDto>(row.timeline) : null;
+      if (!timelineDto) missingTimeline++;
 
-    const { match, participants } = parseMatch(row.matchId, row.region, dto, timelineDto);
+      const { match, participants } = parseMatch(row.matchId, dto, timelineDto);
 
-    await db.transaction(async (tx) => {
-      await tx
-        .update(matches)
-        .set({ bannedChampionIds: match.bannedChampionIds })
-        .where(eq(matches.matchId, row.matchId));
+      await db.transaction(async (tx) => {
+        await tx
+          .update(matches)
+          .set({ bannedChampionIds: match.bannedChampionIds })
+          .where(eq(matches.matchId, row.matchId));
 
-      await tx
-        .insert(matchParticipants)
-        .values(participants)
-        .onConflictDoUpdate({
-          target: [matchParticipants.matchId, matchParticipants.puuid],
-          // Reference the incoming row's values (`excluded.<column>`), not
-          // the existing target row — using the plain column object here
-          // would just reassign each column to itself, a no-op.
-          set: {
-            timePlayedSeconds: sql`excluded.time_played_seconds`,
-            damageDealtToChampionsPhysical: sql`excluded.damage_dealt_to_champions_physical`,
-            damageDealtToChampionsMagic: sql`excluded.damage_dealt_to_champions_magic`,
-            damageDealtToChampionsTrue: sql`excluded.damage_dealt_to_champions_true`,
-            damageTakenPhysical: sql`excluded.damage_taken_physical`,
-            damageTakenMagic: sql`excluded.damage_taken_magic`,
-            damageTakenTrue: sql`excluded.damage_taken_true`,
-            largestCriticalStrike: sql`excluded.largest_critical_strike`,
-            healingAndShielding: sql`excluded.healing_and_shielding`,
-            ccScoreSeconds: sql`excluded.cc_score_seconds`,
-            ccTotalTimeDealt: sql`excluded.cc_total_time_dealt`,
-            fistBumps: sql`excluded.fist_bumps`,
-            qCasts: sql`excluded.q_casts`,
-            wCasts: sql`excluded.w_casts`,
-            eCasts: sql`excluded.e_casts`,
-            rCasts: sql`excluded.r_casts`,
-            summonerSpell1Casts: sql`excluded.summoner_spell_1_casts`,
-            summonerSpell2Casts: sql`excluded.summoner_spell_2_casts`,
-            summonerSpell1Id: sql`excluded.summoner_spell_1_id`,
-            summonerSpell2Id: sql`excluded.summoner_spell_2_id`,
-            pings: sql`excluded.pings`,
-            statAnvilsBought: sql`excluded.stat_anvils_bought`,
-            legendaryAnvilsBought: sql`excluded.legendary_anvils_bought`,
-            prismaticAnvilsBought: sql`excluded.prismatic_anvils_bought`,
-            bootsBought: sql`excluded.boots_bought`,
-            bootsSold: sql`excluded.boots_sold`,
-            purchasedItemIds: sql`excluded.purchased_item_ids`,
-            damageSelfMitigated: sql`excluded.damage_self_mitigated`,
-            doubleKills: sql`excluded.double_kills`,
-            tripleKills: sql`excluded.triple_kills`,
-            quadraKills: sql`excluded.quadra_kills`,
-            pentaKills: sql`excluded.penta_kills`,
-            largestKillingSpree: sql`excluded.largest_killing_spree`,
-            firstBloodKill: sql`excluded.first_blood_kill`,
-            firstBloodAssist: sql`excluded.first_blood_assist`,
-            itemsPurchased: sql`excluded.items_purchased`,
-            consumablesPurchased: sql`excluded.consumables_purchased`,
-            soloKills: sql`excluded.solo_kills`,
-            skillshotsHit: sql`excluded.skillshots_hit`,
-            skillshotsDodged: sql`excluded.skillshots_dodged`,
-            flawlessAces: sql`excluded.flawless_aces`,
-            saveAllyFromDeath: sql`excluded.save_ally_from_death`,
-            frames: sql`excluded.frames`,
-          },
-        });
-    });
+        await tx
+          .insert(matchParticipants)
+          .values(participants)
+          .onConflictDoUpdate({
+            target: [matchParticipants.matchId, matchParticipants.puuid],
+            // Reference the incoming row's values (`excluded.<column>`), not
+            // the existing target row — using the plain column object here
+            // would just reassign each column to itself, a no-op.
+            set: {
+              timePlayedSeconds: sql`excluded.time_played_seconds`,
+              damageDealtToChampionsPhysical: sql`excluded.damage_dealt_to_champions_physical`,
+              damageDealtToChampionsMagic: sql`excluded.damage_dealt_to_champions_magic`,
+              damageDealtToChampionsTrue: sql`excluded.damage_dealt_to_champions_true`,
+              damageTakenPhysical: sql`excluded.damage_taken_physical`,
+              damageTakenMagic: sql`excluded.damage_taken_magic`,
+              damageTakenTrue: sql`excluded.damage_taken_true`,
+              largestCriticalStrike: sql`excluded.largest_critical_strike`,
+              healingAndShielding: sql`excluded.healing_and_shielding`,
+              ccScoreSeconds: sql`excluded.cc_score_seconds`,
+              ccTotalTimeDealt: sql`excluded.cc_total_time_dealt`,
+              fistBumps: sql`excluded.fist_bumps`,
+              qCasts: sql`excluded.q_casts`,
+              wCasts: sql`excluded.w_casts`,
+              eCasts: sql`excluded.e_casts`,
+              rCasts: sql`excluded.r_casts`,
+              summonerSpell1Casts: sql`excluded.summoner_spell_1_casts`,
+              summonerSpell2Casts: sql`excluded.summoner_spell_2_casts`,
+              summonerSpell1Id: sql`excluded.summoner_spell_1_id`,
+              summonerSpell2Id: sql`excluded.summoner_spell_2_id`,
+              pings: sql`excluded.pings`,
+              statAnvilsBought: sql`excluded.stat_anvils_bought`,
+              legendaryAnvilsBought: sql`excluded.legendary_anvils_bought`,
+              prismaticAnvilsBought: sql`excluded.prismatic_anvils_bought`,
+              bootsBought: sql`excluded.boots_bought`,
+              bootsSold: sql`excluded.boots_sold`,
+              purchasedItemIds: sql`excluded.purchased_item_ids`,
+              damageSelfMitigated: sql`excluded.damage_self_mitigated`,
+              doubleKills: sql`excluded.double_kills`,
+              tripleKills: sql`excluded.triple_kills`,
+              quadraKills: sql`excluded.quadra_kills`,
+              pentaKills: sql`excluded.penta_kills`,
+              largestKillingSpree: sql`excluded.largest_killing_spree`,
+              firstBloodKill: sql`excluded.first_blood_kill`,
+              firstBloodAssist: sql`excluded.first_blood_assist`,
+              itemsPurchased: sql`excluded.items_purchased`,
+              consumablesPurchased: sql`excluded.consumables_purchased`,
+              soloKills: sql`excluded.solo_kills`,
+              skillshotsHit: sql`excluded.skillshots_hit`,
+              skillshotsDodged: sql`excluded.skillshots_dodged`,
+              flawlessAces: sql`excluded.flawless_aces`,
+              saveAllyFromDeath: sql`excluded.save_ally_from_death`,
+              frames: sql`excluded.frames`,
+            },
+          });
+      });
 
-    done++;
-    if (done % 25 === 0) console.log(`  ${done}/${rows.length}...`);
-  }
+      done++;
+      if (done % 1000 === 0) console.log(`  ${done}...`);
+    }
 
   console.log(`Done. Re-parsed ${done} matches (${missingTimeline} had no stored timeline).`);
-  await db.$client.end();
+  await Promise.all([db.$client.end(), archive.$client.end()]);
 }
 
 main().catch((err) => {

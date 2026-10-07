@@ -14,9 +14,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { eq } from "drizzle-orm";
-import { createDb } from "../src/client.js";
+import { archivedMatches } from "../src/archiveSchema.js";
 import { compressJson, decompressJson } from "../src/compression.js";
-import { matches } from "../src/schema.js";
+import { connectArchive } from "./archived-matches.js";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) throw new Error("DATABASE_URL is required");
@@ -49,11 +49,11 @@ function scrubber(puuids: string[]) {
   return walk;
 }
 
-const db = createDb(DATABASE_URL);
-const [row] = await db
-  .select({ raw: matches.raw, timeline: matches.timeline })
-  .from(matches)
-  .where(eq(matches.matchId, matchId));
+const archive = connectArchive(DATABASE_URL);
+const [row] = await archive
+  .select({ raw: archivedMatches.raw, timeline: archivedMatches.timeline })
+  .from(archivedMatches)
+  .where(eq(archivedMatches.matchId, matchId));
 if (!row) throw new Error(`No stored match ${matchId}`);
 
 let raw = decompressJson<{ metadata?: { participants?: string[] } }>(row.raw);

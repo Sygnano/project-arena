@@ -7,11 +7,12 @@ field, check whether it is listed here and why it was dropped.
 maintenance script needs it to rebuild other data. A column that the API selected but the web app
 never rendered counts as unused.
 
-**Everything below can be recovered.** `matches.raw` (the full Match-V5 payload) and
-`matches.timeline` are kept on purpose. Any trimmed participant, match or frame field can be
+**Everything below can be recovered.** Each match's `raw` (the full Match-V5 payload) and
+`timeline` are kept on purpose, in the archive database (`arena_archive`, see
+`src/archiveSchema.ts`). Any trimmed participant, match or frame field can be
 brought back by adding the column again, restoring its line in `parseMatch.ts`, and running
 `pnpm --filter @arena/db backfill-reparse-participants` (or `backfill-rounds` for
-`match_rounds`). This does not call Riot again. The two exceptions are `summoners.tracked_since`
+`matches.rounds`). This does not call Riot again. The two exceptions are `summoners.tracked_since`
 and `matches.ingested_at`, which were bookkeeping timestamps with no copy in Riot's data.
 
 ## Trim of 2026-09-19
@@ -83,3 +84,19 @@ The crawler ingests about 1,500 matches per hour at dev-key rate limits, which a
 
 Dropping a column doesn't shrink files on disk by itself. Postgres only reclaims the space after
 a `VACUUM FULL` (see the note in the migration).
+
+## Split and compaction of 2026-10-07
+
+Measured on 825,672 matches and 14.9M participant rows. `arena` went from 88 GB to 13 GB.
+
+| Change | What's gone from `arena` | Recover with |
+|---|---|---|
+| `matches.raw`, `matches.timeline` moved to `arena_archive` | nothing: same bytes, other database | — |
+| `matches.region` dropped | nothing: always equal to the match id's prefix (`platformOfMatch`) | — |
+| `match_rounds` (25M rows) folded into `matches.rounds`, `[winner, loser]` pairs in round order | `round_number` (never read; the order keeps it) | `backfill-rounds` |
+| `match_participants.frames` packed (`src/frames.ts`) | each frame's exact ms: frames keep their minute (the damage curve rounded to it anyway) | `buildFrameSeries` with the timestamp, then `backfill-reparse-participants` |
+| `augments`, `items`, `purchased_item_ids`, `boots_bought`, `boots_sold`: jsonb to `integer[]` | nothing | — |
+
+Per match now: ~15 KB in `arena` (18 participant rows ~14.5 KB, the match row with its rounds
+~0.3 KB), ~80 KB in the archive.
+

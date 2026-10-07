@@ -37,7 +37,7 @@ import { parseArgs } from "node:util";
 import { matchRegion, type Platform, type Region } from "@arena/riot";
 import type { Logger } from "pino";
 import { z } from "zod";
-import { db } from "../src/db.js";
+import { archiveDb, db } from "../src/db.js";
 import { type BadMatch, ingestSummoner, type SkippedMatch } from "../src/ingestion/ingestSummoner.js";
 import { resolveSummonerByRiotId } from "../src/ingestion/resolveSummoner.js";
 import { logger, riotIdLabel } from "../src/logger.js";
@@ -279,7 +279,7 @@ async function crawlLane(lane: Region, leaderboard: Leaderboard) {
         continue;
       }
       name = riotIdLabel(summoner);
-      const result = await ingestSummoner(db, riot, summoner, progressLogger(name, log), {
+      const result = await ingestSummoner(db, archiveDb, riot, summoner, progressLogger(name, log), {
         shouldStop: () => stopRequested,
         onSkip: skipLogger(name, laneLog),
         onBadMatch: badMatchLogger(name, laneLog),
@@ -338,11 +338,11 @@ async function main() {
       ` ${totals.ingested} match(es) stored, ${totals.skipped} failed match(es) skipped, ${totals.bad} bad match(es) found,` +
       ` ${totals.discovered} player(s) discovered, ${totals.failed} failed`,
   );
-  await db.$client.end();
+  await Promise.all([db.$client.end(), archiveDb.$client.end()]);
 }
 
 main().catch(async (err) => {
   scriptLog.error(`aborted: ${errorMessage(err)}`);
-  await db.$client.end().catch(() => {});
+  await Promise.all([db.$client.end().catch(() => {}), archiveDb.$client.end().catch(() => {})]);
   process.exit(1);
 });

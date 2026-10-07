@@ -3,7 +3,14 @@
   // Generated or third-party code is never formatted or linted; .gitignore covers builds and caches.
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
   "files": {
-    "includes": ["**", "!**/next-env.d.ts", "!packages/db/drizzle", "!apps/web/src/vendor", "!apps/web/public"]
+    "includes": [
+      "**",
+      "!**/next-env.d.ts",
+      "!packages/db/drizzle",
+      "!packages/db/drizzle-archive",
+      "!apps/web/src/vendor",
+      "!apps/web/public"
+    ]
   },
   "formatter": { "indentStyle": "space", "lineWidth": 120 },
   "css": { "parser": { "tailwindDirectives": true } },
@@ -48,6 +55,7 @@
       // the hooks), never by Turborepo: turbo.json's env doesn't apply to them.
       "includes": [
         "packages/db/drizzle.config.ts",
+        "packages/db/drizzle.archive.config.ts",
         "packages/db/scripts/**",
         "apps/web/scripts/**",
         ".claude/hooks/**"

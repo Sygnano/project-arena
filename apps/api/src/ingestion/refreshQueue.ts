@@ -1,4 +1,4 @@
-import type { Db } from "@arena/db";
+import type { ArchiveDb, Db } from "@arena/db";
 import { type GatewayHold, matchRegion, REGION_LABEL, type Region, type RiotGateway, toPlatform } from "@arena/riot";
 import type { RefreshProgress } from "@arena/types";
 import { logger } from "../logger.js";
@@ -85,6 +85,7 @@ export class RefreshQueue {
 
   constructor(
     private readonly db: Db,
+    private readonly archive: ArchiveDb,
     private readonly gateway: RiotGateway,
   ) {}
 
@@ -266,6 +267,7 @@ export class RefreshQueue {
     try {
       const { ingested, skipped, bad } = await ingestSummoner(
         this.db,
+        this.archive,
         riot,
         job,
         (progress) => {

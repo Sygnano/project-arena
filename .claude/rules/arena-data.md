@@ -31,13 +31,14 @@ authoritative field mapping. Check a new claim with `pnpm --filter @arena/db que
 - Timeline events are keyed by `participantId`. Join through `timeline.info.participants`
   (`participantId` → `puuid`), never by array position. Event types seen: `ITEM_PURCHASED`,
   `ITEM_SOLD`, `ITEM_DESTROYED`, `ITEM_UNDO`, `WARD_PLACED`, `WARD_KILL`, `CHAMPION_KILL`,
-  `CHAMPION_SPECIAL_KILL`, `LEVEL_UP`, `SKILL_LEVEL_UP`, `GAME_END`. `matches.timeline` is null on
+  `CHAMPION_SPECIAL_KILL`, `LEVEL_UP`, `SKILL_LEVEL_UP`, `GAME_END`. The archived `timeline` is null on
   matches ingested before timelines were fetched.
-- Rounds (`match_rounds`) are derived by `parseRounds.ts`, not sent by Riot: `CHAMPION_KILL`s
-  split into rounds on pauses over 40 s (in-fight gaps are under 30 s, shop phases 55-125 s),
-  teams paired by who killed whom, the fully wiped team loses (the last death breaks a
-  both-wiped tie from revives). `KILL_ACE`/`CHAMPION_SPECIAL_KILL` can't mark rounds. Byes fight a
-  ghost that emits nothing, so they never appear.
+- Rounds (`matches.rounds`, `[winner, loser]` team pairs in round order) are derived by
+  `parseRounds.ts`, not sent by Riot: `CHAMPION_KILL`s split into rounds on pauses over 40 s
+  (in-fight gaps are under 30 s, shop phases 55-125 s), teams paired by who killed whom, the
+  fully wiped team loses (the last death breaks a both-wiped tie from revives).
+  `KILL_ACE`/`CHAMPION_SPECIAL_KILL` can't mark rounds. Byes fight a ghost that emits nothing, so
+  they never appear.
 - Every stored match has `endOfGameResult` `GameComplete`. Placement-0 games (all players on one
   team) exist and are left out of recaps.
 
@@ -111,7 +112,8 @@ authoritative field mapping. Check a new claim with `pnpm --filter @arena/db que
   names and icons in `apps/api/src/leagueData/summonerSpells.ts`).
 - Healing and shielding = `challenges.effectiveHealAndShielding` (rounded). CC score =
   `timeCCingOthers`; `totalTimeCCDealt` is also stored (it counts overlapping CC twice).
-- Damage curve `frames`: one `[t, physical, magical, true]` cumulative tuple per timeline frame.
+- Damage curve `frames`: one `[minute, physical, magical, true]` cumulative tuple per timeline
+  frame, the timestamp rounded to the nearest minute.
   The splits can sum 0-2 below Riot's total. A knocked-out player's frames continue flat until
   the match ends; when summing curves, carry a finished game's last value forward.
 - Pings: one smallint array in `PING_TYPES` order.

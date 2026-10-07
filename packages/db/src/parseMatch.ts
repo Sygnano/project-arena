@@ -1,10 +1,10 @@
 import type { RiotArenaMatchDto, RiotArenaParticipantDto, RiotMatchTimelineDto } from "@arena/types";
+import type { DamageFrame } from "./frames.js";
 import { type matches, type matchParticipants, PING_TYPES } from "./schema.js";
 
-/** A `matches` row without its `raw`/`timeline` blobs: the caller compresses
- * those (`compressJson`, async), and backfills that only re-derive rows
- * don't need them at all. */
-export type ParsedMatch = Omit<typeof matches.$inferInsert, "raw" | "timeline">;
+/** A `matches` row. The blobs go to the archive database, compressed by the
+ * caller (`compressJson`, async). */
+export type ParsedMatch = typeof matches.$inferInsert;
 type NewParticipant = typeof matchParticipants.$inferInsert;
 
 // The 8 Arena anvil item IDs (also used by apps/api/src/leagueData), confirmed via the items' own
@@ -184,18 +184,16 @@ function countAnvilPurchasesByParticipant(timelineDto: RiotMatchTimelineDto): Ma
   return counts;
 }
 
-/** This participant's `[t, physical, magical, true]` cumulative damage to
- * champions at each timeline frame (~1/minute) — see schema.ts's comment on
- * matchParticipants.frames for why only these are kept. */
-function buildFrameSeries(
-  timelineDto: RiotMatchTimelineDto,
-  participantId: number,
-): Array<[number, number, number, number]> {
+/** This participant's cumulative damage to champions at each timeline frame
+ * (~1/minute), the timestamp rounded to the nearest minute (`DamageFrame`) —
+ * see schema.ts's comment on matchParticipants.frames for why only these are
+ * kept. */
+function buildFrameSeries(timelineDto: RiotMatchTimelineDto, participantId: number): DamageFrame[] {
   const key = String(participantId);
   return timelineDto.info.frames.map((frame) => {
     const damage = frame.participantFrames[key].damageStats;
     return [
-      frame.timestamp,
+      Math.round(frame.timestamp / 60_000),
       damage.physicalDamageDoneToChampions,
       damage.magicDamageDoneToChampions,
       damage.trueDamageDoneToChampions,
@@ -207,7 +205,6 @@ export { ARENA_BOOT_ITEM_IDS, LEGENDARY_ANVIL_ITEM_IDS, PRISMATIC_ANVIL_ITEM_ID,
 
 export function parseMatch(
   matchId: string,
-  region: string,
   dto: RiotArenaMatchDto,
   // Optional because a handful of matches were ingested before timelines
   // were fetched at all — re-parsing those can still recover everything
@@ -218,7 +215,6 @@ export function parseMatch(
 
   const match: ParsedMatch = {
     matchId,
-    region,
     gameCreation: new Date(info.gameCreation),
     bannedChampionIds: bannedChampionIds(dto),
   };

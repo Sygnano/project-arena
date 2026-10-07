@@ -6,8 +6,10 @@ export { and, asc, desc, eq, inArray, isNotNull, isNull, lt, or, sql } from "dri
 // export, needed for self-joining match_participants against itself (e.g.
 // pairing a summoner's own row with a teammate's row on matchId+teamId).
 export { alias } from "drizzle-orm/pg-core";
+export * from "./archiveSchema.js";
 export * from "./client.js";
 export * from "./compression.js";
+export * from "./frames.js";
 export * from "./migrate.js";
 export * from "./parseMatch.js";
 export * from "./parseRounds.js";

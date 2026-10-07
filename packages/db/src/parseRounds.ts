@@ -1,7 +1,9 @@
 import type { RiotArenaMatchDto, RiotMatchTimelineDto } from "@arena/types";
-import type { matchRounds } from "./schema.js";
+import type { Duel } from "./schema.js";
 
-type NewMatchRound = typeof matchRounds.$inferInsert;
+/** One duel inside an Arena round: two teams fought and `winnerTeamId`'s team survived.
+ * `roundNumber` is the round's position among rounds that had kills, starting at 1. */
+export type MatchRound = { matchId: string; roundNumber: number; winnerTeamId: number; loserTeamId: number };
 
 /**
  * A pause between two CHAMPION_KILL events longer than this starts a new
@@ -43,11 +45,7 @@ interface Kill {
  * so those never appear as duels. Team size comes from the match itself,
  * never a constant (.claude/rules/arena-data.md).
  */
-export function parseRounds(
-  matchId: string,
-  dto: RiotArenaMatchDto,
-  timelineDto: RiotMatchTimelineDto,
-): NewMatchRound[] {
+export function parseRounds(matchId: string, dto: RiotArenaMatchDto, timelineDto: RiotMatchTimelineDto): MatchRound[] {
   const teamByParticipantId = new Map<number, number>();
   const teamSize = new Map<number, number>();
   // Timeline participantIds join through puuid, not array position.
@@ -84,7 +82,7 @@ export function parseRounds(
     previous = kill.timestamp;
   }
 
-  const result: NewMatchRound[] = [];
+  const result: MatchRound[] = [];
   rounds.forEach((round, index) => {
     const opponentOf = new Map<number, number>();
     let ambiguous = false;
@@ -123,4 +121,12 @@ export function parseRounds(
     }
   });
   return result;
+}
+
+/** `matches.rounds` from `parseRounds()`: the duels in round order (then by winning team, as the
+ * `match_rounds` table they replaced was keyed), as `[winnerTeamId, loserTeamId]` pairs. */
+export function roundsColumn(rounds: readonly MatchRound[]): Duel[] {
+  return [...rounds]
+    .sort((a, b) => a.roundNumber - b.roundNumber || a.winnerTeamId - b.winnerTeamId)
+    .map((round) => [round.winnerTeamId, round.loserTeamId]);
 }

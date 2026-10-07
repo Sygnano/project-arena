@@ -1,4 +1,4 @@
-import { createDb, runMigrations } from "@arena/db";
+import { archiveDatabaseUrl, createArchiveDb, createDb, runArchiveMigrations, runMigrations } from "@arena/db";
 import { env } from "./env.js";
 
 // A migration that can't get its table's lock within this long fails
@@ -23,5 +23,14 @@ export async function applyMigrations() {
     await runMigrations(migrationDb);
   } finally {
     await migrationDb.$client.end({ timeout: 5 });
+  }
+  // The archive database has its own (packages/db/drizzle-archive).
+  const archiveDb = createArchiveDb(archiveDatabaseUrl(env.DATABASE_URL, env.ARCHIVE_DATABASE_URL), {
+    lockTimeoutMs: LOCK_TIMEOUT_MS,
+  });
+  try {
+    await runArchiveMigrations(archiveDb);
+  } finally {
+    await archiveDb.$client.end({ timeout: 5 });
   }
 }

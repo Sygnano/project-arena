@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import Fastify, { type FastifyReply } from "fastify";
-import { db } from "./db.js";
+import { archiveDb, db } from "./db.js";
 import { env } from "./env.js";
 import { logger } from "./logger.js";
 import { applyMigrations } from "./migrations.js";
@@ -90,7 +90,7 @@ app.addHook("preClose", async () => {
 
 // The connection pool closes with the server, after in-flight requests end.
 app.addHook("onClose", async () => {
-  await db.$client.end({ timeout: 5 });
+  await Promise.all([db.$client.end({ timeout: 5 }), archiveDb.$client.end({ timeout: 5 })]);
 });
 
 // A redeploy sends SIGTERM (Ctrl+C sends SIGINT): stop taking requests,

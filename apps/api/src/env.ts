@@ -2,6 +2,9 @@ import { z } from "zod";
 
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  // The archive database (Riot's raw payloads, packages/db/src/archiveSchema.ts). Unset: the
+  // `arena_archive` database on DATABASE_URL's server (`archiveDatabaseUrl`).
+  ARCHIVE_DATABASE_URL: z.string().min(1).optional(),
   // Runs the startup migrations instead of DATABASE_URL when set, so the
   // role serving requests can be one without DDL rights (docs/deployment.md).
   MIGRATION_DATABASE_URL: z.string().min(1).optional(),

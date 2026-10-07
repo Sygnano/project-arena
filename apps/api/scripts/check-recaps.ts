@@ -25,7 +25,7 @@
  */
 import { asc, type Summoner, sql, summoners } from "@arena/db";
 import { isPlatform, matchRegion, type Region, toPlatform } from "@arena/riot";
-import { db } from "../src/db.js";
+import { archiveDb, db } from "../src/db.js";
 import { ingestSummoner } from "../src/ingestion/ingestSummoner.js";
 import { logger, riotIdLabel } from "../src/logger.js";
 import { riotGateway } from "../src/riot.js";
@@ -84,6 +84,7 @@ async function checkLane(lane: Region, list: CheckTarget[]) {
     try {
       const result = await ingestSummoner(
         db,
+        archiveDb,
         riot,
         summoner,
         (progress) => {
@@ -173,11 +174,11 @@ async function main() {
   );
   const failures = results.flatMap((result) => (result.status === "rejected" ? [errorMessage(result.reason)] : []));
   if (failures.length > 0) throw new Error(failures.join("; "));
-  await db.$client.end();
+  await Promise.all([db.$client.end(), archiveDb.$client.end()]);
 }
 
 main().catch(async (err) => {
   scriptLog.error(`aborted: ${errorMessage(err)}`);
-  await db.$client.end().catch(() => {});
+  await Promise.all([db.$client.end().catch(() => {}), archiveDb.$client.end().catch(() => {})]);
   process.exit(1);
 });

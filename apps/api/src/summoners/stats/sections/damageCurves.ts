@@ -23,11 +23,9 @@ function toSeries(points: readonly DamageCurvePoint[]): DamageCurveSeries {
   };
 }
 
-/** `[t (ms), physical, magical, true]` per timeline frame, cumulative damage
- * to champions: `match_participants.frames` as stored. */
+/** `[minute, physical, magical, true]` per timeline frame, cumulative damage
+ * to champions: `match_participants.frames` (`DamageFrame`). */
 type Frames = NonNullable<OwnGame["frames"]>;
-
-const MS_PER_MINUTE = 60_000;
 
 function finalDamage(points: readonly DamageCurvePoint[]): number {
   const last = points[points.length - 1];
@@ -36,14 +34,13 @@ function finalDamage(points: readonly DamageCurvePoint[]): number {
 
 /**
  * One game's cumulative curve, one point per whole minute. Timeline frames
- * land ~every 60s plus a final one at the match's end (e.g. 29:26), so each
- * frame is rounded to its nearest minute and a later frame wins a shared
- * minute (the values are cumulative, so the later one is the truer total).
+ * land ~every 60s plus a final one at the match's end (e.g. 29:26), each
+ * stored at its nearest minute, so a later frame wins a shared minute (the
+ * values are cumulative, so the later one is the truer total).
  */
 function gameCurve(frames: Frames): DamageCurvePoint[] {
   const points: DamageCurvePoint[] = [];
-  for (const [t, physical, magical, trueDamage] of frames) {
-    const minute = Math.round(t / MS_PER_MINUTE);
+  for (const [minute, physical, magical, trueDamage] of frames) {
     const point = {
       minute,
       physical: physical ?? 0,

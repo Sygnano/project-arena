@@ -9,12 +9,20 @@ can re-derive rows from the stored blobs without calling Riot. Riot/Arena data f
 - Only this package depends on `drizzle-orm`. `src/index.ts` re-exports the helpers others need
   (`eq`, `and`, `sql`, ...): add an export there, never a `drizzle-orm` dependency elsewhere (pnpm
   mislinks the second copy and `tsc` reports "Cannot find module 'drizzle-orm'").
-- `matches.raw` and `matches.timeline` are brotli-compressed `bytea`: write with
-  `compressJson()`, read with `decompressJson()`, never a plain object. They can't be queried in
-  SQL; a feature that needs to query into them gets a derived table.
-- Store only what a page reads; the blobs are the archive. Check `TRIMMED_DATA.md` before adding
+- Two databases: `arena` (`src/schema.ts`, `drizzle/`) holds what pages read; `arena_archive`
+  (`src/archiveSchema.ts`, `drizzle-archive/`, `ARCHIVE_DATABASE_URL`, else `arena_archive` on
+  `DATABASE_URL`'s server) holds each match's `raw` and `timeline`. Ingestion writes the archive
+  first. `pnpm db:generate` and `db:migrate` cover both.
+- `raw` and `timeline` are brotli-compressed `bytea`: write with `compressJson()`, read with
+  `decompressJson()`, never a plain object. They can't be queried in SQL; a feature that needs to
+  query into them gets a derived table. Read the archive in batches (`scripts/archived-matches.ts`):
+  it holds tens of GB.
+- Store only what a page reads; the archive holds the rest. Check `TRIMMED_DATA.md` before adding
   a column, and add to it when you drop one.
 - `pings` is a smallint array in `PING_TYPES` order: append new types, never reorder.
+- `match_participants.frames` is packed `bytea` (`src/frames.ts`) and `matches.rounds` a flat
+  `smallint[]`; Drizzle custom types turn both into tuples. Changing the encoding needs a
+  migration that rewrites the stored rows the same way.
 - Each team member's row carries its own `team_id`; team size is derived from the rows.
 
 ## Inspecting real data

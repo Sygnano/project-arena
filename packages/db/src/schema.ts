@@ -1,16 +1,16 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   customType,
   index,
   integer,
-  jsonb,
   pgTable,
   primaryKey,
   smallint,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
+import { type DamageFrame, decodeFrames, encodeFrames } from "./frames.js";
 
 /** Riot's 14 ping counters, in the order `matchParticipants.pings` stores
  * them (`<type>Pings` on the participant DTO). Append new types at the end:
@@ -33,13 +33,24 @@ export const PING_TYPES = [
 ] as const;
 export type PingType = (typeof PING_TYPES)[number];
 
-// Drizzle's pg-core has no built-in `bytea` helper — postgres.js already
-// marshals bytea <-> Buffer natively, so this just tells Drizzle the SQL
-// type name. Used for compressed JSON blobs (see compression.ts) — plain
-// binary data, not something queried with jsonb operators.
-const bytea = customType<{ data: Buffer }>({
-  dataType() {
-    return "bytea";
+// `match_participants.frames`: packed `bytea` on disk (see `encodeFrames`), tuples in code.
+const damageFrames = customType<{ data: DamageFrame[]; driverData: Buffer }>({
+  dataType: () => "bytea",
+  toDriver: (frames) => encodeFrames(frames),
+  fromDriver: (bytes) => decodeFrames(bytes),
+});
+
+/** A match's duels in round order, each `[winnerTeamId, loserTeamId]`. */
+export type Duel = [winnerTeamId: number, loserTeamId: number];
+
+// `matches.rounds`: one flat `smallint[]` on disk (winner, loser, winner, loser…), pairs in code.
+const duels = customType<{ data: Duel[]; driverData: number[] }>({
+  dataType: () => "smallint[]",
+  toDriver: (pairs) => pairs.flat(),
+  fromDriver: (flat) => {
+    const pairs: Duel[] = [];
+    for (let i = 0; i + 1 < flat.length; i += 2) pairs.push([flat[i]!, flat[i + 1]!]);
+    return pairs;
   },
 });
 
@@ -77,34 +88,23 @@ export const summoners = pgTable(
 );
 
 /**
- * One Arena match. `raw` keeps the full Riot Match-V5 payload so the parser
- * can be re-run against already-ingested matches if the parsing logic
- * changes, without re-fetching from Riot.
- *
- * `raw` and `timeline` are brotli-compressed JSON (bytea), not jsonb —
- * measured on real Arena payloads, app-level brotli gets ~13-22x smaller
- * than Postgres's own automatic TOAST compression on the same jsonb data
- * (timelines especially: ~1.3MB raw JSON down to ~65-100KB). Nothing in
- * this codebase queries into these columns with SQL jsonb operators —
- * they're always read whole and parsed in application code — so the
- * tradeoff (no `->`/`@>` queryability) costs nothing today. Use
- * `compressJson`/`decompressJson` from `./compression.js` to read/write.
+ * One Arena match: what pages read about the match itself. Riot's payloads
+ * (`raw`, `timeline`) live in the archive database (`archiveSchema.ts`). The
+ * match's platform is its id's prefix (`platformOfMatch`).
  */
 export const matches = pgTable("matches", {
   matchId: text("match_id").primaryKey(),
-  region: text("region").notNull(),
   gameCreation: timestamp("game_creation", { withTimezone: true }).notNull(),
-  raw: bytea("raw").notNull(),
-  // Raw Match-V5 timeline payload (frame-by-frame events: item purchases,
-  // wards, kills, ...) — not parsed into structured columns yet, kept as-is
-  // for when specific event stats (e.g. item purchase timing) are built.
-  // Nullable because matches ingested before this was added don't have one.
-  timeline: bytea("timeline"),
   // Champion IDs banned from the whole lobby's roll pool (see
   // RiotArenaMatchDto's comment on `info.teams[].bans` — this is lobby-wide,
   // not attributable to a specific team or player, hence living here on
   // `matches` rather than duplicated across every match_participants row).
   bannedChampionIds: integer("banned_champion_ids").array(),
+  /** Every duel of every round, derived from timeline CHAMPION_KILL events by
+   * `parseRounds()` (see its comment for the method and its measured error
+   * rate): Riot sends no per-round data. In round order (`roundsColumn()`).
+   * Empty for matches without a stored timeline. */
+  rounds: duels("rounds").notNull().default(sql`'{}'`),
 });
 
 /**
@@ -131,11 +131,11 @@ export const matchParticipants = pgTable(
     placement: smallint("placement").notNull(),
     championId: integer("champion_id").notNull(),
     championName: text("champion_name").notNull(),
-    // Arena augment IDs selected, in pick order. Stored as jsonb rather
-    // than a fixed-width set of columns since Riot has changed how many
-    // augments a player can hold before (currently 4).
-    augments: jsonb("augments").$type<number[]>().notNull(),
-    items: jsonb("items").$type<number[]>().notNull(),
+    // Arena augment IDs selected, in pick order. An array rather than a
+    // fixed-width set of columns since Riot has changed how many augments a
+    // player can hold before (currently 4).
+    augments: integer("augments").array().notNull(),
+    items: integer("items").array().notNull(),
     kills: integer("kills").notNull(),
     deaths: integer("deaths").notNull(),
     assists: integer("assists").notNull(),
@@ -219,13 +219,13 @@ export const matchParticipants = pgTable(
     // Stored as id arrays rather than counts so the per-boot breakdown
     // (which pair, how often) is recoverable, same reasoning as `augments`.
     // Both null for matches ingested before timelines were fetched.
-    bootsBought: jsonb("boots_bought").$type<number[]>(),
-    bootsSold: jsonb("boots_sold").$type<number[]>(),
+    bootsBought: integer("boots_bought").array(),
+    bootsSold: integer("boots_sold").array(),
     // Every item id bought during the match (timeline ITEM_PURCHASED, undos
     // removed, sales NOT subtracted) — the "did they ever buy X" source that
     // end-of-match `items` can't be, since Arena players sell mid-match.
     // Null for matches ingested before timelines were fetched.
-    purchasedItemIds: jsonb("purchased_item_ids").$type<number[]>(),
+    purchasedItemIds: integer("purchased_item_ids").array(),
 
     damageSelfMitigated: integer("damage_self_mitigated"),
     doubleKills: integer("double_kills"),
@@ -243,14 +243,14 @@ export const matchParticipants = pgTable(
     flawlessAces: integer("flawless_aces"),
     saveAllyFromDeath: integer("save_ally_from_death"),
 
-    /** One `[t, physical, magical, true]` tuple per timeline frame
-     * (~1/minute): ms since game start, then cumulative damage to champions
-     * by type. Feeds the damage curve, which is the only reader. Tuples,
-     * not objects, and only these four fields: see TRIMMED_DATA.md for what
-     * was dropped (gold/xp/level/position/damage taken) and how to recover
-     * it from `matches.timeline`. Null for matches ingested before
-     * timelines were fetched. */
-    frames: jsonb("frames").$type<Array<[t: number, physical: number, magical: number, trueDamage: number]>>(),
+    /** One `[minute, physical, magical, true]` tuple per timeline frame
+     * (~1/minute, see `DamageFrame`): cumulative damage to champions by type.
+     * Feeds the damage curve, which is the only reader. Only these four
+     * fields: see TRIMMED_DATA.md for what was dropped (gold/xp/level/
+     * position/damage taken, the exact ms) and how to recover it from the
+     * archived timeline. Null for matches ingested before timelines were
+     * fetched. */
+    frames: damageFrames("frames"),
   },
   (table) => [
     primaryKey({ columns: [table.matchId, table.puuid] }),
@@ -259,27 +259,6 @@ export const matchParticipants = pgTable(
     // per-summoner stats aggregate filters on.
     index("match_participants_puuid_idx").on(table.puuid),
   ],
-);
-
-/**
- * One duel inside an Arena round: two teams fought and `winnerTeamId`'s
- * team survived. Derived from timeline CHAMPION_KILL events by
- * `parseRounds()` (see its comment for the method and its measured error
- * rate) — Riot sends no per-round data. `roundNumber` is the round's
- * position among rounds that had kills, starting at 1. Matches without a
- * stored timeline have no rows here.
- */
-export const matchRounds = pgTable(
-  "match_rounds",
-  {
-    matchId: text("match_id")
-      .notNull()
-      .references(() => matches.matchId, { onDelete: "cascade" }),
-    roundNumber: smallint("round_number").notNull(),
-    winnerTeamId: integer("winner_team_id").notNull(),
-    loserTeamId: integer("loser_team_id").notNull(),
-  },
-  (table) => [primaryKey({ columns: [table.matchId, table.roundNumber, table.winnerTeamId] })],
 );
 
 /**
