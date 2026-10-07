@@ -13,6 +13,7 @@
     "test": "turbo run test",
     "db:generate": "pnpm --filter @arena/db generate",
     "db:migrate": "pnpm --filter @arena/db migrate",
+    "script:api": "node scripts/run-api-script.mjs",
     "format": "turbo run //#biome:write",
     "biome:check": "biome check .",
     "biome:write": "biome check --write ."
