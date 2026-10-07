@@ -25,7 +25,8 @@ Scoped instructions load on their own when you open files in their folder.
 
 ## Commands
 
-- `pnpm dev`: web :3000, api :3001, gateway :3002. Needs the local Postgres 18 Windows service
+- `pnpm dev`: web :3000, api :3001, gateway :3002 (one alone: `pnpm dev:web`, `dev:api`,
+  `dev:gateway`). Needs the local Postgres 18 Windows service
   `postgresql-x64-18` (role `arena`, databases `arena` and `arena_archive`), plus `.env` files
   from each `.env.example`.
 - `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm format`: Turbo-cached. `lint` is `biome check`
@@ -34,6 +35,8 @@ Scoped instructions load on their own when you open files in their folder.
 - `pnpm db:generate` after editing `packages/db/src/schema.ts`.
 - `pnpm --filter @arena/db query "<sql>"`: read-only SQL against the local database.
 - `pnpm --filter @arena/db match-json <matchId>`: one match's decompressed raw + timeline JSON.
+- `pnpm script:api <file> [args]`: runs `apps/api/scripts/<file>.ts` with apps/api's `.env`
+  (`pnpm script:api crawl --forever`); without a name, lists them.
 - `node apps/web/scripts/screenshot.mjs summoner/<platform>/<Name-TAG>`: screenshots a page of
   the running dev server at the four viewports a slide must fit (no leading slash in Git Bash).
 - Adding a stat to the recap, end to end: the `add-recap-stat` skill.

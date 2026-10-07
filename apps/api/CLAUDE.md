@@ -75,7 +75,7 @@ Riot/Arena data facts: `.claude/rules/arena-data.md`. Deployment: `docs/deployme
   summoner, nothing excluded for good except by its end-of-game result. Missing matches: look in
   `skipped_matches`.
 
-## Scripts (`scripts/`; by hand `pnpm --filter @arena/api <name>`)
+## Scripts (`scripts/`; by hand `pnpm script:api <file> [args]` from the root)
 
 - `crawl` (`--summoners N`; Railway runs `--forever`): one worker per lane, each refreshing a
   never-refreshed summoner. With none left it goes through refreshed ones, oldest

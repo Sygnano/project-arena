@@ -8,6 +8,10 @@ set -eu
 TARGET_HOST="${TARGET_HOST:-100.91.106.50}"
 FORWARD_PORTS="${FORWARD_PORTS:-5432 3002}"
 SOCKET=/tmp/tailscaled.sock
+# Full-size WireGuard packets between the PC and Railway are dropped somewhere on the path: a
+# reply over one packet stalled ~7.5 s until Windows fell back to 536-byte segments. A smaller
+# MTU here makes this end advertise a TCP MSS whose packets fit, WireGuard overhead included.
+export TS_DEBUG_MTU="${TS_DEBUG_MTU:-1200}"
 
 # Userspace networking: Railway containers have no TUN device. No state kept: each deploy joins
 # as a new ephemeral node, and Tailscale removes the old one once it goes offline.
